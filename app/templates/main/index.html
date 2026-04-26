@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ business_name }}{% endblock %}
+
+{% block content %}
+<h1>Hello, {{ user.display_name or user.email }}.</h1>
+<p style="color:var(--pico-muted-color)">
+  Phase 0 skeleton. Phase 1 (Clients + Properties) is the next thing to land here.
+</p>
+
+<section class="stat-grid">
+  <div class="stat-card">
+    <div class="label">Clients</div>
+    <div class="number">{{ client_count }}</div>
+    <a href="{{ url_for('clients.list_clients') }}">View all →</a>
+  </div>
+  <div class="stat-card">
+    <div class="label">Properties</div>
+    <div class="number">{{ property_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Today's jobs</div>
+    <div class="number">—</div>
+    <small>Coming in Phase 2</small>
+  </div>
+  <div class="stat-card">
+    <div class="label">Outstanding invoices</div>
+    <div class="number">—</div>
+    <small>Coming in Phase 3</small>
+  </div>
+</section>
+{% endblock %}

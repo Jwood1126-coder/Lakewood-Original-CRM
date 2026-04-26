@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if prop else "New" }} property — {{ business_name }}{% endblock %}
+
+{% block content %}
+<p style="color:var(--pico-muted-color); margin-bottom:0.2rem">
+  <a href="{{ url_for('clients.view_client', client_id=client.id) }}">← {{ client.name }}</a>
+</p>
+<h1>{{ "Edit" if prop else "New" }} property</h1>
+
+<form method="post" novalidate style="max-width:36rem">
+  {{ form.hidden_tag() }}
+
+  <label for="{{ form.label.id }}">Label</label>
+  {{ form.label() }}
+
+  <label for="{{ form.address_line1.id }}">Address line 1 *</label>
+  {{ form.address_line1() }}
+  {% for err in form.address_line1.errors %}<small class="error">{{ err }}</small>{% endfor %}
+
+  <label for="{{ form.address_line2.id }}">Address line 2</label>
+  {{ form.address_line2() }}
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.city.id }}">City *</label>
+      {{ form.city() }}
+    </div>
+    <div>
+      <label for="{{ form.state.id }}">State *</label>
+      {{ form.state() }}
+    </div>
+    <div>
+      <label for="{{ form.zip_code.id }}">ZIP *</label>
+      {{ form.zip_code() }}
+      {% for err in form.zip_code.errors %}<small class="error">{{ err }}</small>{% endfor %}
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.county.id }}">County</label>
+      {{ form.county() }}
+      <small>Leave blank — auto-filled from ZIP.</small>
+    </div>
+    <div>
+      <label for="{{ form.tax_rate.id }}">Tax rate</label>
+      {{ form.tax_rate() }}
+      <small>Leave blank — defaults to county rate.</small>
+    </div>
+  </div>
+
+  <label for="{{ form.notes.id }}">Notes</label>
+  {{ form.notes() }}
+
+  <div style="display:flex; gap:0.5rem; align-items:center; margin-top:1rem">
+    {{ form.submit(class_="contrast") }}
+    <a href="{{ url_for('properties.view_property', property_id=prop.id) if prop else url_for('clients.view_client', client_id=client.id) }}"
+       role="button" class="secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

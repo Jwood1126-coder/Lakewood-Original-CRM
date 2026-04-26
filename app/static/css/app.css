@@ -1,0 +1,93 @@
+/* Handyman CRM — small overrides on top of Pico.
+   Keep this file short. If it grows past 200 lines, reconsider. */
+
+:root {
+  --pico-form-element-spacing-vertical: 0.6rem;
+  --pico-form-element-spacing-horizontal: 0.8rem;
+}
+
+/* Top nav */
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  margin-bottom: 1.2rem;
+}
+.app-nav .brand {
+  font-weight: 700;
+  margin-right: auto;
+}
+.app-nav a {
+  text-decoration: none;
+}
+.app-nav .logout-form {
+  display: inline;
+  margin: 0;
+}
+.app-nav .logout-form button {
+  background: none;
+  border: none;
+  color: var(--pico-color);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+.app-nav .logout-form button:hover {
+  text-decoration: underline;
+}
+
+/* Flash messages */
+.flash {
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+}
+.flash-error    { background: #fde7e7; color: #8b1a1a; border: 1px solid #f5b5b5; }
+.flash-info     { background: #e6f0fb; color: #1a4f8b; border: 1px solid #aac4e0; }
+.flash-success  { background: #e7f7ea; color: #16641f; border: 1px solid #a5d8b1; }
+.flash-warning  { background: #fdf3d4; color: #7c5a05; border: 1px solid #ecd28a; }
+
+/* Stat cards on dashboard */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.stat-card {
+  background: var(--pico-card-background-color);
+  padding: 1rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--pico-muted-border-color);
+}
+.stat-card .number {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.2rem 0;
+}
+.stat-card .label {
+  color: var(--pico-muted-color);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Tables: compact, with hover */
+.table-rows tr:hover { background: var(--pico-table-row-stripped-background-color); }
+
+/* Mobile-friendly buttons in tables */
+@media (max-width: 640px) {
+  .app-nav { flex-wrap: wrap; }
+  table { font-size: 0.95rem; }
+}
+
+/* Auth pages: centered card */
+.auth-shell {
+  max-width: 28rem;
+  margin: 4rem auto;
+  padding: 2rem 2rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--pico-muted-border-color);
+  background: var(--pico-card-background-color);
+}

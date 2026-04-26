@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ client.name }} — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:baseline; gap:1rem; flex-wrap:wrap">
+  <h1 style="margin:0">{{ client.name }}</h1>
+  <a href="{{ url_for('clients.edit_client', client_id=client.id) }}"
+     style="margin-left:auto">Edit</a>
+  <form method="post" action="{{ url_for('clients.delete_client', client_id=client.id) }}"
+        style="display:inline; margin:0"
+        onsubmit="return confirm('Delete {{ client.name|e }} and all their properties? This cannot be undone.')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="secondary outline">Delete</button>
+  </form>
+</div>
+
+<p style="color:var(--pico-muted-color)">
+  {% if client.phone %}<a href="tel:{{ client.phone }}">📞 {{ client.display_phone }}</a>{% endif %}
+  {% if client.email %} · <a href="mailto:{{ client.email }}">{{ client.email }}</a>{% endif %}
+</p>
+
+{% if client.notes %}
+  <article style="background:var(--pico-card-background-color); padding:1rem">
+    <strong>Notes</strong>
+    <div style="white-space:pre-wrap">{{ client.notes }}</div>
+  </article>
+{% endif %}
+
+<section style="margin-top:2rem">
+  <div style="display:flex; align-items:baseline; gap:1rem">
+    <h2 style="margin:0">Properties</h2>
+    <a href="{{ url_for('properties.new_property', client_id=client.id) }}"
+       role="button" class="contrast" style="margin-left:auto">+ Add property</a>
+  </div>
+
+  {% if client.properties %}
+    <table class="table-rows" style="margin-top:1rem">
+      <thead>
+        <tr><th>Label</th><th>Address</th><th>County</th><th>Tax rate</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in client.properties %}
+          <tr>
+            <td><a href="{{ url_for('properties.view_property', property_id=p.id) }}">{{ p.label }}</a></td>
+            <td>{{ p.address_one_line }}</td>
+            <td>{{ p.county or '—' }}</td>
+            <td>{{ p.tax_rate_percent }}</td>
+            <td><a href="{{ p.maps_url }}" target="_blank" rel="noopener">Map ↗</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p style="color:var(--pico-muted-color); margin-top:1rem">
+      No properties yet for this client.
+      <a href="{{ url_for('properties.new_property', client_id=client.id) }}">Add one.</a>
+    </p>
+  {% endif %}
+</section>
+{% endblock %}

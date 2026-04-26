@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Clients — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap">
+  <h1 style="margin:0">Clients</h1>
+  <a href="{{ url_for('clients.new_client') }}" role="button" class="contrast"
+     style="margin-left:auto">+ New client</a>
+</div>
+
+<form method="get" style="margin-top:1rem">
+  <input type="search"
+         name="q"
+         value="{{ q }}"
+         placeholder="Search by name, phone, or email…"
+         hx-get="{{ url_for('clients.list_clients') }}"
+         hx-trigger="keyup changed delay:300ms, search"
+         hx-target="#client-rows"
+         hx-select="#client-rows tbody"
+         hx-swap="outerHTML"
+         autofocus>
+</form>
+
+<table id="client-rows" class="table-rows">
+  <thead>
+    <tr><th>Name</th><th>Phone</th><th>Email</th><th>Properties</th></tr>
+  </thead>
+  {% include "clients/_rows.html" %}
+</table>
+
+{% if not clients %}
+  <p style="color:var(--pico-muted-color); margin-top:2rem; text-align:center">
+    {% if q %}No clients match "{{ q }}".{% else %}No clients yet. <a href="{{ url_for('clients.new_client') }}">Add your first one.</a>{% endif %}
+  </p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Flask instance folder
+instance/
+
+# Runtime data — keep folder structure, ignore contents
+data/photos/*
+data/backups/*
+data/archive/*
+data/logs/*
+!data/photos/.gitkeep
+!data/backups/.gitkeep
+!data/archive/.gitkeep
+!data/logs/.gitkeep
+
+# Database files (anywhere)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# OS
+desktop.ini

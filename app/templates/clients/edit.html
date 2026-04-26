@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if client else "New" }} client — {{ business_name }}{% endblock %}
+
+{% block content %}
+<h1>{{ "Edit" if client else "New" }} client</h1>
+
+<form method="post" novalidate style="max-width:36rem">
+  {{ form.hidden_tag() }}
+
+  <label for="{{ form.name.id }}">Name *</label>
+  {{ form.name() }}
+  {% for err in form.name.errors %}<small class="error">{{ err }}</small>{% endfor %}
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.phone.id }}">Phone</label>
+      {{ form.phone() }}
+    </div>
+    <div>
+      <label for="{{ form.email.id }}">Email</label>
+      {{ form.email() }}
+    </div>
+  </div>
+
+  <label for="{{ form.notes.id }}">Notes</label>
+  {{ form.notes() }}
+
+  <div style="display:flex; gap:0.5rem; align-items:center; margin-top:1rem">
+    {{ form.submit(class_="contrast") }}
+    <a href="{{ url_for('clients.view_client', client_id=client.id) if client else url_for('clients.list_clients') }}"
+       role="button" class="secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

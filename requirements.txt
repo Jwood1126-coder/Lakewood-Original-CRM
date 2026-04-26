@@ -1,0 +1,43 @@
+# Web framework
+Flask==3.0.3
+Werkzeug==3.0.4
+
+# Database & migrations
+SQLAlchemy==2.0.36
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+alembic==1.13.3
+
+# Auth
+Flask-Login==0.6.3
+Flask-WTF==1.2.2
+WTForms==3.2.1
+argon2-cffi==23.1.0
+
+# Forms / validation helpers
+email-validator==2.2.0
+
+# Photo handling
+Pillow==11.0.0
+
+# Scheduling
+APScheduler==3.10.4
+
+# Anthropic SDK (assistant; Phase 5)
+anthropic==0.39.0
+
+# Backups (Backblaze B2 via S3-compatible API)
+boto3==1.35.49
+
+# PDF generation (Phase 3, programmatic PDF)
+xhtml2pdf==0.2.16
+
+# Production server
+gunicorn==23.0.0
+
+# Config / env
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.3
+pytest-flask==1.3.0
