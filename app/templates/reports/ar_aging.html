@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}A/R aging — Reports{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
+<div class="page-head"><h1>A/R aging</h1></div>
+<p class="muted">As of {{ today.strftime("%b %d, %Y") }}. Open invoice balances bucketed by days past due.</p>
+
+<div class="stat-grid" style="margin-bottom:1rem">
+  {% for key, b in buckets.items() %}
+    <div class="stat-card">
+      <div class="label">{{ b.label }}</div>
+      <div class="number" style="color:{{ 'var(--lo-danger)' if key == 'over_90' else ('var(--lo-warning)' if key in ('31_60','61_90') else 'inherit') }}">${{ '%.2f'|format(b.cents/100) }}</div>
+      <small class="muted">{{ b.invoices|length }} invoice{{ 's' if b.invoices|length != 1 else '' }}</small>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <strong>Total open A/R: ${{ '%.2f'|format(grand_total/100) }}</strong>
+</div>
+
+<h2 style="font-size:1.1rem; margin-top:1.5rem">By client</h2>
+<table class="table-rows table-cards">
+  <thead>
+    <tr><th>Client</th><th>Current</th><th>1–30</th><th>31–60</th><th>61–90</th><th>90+</th><th>Total</th></tr>
+  </thead>
+  <tbody>
+    {% for c in by_client %}
+      <tr>
+        <td data-label="Client"><a href="{{ url_for('clients.view_client', client_id=c.client.id) }}">{{ c.client.name }}</a></td>
+        <td data-label="Current">${{ '%.2f'|format(c.current/100) }}</td>
+        <td data-label="1–30">${{ '%.2f'|format(c['1_30']/100) }}</td>
+        <td data-label="31–60">${{ '%.2f'|format(c['31_60']/100) }}</td>
+        <td data-label="61–90">${{ '%.2f'|format(c['61_90']/100) }}</td>
+        <td data-label="90+" style="{{ 'color:var(--lo-danger);font-weight:600' if c.over_90 > 0 else '' }}">${{ '%.2f'|format(c.over_90/100) }}</td>
+        <td data-label="Total"><strong>${{ '%.2f'|format(c.total/100) }}</strong></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">No outstanding balances. 🎉</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 style="font-size:1.1rem; margin-top:1.5rem">Detail</h2>
+{% for key, b in buckets.items() %}
+  {% if b.invoices %}
+    <h3 style="font-size:1rem">{{ b.label }} — ${{ '%.2f'|format(b.cents/100) }}</h3>
+    <table class="table-rows table-cards" style="margin-bottom:1rem">
+      <thead>
+        <tr><th>Invoice</th><th>Client</th><th>Due</th><th>Days past</th><th>Balance</th></tr>
+      </thead>
+      <tbody>
+        {% for item in b.invoices %}
+          <tr>
+            <td data-label="Invoice"><a href="{{ url_for('invoices.view_invoice', invoice_id=item.inv.id) }}">#{{ item.inv.number }}</a> — {{ item.inv.subject }}</td>
+            <td data-label="Client">{{ item.inv.client.name }}</td>
+            <td data-label="Due">{{ item.inv.due_date.isoformat() if item.inv.due_date else '—' }}</td>
+            <td data-label="Days past">{{ item.days_past_due if item.days_past_due > 0 else '—' }}</td>
+            <td data-label="Balance">${{ '%.2f'|format(item.inv.balance_cents/100) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endfor %}
+{% endblock %}

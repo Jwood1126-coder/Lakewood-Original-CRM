@@ -9,7 +9,14 @@ from pathlib import Path
 from flask import Flask
 
 from app.config import Config, TestConfig
-from app.extensions import csrf, db, init_login_manager, login_manager, migrate
+from app.extensions import (
+    csrf,
+    db,
+    init_login_manager,
+    limiter,
+    login_manager,
+    migrate,
+)
 
 
 def create_app(config_class: type[Config] = Config) -> Flask:
@@ -56,6 +63,10 @@ def _init_extensions(app: Flask) -> None:
     login_manager.init_app(app)
     init_login_manager(app)
     csrf.init_app(app)
+    # Disable the rate limiter in TESTING so tests don't get throttled
+    if app.config.get("TESTING"):
+        limiter.enabled = False
+    limiter.init_app(app)
 
 
 def _register_blueprints(app: Flask) -> None:
@@ -67,6 +78,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.main.routes import bp as main_bp
     from app.properties.routes import bp as properties_bp
     from app.quotes.routes import bp as quotes_bp
+    from app.reports.routes import bp as reports_bp
     from app.settings.routes import bp as settings_bp
 
     app.register_blueprint(main_bp)
@@ -76,6 +88,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(jobs_bp, url_prefix="/jobs")
     app.register_blueprint(quotes_bp, url_prefix="/quotes")
     app.register_blueprint(invoices_bp, url_prefix="/invoices")
+    app.register_blueprint(reports_bp, url_prefix="/reports")
     app.register_blueprint(assistant_bp, url_prefix="/assistant")
     app.register_blueprint(settings_bp, url_prefix="/settings")
 
@@ -130,6 +143,10 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(500)
     def server_error(_):
         return render_template("errors/500.html"), 500
+
+    @app.errorhandler(429)
+    def too_many_requests(_):
+        return render_template("errors/429.html"), 429
 
 
 def _configure_logging(app: Flask) -> None:

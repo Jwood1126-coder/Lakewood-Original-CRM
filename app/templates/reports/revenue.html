@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Revenue — Reports{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
+<div class="page-head">
+  <h1>Revenue</h1>
+  <div class="actions">
+    <a href="?from={{ d_from.isoformat() }}&to={{ d_to.isoformat() }}&format=csv"
+       role="button" class="secondary outline">Download CSV</a>
+  </div>
+</div>
+<p class="muted">{{ label }}</p>
+
+{% include "reports/_range_picker.html" %}
+
+<div class="stat-grid" style="margin-bottom:1rem">
+  <div class="stat-card">
+    <div class="label">Cash received</div>
+    <div class="number" style="color:var(--lo-success)">${{ '%.2f'|format(grand.received_cents/100) }}</div>
+    <small class="muted">{{ grand.payment_count }} payments</small>
+  </div>
+  <div class="stat-card">
+    <div class="label">Billed (accrual)</div>
+    <div class="number">${{ '%.2f'|format(grand.billed_cents/100) }}</div>
+    <small class="muted">invoices sent in range</small>
+  </div>
+</div>
+
+<h2 style="font-size:1.1rem">By month</h2>
+<table class="table-rows table-cards">
+  <thead>
+    <tr><th>Month</th><th>Billed</th><th>Received</th><th>Payments</th></tr>
+  </thead>
+  <tbody>
+    {% for m, b in monthly %}
+      <tr>
+        <td data-label="Month">{{ m }}</td>
+        <td data-label="Billed">${{ '%.2f'|format(b.billed_cents/100) }}</td>
+        <td data-label="Received">${{ '%.2f'|format(b.received_cents/100) }}</td>
+        <td data-label="Payments">{{ b.payment_count }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No activity in this range.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if top_clients %}
+<h2 style="font-size:1.1rem; margin-top:1.5rem">Top clients (by cash received)</h2>
+<table class="table-rows table-cards">
+  <thead>
+    <tr><th>Client</th><th>Received</th></tr>
+  </thead>
+  <tbody>
+    {% for c in top_clients %}
+      <tr>
+        <td data-label="Client">{{ c.name }}</td>
+        <td data-label="Received">${{ '%.2f'|format(c.received_cents/100) }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<p class="muted" style="margin-top:1rem; font-size:0.85rem">
+  <strong>Cash basis</strong>: revenue = payments received in the period. Matches your bank deposits.<br>
+  <strong>Accrual basis</strong>: revenue = invoices sent in the period. Matches when work was billed.<br>
+  Most small contractors file taxes on cash basis.
+</p>
+{% endblock %}

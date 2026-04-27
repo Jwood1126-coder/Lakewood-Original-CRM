@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Slow down{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <h1>Too many attempts</h1>
+  <p>Wait a minute and try again. If you forgot your password, the recovery
+  flow is documented in <code>RESTORE.md</code>.</p>
+  <p><a href="{{ url_for('auth.login') }}" role="button" class="contrast">Back to login</a></p>
+</div>
+{% endblock %}

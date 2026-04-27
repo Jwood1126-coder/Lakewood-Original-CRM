@@ -116,7 +116,20 @@ class Invoice(db.Model):
 
     @property
     def paid_cents(self) -> int:
-        return sum(p.amount_cents for p in self.payments)
+        # Query directly so a freshly-added Payment in the same transaction
+        # is included even if the relationship collection hasn't refreshed.
+        # When the invoice itself isn't persisted yet, fall back to the
+        # in-memory list (no payments could exist anyway).
+        if self.id is None:
+            return sum(p.amount_cents for p in (self.payments or []))
+        from sqlalchemy import func, select
+        from app.extensions import db
+        from app.models.payment import Payment as _Payment
+        total = db.session.scalar(
+            select(func.coalesce(func.sum(_Payment.amount_cents), 0))
+            .where(_Payment.invoice_id == self.id)
+        )
+        return int(total or 0)
 
     @property
     def balance_cents(self) -> int:

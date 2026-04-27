@@ -29,6 +29,7 @@
         <a href="{{ url_for('quotes.list_quotes') }}" {% if request.blueprint == 'quotes' %}class="active"{% endif %}>Quotes</a>
         <a href="{{ url_for('invoices.list_invoices') }}" {% if request.blueprint == 'invoices' %}class="active"{% endif %}>Invoices</a>
         <a href="{{ url_for('clients.list_clients') }}" {% if request.blueprint == 'clients' or request.blueprint == 'properties' %}class="active"{% endif %}>Clients</a>
+        <a href="{{ url_for('reports.index') }}" {% if request.blueprint == 'reports' %}class="active"{% endif %}>Reports</a>
         <a href="{{ url_for('assistant.index') }}" {% if request.blueprint == 'assistant' %}class="active"{% endif %}>Assistant</a>
         <a href="{{ url_for('main.inbox') }}" {% if request.endpoint == 'main.inbox' %}class="active"{% endif %}>
           Inbox{% if unread_count %} <span class="badge">{{ unread_count }}</span>{% endif %}
@@ -88,6 +89,7 @@
           <a href="{{ url_for('jobs.list_jobs') }}" class="card" style="text-decoration:none; color:inherit; display:block">🧰 Jobs</a>
           <a href="{{ url_for('quotes.list_quotes') }}" class="card" style="text-decoration:none; color:inherit; display:block">📋 Quotes</a>
           <a href="{{ url_for('invoices.list_invoices') }}" class="card" style="text-decoration:none; color:inherit; display:block">🧾 Invoices</a>
+          <a href="{{ url_for('reports.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">📊 Reports</a>
           <a href="{{ url_for('main.inbox') }}" class="card" style="text-decoration:none; color:inherit; display:block">
             📬 Inbox {% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}
           </a>

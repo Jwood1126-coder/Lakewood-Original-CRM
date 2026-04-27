@@ -5,6 +5,8 @@ here avoids circular imports and lets tests use the same instances.
 """
 from __future__ import annotations
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -16,6 +18,13 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+# In-memory rate limiter — fine for one Gunicorn worker (our deploy target).
+# If we ever scale to multiple workers, swap storage_uri to redis://.
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[],   # opt-in per route
+    storage_uri="memory://",
+)
 
 
 # Apply SQLite pragmas (WAL, foreign keys) on every new connection.

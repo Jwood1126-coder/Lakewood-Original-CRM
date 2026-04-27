@@ -17,7 +17,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import select
 
 from app.auth.forms import ChangePasswordForm, LoginForm
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models.user import User
 
 bp = Blueprint("auth", __name__, template_folder="../templates/auth")
@@ -36,6 +36,7 @@ def _is_safe_url(target: str) -> bool:
 
 
 @bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("8 per minute; 30 per hour", methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Sales tax — Reports{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
+<div class="page-head">
+  <h1>Sales tax collected</h1>
+  <div class="actions">
+    <a href="?from={{ d_from.isoformat() }}&to={{ d_to.isoformat() }}&format=csv"
+       role="button" class="secondary outline">Download CSV</a>
+  </div>
+</div>
+<p class="muted">{{ label }} · accrual basis (recognized when invoice was sent).</p>
+
+{% include "reports/_range_picker.html" %}
+
+<div class="stat-grid" style="margin-bottom:1rem">
+  <div class="stat-card">
+    <div class="label">Subtotal billed</div>
+    <div class="number">${{ '%.2f'|format(grand.subtotal_cents/100) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Taxable subtotal</div>
+    <div class="number">${{ '%.2f'|format(grand.taxable_cents/100) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Tax collected</div>
+    <div class="number" style="color:var(--lo-accent)">${{ '%.2f'|format(grand.tax_cents/100) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Invoices</div>
+    <div class="number">{{ grand.count }}</div>
+  </div>
+</div>
+
+<h2 style="font-size:1.1rem">By month</h2>
+<table class="table-rows table-cards">
+  <thead>
+    <tr><th>Month</th><th>Invoices</th><th>Subtotal</th><th>Taxable</th><th>Tax</th></tr>
+  </thead>
+  <tbody>
+    {% for m, b in monthly %}
+      <tr>
+        <td data-label="Month">{{ m }}</td>
+        <td data-label="Invoices">{{ b.count }}</td>
+        <td data-label="Subtotal">${{ '%.2f'|format(b.subtotal_cents/100) }}</td>
+        <td data-label="Taxable">${{ '%.2f'|format(b.taxable_cents/100) }}</td>
+        <td data-label="Tax">${{ '%.2f'|format(b.tax_cents/100) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">No invoices in this range.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 style="font-size:1.1rem; margin-top:1.5rem">Per-invoice detail</h2>
+<table class="table-rows table-cards">
+  <thead>
+    <tr><th>Invoice</th><th>Sent</th><th>Client</th><th>County</th><th>Subtotal</th><th>Tax</th><th>Total</th></tr>
+  </thead>
+  <tbody>
+    {% for inv in invoices %}
+      <tr>
+        <td data-label="Invoice"><a href="{{ url_for('invoices.view_invoice', invoice_id=inv.id) }}">#{{ inv.number }}</a></td>
+        <td data-label="Sent">{{ inv.sent_at.strftime("%Y-%m-%d") if inv.sent_at else '—' }}</td>
+        <td data-label="Client">{{ inv.client.name }}</td>
+        <td data-label="County">{{ inv.prop.county or '—' }}</td>
+        <td data-label="Subtotal">${{ '%.2f'|format(inv.subtotal_cents/100) }}</td>
+        <td data-label="Tax">${{ '%.2f'|format(inv.tax_cents/100) }}</td>
+        <td data-label="Total">${{ '%.2f'|format(inv.total_cents/100) }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
