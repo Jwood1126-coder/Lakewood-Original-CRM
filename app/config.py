@@ -93,7 +93,7 @@ class Config:
 
     # --- Anthropic (Phase 5) ---
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-    ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+    ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7")
 
     # --- Gmail SMTP (Phase 4.5) ---
     GMAIL_USER = os.environ.get("GMAIL_USER")
