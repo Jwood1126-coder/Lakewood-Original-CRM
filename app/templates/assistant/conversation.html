@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ conv.title or 'Chat' }} — Assistant{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem">
+  <a href="{{ url_for('assistant.index') }}">← All chats</a>
+</p>
+
+<div class="page-head">
+  <h1 style="font-size:1.2rem">{{ conv.title or 'New chat' }}</h1>
+  <div class="actions">
+    <form method="post" action="{{ url_for('assistant.delete', conversation_id=conv.id) }}"
+          style="margin:0" onsubmit="return confirm('Delete this conversation?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline" style="font-size:0.85rem">Delete</button>
+    </form>
+  </div>
+</div>
+
+<div class="chat-thread">
+  {% if not conv.messages %}
+    <div class="empty">
+      <p>Try: "What's on for today?" · "Who is Mrs. Anderson?" · "What's overdue?"</p>
+    </div>
+  {% endif %}
+  {% for m in conv.messages %}
+    <div class="bubble bubble-{{ m.role }}">
+      {% if m.role == 'assistant' %}
+        <div class="bubble-meta">Assistant</div>
+      {% elif m.role == 'user' %}
+        <div class="bubble-meta">You</div>
+      {% endif %}
+      <div class="bubble-body">{{ m.content }}</div>
+      {% if m.role == 'assistant' and m.tool_calls_json %}
+        <details class="bubble-tools">
+          <summary>tools called</summary>
+          <pre>{{ m.tool_calls_json }}</pre>
+        </details>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<form method="post" action="{{ url_for('assistant.send', conversation_id=conv.id) }}"
+      class="chat-input-bar">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <textarea name="message" rows="2" placeholder="Ask anything…" required autofocus
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.submit();}"></textarea>
+  <button type="submit" class="contrast">Send</button>
+</form>
+
+<style>
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.bubble {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  max-width: 90%;
+}
+.bubble-user      { align-self: flex-end;   border-color: var(--lo-accent); }
+.bubble-assistant { align-self: flex-start; border-left: 3px solid var(--lo-accent); }
+.bubble-meta {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pico-muted-color);
+  margin-bottom: 0.2rem;
+}
+.bubble-body { white-space: pre-wrap; word-wrap: break-word; line-height: 1.4; }
+.bubble-tools { margin-top: 0.4rem; font-size: 0.78rem; color: var(--pico-muted-color); }
+.bubble-tools pre {
+  background: var(--pico-card-sectioning-background-color);
+  padding: 0.4rem; border-radius: 6px; max-height: 18rem; overflow: auto;
+  font-size: 0.7rem;
+}
+.chat-input-bar {
+  display: flex; gap: 0.5rem; align-items: flex-end;
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  padding: 0.6rem; border-radius: 12px;
+  margin: 0.4rem 0 1rem;
+}
+.chat-input-bar textarea { flex: 1; margin: 0; min-height: 44px; resize: vertical; }
+.chat-input-bar button { white-space: nowrap; }
+</style>
+{% endblock %}

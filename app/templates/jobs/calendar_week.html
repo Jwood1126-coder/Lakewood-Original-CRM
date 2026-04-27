@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Calendar — {{ label }}{% endblock %}
+
+{% block content %}
+{% include "jobs/_cal_nav.html" %}
+
+<div class="cal-week">
+  {% for d in days %}
+    <div class="cal-day {% if d == today %}today{% endif %}">
+      <div class="cal-day-head">
+        <a href="{{ url_for('jobs.calendar', view='day', date=d.isoformat()) }}"
+           style="text-decoration:none; color:inherit; flex:1">
+          <span>{{ d.strftime("%a") }}</span>
+          <span class="cal-day-num">{{ d.day }}</span>
+        </a>
+      </div>
+      {% for j in by_day[d] %}
+        <a href="{{ url_for('jobs.view_job', job_id=j.id) }}" class="cal-job status-{{ j.status }}">
+          {% if j.scheduled_time %}<span class="t">{{ j.time_display }}</span> · {% endif %}{{ j.title }}<br>
+          <small class="muted">{{ j.client.name }}</small>
+        </a>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

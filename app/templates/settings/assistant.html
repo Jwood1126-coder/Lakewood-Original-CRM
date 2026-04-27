@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Assistant settings — {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "settings/_back.html" %}
+<div class="page-head"><h1>Claude assistant</h1></div>
+
+{% if not has_api_key %}
+<div class="flash flash-warning">
+  <strong>No Anthropic API key.</strong> Set <code>ANTHROPIC_API_KEY</code>
+  in your Railway service variables, then reload this page. Until then, the
+  assistant button shows a friendly stub.
+</div>
+{% endif %}
+
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="card" style="margin-bottom:1rem">
+    <label style="display:flex; align-items:center; gap:0.6rem">
+      {{ form.enabled() }}
+      <strong>Enable assistant</strong>
+    </label>
+  </div>
+
+  <label for="{{ form.model.id }}">Model</label>
+  {{ form.model() }}
+  <small class="muted">Opus is smartest but ~5× the cost of Sonnet. Haiku is cheapest but less capable for tool use.</small>
+
+  <label for="{{ form.system_prompt.id }}" style="margin-top:1rem">System prompt</label>
+  {{ form.system_prompt() }}
+  <small class="muted">
+    This is the assistant's persistent instructions ("CLAUDE.md"). Update it anytime
+    to teach the assistant about your preferences, customers, work hours, etc.
+    Stored on the persistent volume; survives deploys.
+  </small>
+
+  <div class="btn-row" style="margin-top:1rem">
+    {{ form.submit(class_="contrast") }}
+    <a href="{{ url_for('assistant.index') }}" role="button" class="secondary">Open chat</a>
+  </div>
+</form>
+{% endblock %}

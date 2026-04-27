@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="{{ app_theme or 'dark' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,10 +21,14 @@
       </a>
       <nav class="topbar-nav">
         <a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>Today</a>
-        <a href="{{ url_for('jobs.calendar') }}" {% if request.blueprint == 'jobs' and request.endpoint != 'jobs.list_jobs' %}class="active"{% endif %}>Calendar</a>
+        <a href="{{ url_for('jobs.calendar') }}" {% if request.endpoint == 'jobs.calendar' %}class="active"{% endif %}>Calendar</a>
         <a href="{{ url_for('jobs.list_jobs') }}" {% if request.endpoint == 'jobs.list_jobs' %}class="active"{% endif %}>Jobs</a>
         <a href="{{ url_for('clients.list_clients') }}" {% if request.blueprint == 'clients' or request.blueprint == 'properties' %}class="active"{% endif %}>Clients</a>
-        <a href="{{ url_for('auth.change_password') }}" {% if request.endpoint == 'auth.change_password' %}class="active"{% endif %}>Settings</a>
+        <a href="{{ url_for('assistant.index') }}" {% if request.blueprint == 'assistant' %}class="active"{% endif %}>Assistant</a>
+        <a href="{{ url_for('main.inbox') }}" {% if request.endpoint == 'main.inbox' %}class="active"{% endif %}>
+          Inbox{% if unread_count %} <span class="badge">{{ unread_count }}</span>{% endif %}
+        </a>
+        <a href="{{ url_for('settings.index') }}" {% if request.blueprint == 'settings' %}class="active"{% endif %}>Settings</a>
         <form action="{{ url_for('auth.logout') }}" method="post" class="logout-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="logout-btn" aria-label="Sign out">Sign out</button>
@@ -47,17 +51,19 @@
       <a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>
         <span class="ic">🏠</span><span class="lbl">Today</span>
       </a>
-      <a href="{{ url_for('jobs.calendar') }}" {% if request.blueprint == 'jobs' and request.endpoint != 'jobs.list_jobs' %}class="active"{% endif %}>
+      <a href="{{ url_for('jobs.calendar') }}" {% if request.endpoint == 'jobs.calendar' %}class="active"{% endif %}>
         <span class="ic">📅</span><span class="lbl">Calendar</span>
       </a>
-      <a href="{{ url_for('jobs.new_job') }}" class="bottombar-fab" aria-label="New job">
-        <span class="ic">＋</span>
+      <a href="{{ url_for('assistant.index') }}" class="bottombar-fab" aria-label="Assistant">
+        <span class="ic">✨</span>
       </a>
       <a href="{{ url_for('jobs.list_jobs') }}" {% if request.endpoint == 'jobs.list_jobs' %}class="active"{% endif %}>
         <span class="ic">🧰</span><span class="lbl">Jobs</span>
       </a>
-      <a href="{{ url_for('clients.list_clients') }}" {% if request.blueprint == 'clients' or request.blueprint == 'properties' %}class="active"{% endif %}>
-        <span class="ic">👥</span><span class="lbl">Clients</span>
+      <a href="{{ url_for('main.inbox') }}" {% if request.endpoint == 'main.inbox' %}class="active"{% endif %}
+         style="position:relative">
+        <span class="ic">📬</span><span class="lbl">Inbox</span>
+        {% if unread_count %}<span class="badge bottombar-badge">{{ unread_count }}</span>{% endif %}
       </a>
     </nav>
   {% endif %}

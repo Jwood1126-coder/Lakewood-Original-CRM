@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Theme — {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "settings/_back.html" %}
+<div class="page-head"><h1>Theme</h1></div>
+
+<form method="post" novalidate style="max-width:32rem">
+  {{ form.hidden_tag() }}
+  <div class="card-list">
+    {% for value, label in themes %}
+      <label class="card" style="cursor:pointer; display:flex; align-items:center; gap:0.7rem">
+        <input type="radio" name="theme" value="{{ value }}"
+               {% if form.theme.data == value %}checked{% endif %}
+               style="margin:0; flex:0 0 auto">
+        <div>
+          <strong>{{ label }}</strong>
+          <div class="muted" style="font-size:0.85rem">
+            {% if value == 'dark' %}Comfortable dark UI with amber accents.
+            {% elif value == 'amoled' %}Pure black background — easier on OLED phone screens at night.
+            {% elif value == 'light' %}Crisp light theme for daytime / bright outdoor use.{% endif %}
+          </div>
+        </div>
+      </label>
+    {% endfor %}
+  </div>
+  {{ form.submit(class_="contrast", style="margin-top:1rem") }}
+</form>
+{% endblock %}

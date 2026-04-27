@@ -48,24 +48,60 @@ def _init_extensions(app: Flask) -> None:
 
 
 def _register_blueprints(app: Flask) -> None:
+    from app.assistant.routes import bp as assistant_bp
     from app.auth.routes import bp as auth_bp
     from app.clients.routes import bp as clients_bp
     from app.jobs.routes import bp as jobs_bp
     from app.main.routes import bp as main_bp
     from app.properties.routes import bp as properties_bp
+    from app.settings.routes import bp as settings_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(clients_bp, url_prefix="/clients")
     app.register_blueprint(properties_bp, url_prefix="/properties")
     app.register_blueprint(jobs_bp, url_prefix="/jobs")
+    app.register_blueprint(assistant_bp, url_prefix="/assistant")
+    app.register_blueprint(settings_bp, url_prefix="/settings")
 
 
 def _register_context(app: Flask) -> None:
+    from flask_login import current_user
+
     @app.context_processor
     def inject_globals():
+        # Lazy imports to avoid circulars at module load
+        from sqlalchemy import func, select
+        from app.extensions import db
+        from app.models.notification import Notification
+        from app.models.setting import get_setting
+
+        theme = "dark"
+        try:
+            if current_user.is_authenticated:
+                theme = current_user.theme or "dark"
+        except Exception:
+            pass
+
+        try:
+            business_name = get_setting("business_name") or app.config["BUSINESS_NAME"]
+        except Exception:
+            business_name = app.config["BUSINESS_NAME"]
+
+        unread = 0
+        try:
+            if current_user.is_authenticated:
+                unread = db.session.scalar(
+                    select(func.count(Notification.id))
+                    .where(Notification.read_at.is_(None))
+                ) or 0
+        except Exception:
+            pass
+
         return {
-            "business_name": app.config["BUSINESS_NAME"],
+            "business_name": business_name,
+            "app_theme": theme,
+            "unread_count": unread,
         }
 
 

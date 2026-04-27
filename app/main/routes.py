@@ -1,16 +1,17 @@
-"""Main blueprint — home dashboard ("Today" view), health endpoint."""
+"""Main blueprint — home dashboard ("Today" view), inbox, health."""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
-from flask import Blueprint, jsonify, render_template
+from flask import Blueprint, flash, jsonify, redirect, render_template, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
 from app.models.client import Client
 from app.models.job import Job
+from app.models.notification import Notification
 from app.models.property import Property
 
 bp = Blueprint("main", __name__)
@@ -72,6 +73,33 @@ def index():
         open_count=open_count,
         client_count=client_count,
     )
+
+
+@bp.route("/inbox")
+@login_required
+def inbox():
+    notifications = db.session.scalars(
+        select(Notification).order_by(Notification.created_at.desc()).limit(50)
+    ).all()
+    # Mark as read on view (a single-user app — viewing == reading)
+    for n in notifications:
+        if n.read_at is None:
+            n.read_at = datetime.utcnow()
+    db.session.commit()
+    return render_template("main/inbox.html", notifications=notifications)
+
+
+@bp.route("/inbox/mark-all-read", methods=["POST"])
+@login_required
+def inbox_mark_all_read():
+    db.session.execute(
+        update(Notification)
+        .where(Notification.read_at.is_(None))
+        .values(read_at=datetime.utcnow())
+    )
+    db.session.commit()
+    flash("Inbox cleared.", "success")
+    return redirect(url_for("main.inbox"))
 
 
 @bp.route("/health")

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Notifications — {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "settings/_back.html" %}
+<div class="page-head"><h1>Notifications</h1></div>
+
+{% if not has_email %}
+<div class="flash flash-warning">
+  Gmail SMTP isn't configured, so notifications will only show in the in-app
+  inbox. To enable email: set <code>GMAIL_USER</code> and
+  <code>GMAIL_APP_PASSWORD</code> in Railway env vars
+  (<a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">generate App Password ↗</a>).
+</div>
+{% endif %}
+
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="card">
+    <h3 style="margin-top:0; font-size:1rem">Schedule</h3>
+    <label style="display:flex; align-items:center; gap:0.6rem">
+      {{ form.daily_briefing() }} Daily morning briefing
+    </label>
+    <div style="margin-left:1.7rem; margin-top:0.4rem">
+      <label for="{{ form.daily_time.id }}">Time</label>
+      {{ form.daily_time(style="max-width:9rem") }}
+      <small class="muted">24-hour, your local timezone (set in <code>APP_TIMEZONE</code> env var)</small>
+    </div>
+    <hr>
+    <label style="display:flex; align-items:center; gap:0.6rem">
+      {{ form.weekly_briefing() }} Weekly look-ahead — Sundays at 5pm
+    </label>
+    <hr>
+    <label style="display:flex; align-items:center; gap:0.6rem">
+      {{ form.monthly_report() }} Monthly report — 1st of each month at 8am
+    </label>
+    <hr>
+    <label style="display:flex; align-items:center; gap:0.6rem">
+      {{ form.job_day_reminder() }} Reminder the morning of each scheduled job
+    </label>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3 style="margin-top:0; font-size:1rem">Channels</h3>
+    <p class="muted" style="margin-top:0">In-app inbox is always on. Email is in addition.</p>
+    <label style="display:flex; align-items:center; gap:0.6rem">
+      {{ form.email_channel() }} Email channel
+    </label>
+    <label for="{{ form.notify_email_to.id }}" style="margin-top:0.6rem">Send email to</label>
+    {{ form.notify_email_to() }}
+    <small class="muted">Default: yourself.</small>
+  </div>
+
+  <div class="btn-row" style="margin-top:1rem">
+    {{ form.submit(class_="contrast") }}
+  </div>
+</form>
+
+<hr>
+
+<h3>Test</h3>
+<div class="btn-row">
+  <form method="post" action="{{ url_for('settings.notifications_test_email') }}" style="margin:0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="secondary outline">Send test email</button>
+  </form>
+  <form method="post" action="{{ url_for('settings.notifications_send_briefing') }}" style="margin:0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="secondary outline">Build today's briefing now</button>
+  </form>
+</div>
+{% endblock %}

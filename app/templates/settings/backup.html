@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Backups — {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "settings/_back.html" %}
+<div class="page-head">
+  <h1>Backups</h1>
+  <div class="actions">
+    <form method="post" action="{{ url_for('settings.backup_run') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">💾 Backup now</button>
+    </form>
+  </div>
+</div>
+
+<p class="muted">
+  Backups run nightly at 03:00 local time. Each backup is a tarball of the
+  SQLite snapshot, photos, and CLAUDE.md. If Backblaze B2 env vars are set,
+  the tarball is uploaded off-site too. Local copies are pruned after 7 days.
+</p>
+
+{% if backups %}
+<div class="card-list">
+  {% for b in backups %}
+    <div class="card" style="display:flex; align-items:center; gap:0.6rem">
+      <div style="flex:1; min-width:0">
+        <strong>{{ b.when.strftime("%a %b %d, %I:%M %p") }} UTC</strong>
+        <div class="muted" style="font-size:0.85rem; word-break:break-all">{{ b.name }} · {{ b.size_kb }} KB</div>
+      </div>
+      <a href="{{ url_for('settings.backup_download', name=b.name) }}"
+         role="button" class="secondary outline" style="font-size:0.85rem">Download</a>
+    </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-icon">💾</div>
+  <p>No backups yet. Click "Backup now" above to make the first one.</p>
+</div>
+{% endif %}
+{% endblock %}

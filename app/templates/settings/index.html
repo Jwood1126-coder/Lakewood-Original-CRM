@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Settings — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Settings</h1>
+</div>
+
+<div class="card-list">
+
+  <a href="{{ url_for('settings.profile') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>👤 Profile</strong>
+    <div class="muted" style="font-size:0.9rem">{{ current_user.email }}{% if current_user.display_name %} · {{ current_user.display_name }}{% endif %}</div>
+  </a>
+
+  <a href="{{ url_for('settings.theme') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>🎨 Theme</strong>
+    <div class="muted" style="font-size:0.9rem">Currently: {{ current_user.theme|capitalize }}</div>
+  </a>
+
+  <a href="{{ url_for('settings.business') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>🏢 Business info</strong>
+    <div class="muted" style="font-size:0.9rem">
+      {{ business.name or 'Not set' }}
+      {% if business.address %} · {{ business.address }}{% endif %}
+    </div>
+  </a>
+
+  <a href="{{ url_for('settings.assistant') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>🤖 Assistant</strong>
+    <div class="muted" style="font-size:0.9rem">Configure Claude — model, system prompt, on/off</div>
+  </a>
+
+  <a href="{{ url_for('settings.notifications') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>🔔 Notifications</strong>
+    <div class="muted" style="font-size:0.9rem">Daily briefings, reminders, email channel</div>
+  </a>
+
+  <a href="{{ url_for('settings.password') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>🔑 Password</strong>
+    <div class="muted" style="font-size:0.9rem">Change your sign-in password</div>
+  </a>
+
+  <a href="{{ url_for('settings.backup') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>💾 Backups</strong>
+    <div class="muted" style="font-size:0.9rem">
+      {% if last_backup %}
+        Last: {{ last_backup.when.strftime("%b %d, %I:%M %p") }} UTC · {{ last_backup.size_kb }} KB · {{ last_backup.count_total }} on file
+      {% else %}
+        No backups yet — make one
+      {% endif %}
+    </div>
+  </a>
+
+</div>
+
+<hr>
+
+<h2 style="font-size:1.1rem">At a glance</h2>
+<section class="stat-grid">
+  <div class="stat-card">
+    <div class="label">Clients</div>
+    <div class="number">{{ counts.clients }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Properties</div>
+    <div class="number">{{ counts.properties }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Jobs</div>
+    <div class="number">{{ counts.jobs }}</div>
+  </div>
+</section>
+{% endblock %}

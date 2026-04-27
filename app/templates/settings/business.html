@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Business info — {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "settings/_back.html" %}
+<div class="page-head"><h1>Business info</h1></div>
+<p class="muted">Used in invoice/quote headers (Phase 3) and the app's nav brand.</p>
+
+<form method="post" novalidate style="max-width:32rem">
+  {{ form.hidden_tag() }}
+
+  <label for="{{ form.name.id }}">Business name *</label>
+  {{ form.name() }}
+
+  <label for="{{ form.address.id }}">Address</label>
+  {{ form.address() }}
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.phone.id }}">Phone</label>
+      {{ form.phone() }}
+    </div>
+    <div>
+      <label for="{{ form.email.id }}">Email (for invoices)</label>
+      {{ form.email() }}
+    </div>
+  </div>
+
+  {{ form.submit(class_="contrast", style="margin-top:1rem") }}
+</form>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Inbox — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Inbox</h1>
+  <div class="actions">
+    <form method="post" action="{{ url_for('main.inbox_mark_all_read') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline">Mark all read</button>
+    </form>
+  </div>
+</div>
+
+{% if notifications %}
+  <div class="card-list">
+    {% for n in notifications %}
+      <div class="card" {% if n.is_unread %}style="border-left:3px solid var(--lo-accent)"{% endif %}>
+        <div style="display:flex; align-items:baseline; gap:0.5rem">
+          <strong>{{ n.title }}</strong>
+          <span class="muted" style="font-size:0.78rem; margin-left:auto">
+            {{ n.created_at.strftime("%b %d, %I:%M %p") }} UTC
+            {% if n.sent_email_at %} · ✉ emailed{% endif %}
+          </span>
+        </div>
+        {% if n.body_html %}
+          <div style="margin-top:0.5rem">{{ n.body_html|safe }}</div>
+        {% elif n.body_text %}
+          <div style="margin-top:0.5rem; white-space:pre-wrap">{{ n.body_text }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    <div class="empty-icon">📬</div>
+    <p>No notifications yet.</p>
+    <p>Briefings, reminders, and reports show up here.</p>
+  </div>
+{% endif %}
+{% endblock %}

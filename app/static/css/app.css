@@ -34,6 +34,42 @@
   --pico-form-element-focus-color: var(--lo-accent);
 }
 
+[data-theme="amoled"] {
+  --pico-background-color: #000000;
+  --pico-card-background-color: #0a0a0a;
+  --pico-card-border-color: #1f1f1f;
+  --pico-card-sectioning-background-color: #111111;
+  --pico-muted-border-color: #1f1f1f;
+  --pico-muted-color: #8a8a8a;
+  --pico-color: #f5f5f5;
+  --pico-form-element-background-color: #0a0a0a;
+  --pico-form-element-border-color: #2a2a2a;
+  --pico-form-element-focus-color: var(--lo-accent);
+}
+
+[data-theme="light"] {
+  --pico-background-color: #f8fafc;
+  --pico-card-background-color: #ffffff;
+  --pico-card-border-color: #e2e8f0;
+  --pico-card-sectioning-background-color: #f1f5f9;
+  --pico-muted-border-color: #e2e8f0;
+  --pico-muted-color: #64748b;
+  --pico-color: #0f172a;
+  --pico-form-element-background-color: #ffffff;
+  --pico-form-element-border-color: #cbd5e1;
+  --pico-form-element-focus-color: var(--lo-accent);
+}
+[data-theme="light"] .brand-mark { color: #1a1407; }
+[data-theme="light"] .pill-scheduled    { color: #1d4ed8; background: #dbeafe; border-color: #93c5fd; }
+[data-theme="light"] .pill-in_progress  { color: #b45309; background: #fef3c7; border-color: #fcd34d; }
+[data-theme="light"] .pill-complete     { color: #15803d; background: #dcfce7; border-color: #86efac; }
+[data-theme="light"] .pill-canceled     { color: #475569; background: #f1f5f9; border-color: #cbd5e1; }
+[data-theme="light"] .pill-overdue      { color: #b91c1c; background: #fee2e2; border-color: #fca5a5; }
+[data-theme="light"] .flash-error    { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+[data-theme="light"] .flash-info     { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+[data-theme="light"] .flash-success  { background: #dcfce7; color: #166534; border-color: #86efac; }
+[data-theme="light"] .flash-warning  { background: #fef3c7; color: #854d0e; border-color: #fcd34d; }
+
 html, body {
   background: var(--pico-background-color);
 }
@@ -393,6 +429,123 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   cursor: pointer;
 }
 
+/* ===== Calendar (shared toolbar + view switcher) ===== */
+.cal-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: -0.4rem 0 0.9rem;
+}
+.cal-label {
+  color: var(--pico-muted-color);
+  font-size: 0.95rem;
+}
+.cal-views {
+  margin-left: auto;
+  display: inline-flex;
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: 8px;
+  padding: 2px;
+}
+.cal-views a {
+  text-decoration: none;
+  color: var(--pico-muted-color);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+}
+.cal-views a.active { background: var(--lo-accent); color: #1a1407; font-weight: 600; }
+
+/* ===== Calendar — month view ===== */
+.cal-month {
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--lo-card-radius);
+  overflow: hidden;
+  background: var(--pico-card-background-color);
+}
+.cal-month-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--pico-card-sectioning-background-color);
+  border-bottom: 1px solid var(--pico-card-border-color);
+}
+.cal-month-dow > div {
+  padding: 0.45rem 0.4rem;
+  text-align: center;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pico-muted-color);
+  font-weight: 600;
+}
+.cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(110px, auto);
+}
+.cal-month-cell {
+  border-right: 1px solid var(--pico-card-border-color);
+  border-bottom: 1px solid var(--pico-card-border-color);
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-decoration: none;
+  color: inherit;
+  background: var(--pico-card-background-color);
+}
+.cal-month-cell:hover { background: var(--pico-card-sectioning-background-color); }
+.cal-month-cell:nth-child(7n) { border-right: none; }
+.cal-month-cell.other-month { background: var(--pico-card-sectioning-background-color); opacity: 0.55; }
+.cal-month-cell.today { background: var(--lo-accent-soft); }
+.cal-month-cell.today .cal-month-num {
+  background: var(--lo-accent); color: #1a1407;
+  width: 1.7rem; height: 1.7rem;
+  display: inline-grid; place-items: center;
+  border-radius: 50%; font-weight: 800;
+}
+.cal-month-num {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--pico-color);
+}
+.cal-chip {
+  background: var(--pico-card-sectioning-background-color);
+  border-left: 3px solid var(--lo-accent);
+  border-radius: 4px;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-chip .t { color: var(--lo-accent); font-weight: 600; }
+.cal-chip.status-complete    { border-left-color: var(--lo-success); opacity: 0.85; }
+.cal-chip.status-in_progress { border-left-color: var(--lo-warning); }
+.cal-chip.status-canceled    { border-left-color: var(--lo-muted); opacity: 0.55; }
+.cal-more { font-size: 0.7rem; color: var(--pico-muted-color); }
+
+/* Mobile: shrink the month grid, hide chips except a dot indicator */
+@media (max-width: 720px) {
+  .cal-month-grid { grid-auto-rows: minmax(56px, auto); }
+  .cal-month-cell { padding: 0.3rem 0.2rem; gap: 0.1rem; min-height: 56px; }
+  .cal-month-num { font-size: 0.85rem; }
+  .cal-chip, .cal-more { display: none; }
+  .cal-month-cell.has-jobs::after {
+    content: '';
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--lo-accent);
+    margin-top: auto;
+    margin-bottom: 4px;
+    align-self: center;
+  }
+}
+
 /* ===== Calendar (week view) ===== */
 .cal-week {
   display: grid;
@@ -463,6 +616,27 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   margin-top: 0.8rem;
 }
 .sticky-cta > * { flex: 1 1 0; min-width: 110px; }
+
+/* Badges (unread counts etc.) */
+.badge {
+  display: inline-block;
+  background: var(--lo-accent);
+  color: #1a1407;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  min-width: 1.2rem;
+  text-align: center;
+  line-height: 1.3;
+}
+.bottombar-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 22px);
+  font-size: 0.65rem;
+  padding: 0.05rem 0.35rem;
+}
 
 /* Misc */
 .muted { color: var(--pico-muted-color); }

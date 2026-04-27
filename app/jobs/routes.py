@@ -270,54 +270,119 @@ def delete_visit(visit_id: int):
 
 # ---------- Calendar ----------
 
+_MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+_MONTH_FULL = ["January", "February", "March", "April", "May", "June",
+               "July", "August", "September", "October", "November", "December"]
+
+
+def _fmt_week_label(monday: date, sunday: date) -> str:
+    if monday.month == sunday.month:
+        return f"{_MONTH_ABBR[monday.month - 1]} {monday.day}–{sunday.day}, {sunday.year}"
+    return (f"{_MONTH_ABBR[monday.month - 1]} {monday.day} – "
+            f"{_MONTH_ABBR[sunday.month - 1]} {sunday.day}, {sunday.year}")
+
+
+def _parse_anchor(s: str | None) -> date:
+    try:
+        return date.fromisoformat(s) if s else date.today()
+    except ValueError:
+        return date.today()
+
+
 @bp.route("/calendar")
 @login_required
 def calendar():
-    """Week view. ?week=YYYY-MM-DD picks any day in the desired week (defaults to today)."""
-    anchor_str = request.args.get("week")
-    try:
-        anchor = date.fromisoformat(anchor_str) if anchor_str else date.today()
-    except ValueError:
-        anchor = date.today()
+    """One endpoint, three views: month (default) / week / day.
 
-    monday = anchor - timedelta(days=anchor.weekday())
-    sunday = monday + timedelta(days=6)
-    days = [monday + timedelta(days=i) for i in range(7)]
+    Query params:
+      view = month | week | day
+      date = YYYY-MM-DD anchor (any day in the desired month/week/day)
+    """
+    view = request.args.get("view", "month")
+    if view not in ("month", "week", "day"):
+        view = "month"
+    anchor = _parse_anchor(request.args.get("date"))
+    today = date.today()
+
+    if view == "day":
+        jobs = db.session.scalars(
+            select(Job).options(joinedload(Job.client), joinedload(Job.prop))
+            .where(Job.scheduled_date == anchor)
+            .order_by(Job.scheduled_time.nulls_last())
+        ).all()
+        return render_template(
+            "jobs/calendar_day.html",
+            view=view, anchor=anchor, today=today, jobs=jobs,
+            label=anchor.strftime("%A, %B %d, %Y"),
+            prev_url=url_for("jobs.calendar", view="day",
+                             date=(anchor - timedelta(days=1)).isoformat()),
+            next_url=url_for("jobs.calendar", view="day",
+                             date=(anchor + timedelta(days=1)).isoformat()),
+            today_url=url_for("jobs.calendar", view="day", date=today.isoformat()),
+        )
+
+    if view == "week":
+        monday = anchor - timedelta(days=anchor.weekday())
+        sunday = monday + timedelta(days=6)
+        days = [monday + timedelta(days=i) for i in range(7)]
+        jobs = db.session.scalars(
+            select(Job).options(joinedload(Job.client), joinedload(Job.prop))
+            .where(Job.scheduled_date >= monday, Job.scheduled_date <= sunday)
+            .order_by(Job.scheduled_date, Job.scheduled_time.nulls_last())
+        ).all()
+        by_day: dict[date, list[Job]] = {d: [] for d in days}
+        for j in jobs:
+            if j.scheduled_date in by_day:
+                by_day[j.scheduled_date].append(j)
+        return render_template(
+            "jobs/calendar_week.html",
+            view=view, anchor=monday, today=today, days=days, by_day=by_day,
+            label=_fmt_week_label(monday, sunday),
+            prev_url=url_for("jobs.calendar", view="week",
+                             date=(monday - timedelta(days=7)).isoformat()),
+            next_url=url_for("jobs.calendar", view="week",
+                             date=(monday + timedelta(days=7)).isoformat()),
+            today_url=url_for("jobs.calendar", view="week", date=today.isoformat()),
+        )
+
+    # ---------- month (default) ----------
+    first = anchor.replace(day=1)
+    # First Sunday on or before the 1st (so the grid starts on a Sunday column)
+    grid_start = first - timedelta(days=(first.weekday() + 1) % 7)
+    # Walk 6 weeks (always — keeps a stable 7×6 grid)
+    grid_days = [grid_start + timedelta(days=i) for i in range(42)]
+    grid_end = grid_days[-1]
+
+    if first.month == 12:
+        next_month_first = first.replace(year=first.year + 1, month=1)
+    else:
+        next_month_first = first.replace(month=first.month + 1)
+    if first.month == 1:
+        prev_month_first = first.replace(year=first.year - 1, month=12)
+    else:
+        prev_month_first = first.replace(month=first.month - 1)
 
     jobs = db.session.scalars(
-        select(Job)
-        .options(joinedload(Job.client), joinedload(Job.prop))
-        .where(Job.scheduled_date >= monday, Job.scheduled_date <= sunday)
+        select(Job).options(joinedload(Job.client))
+        .where(Job.scheduled_date >= grid_start, Job.scheduled_date <= grid_end)
         .order_by(Job.scheduled_date, Job.scheduled_time.nulls_last())
     ).all()
-
-    by_day: dict[date, list[Job]] = {d: [] for d in days}
+    by_day: dict[date, list[Job]] = {d: [] for d in grid_days}
     for j in jobs:
         if j.scheduled_date in by_day:
             by_day[j.scheduled_date].append(j)
 
     return render_template(
-        "jobs/calendar.html",
-        days=days,
-        by_day=by_day,
-        today=date.today(),
-        prev_week=(monday - timedelta(days=7)).isoformat(),
-        next_week=(monday + timedelta(days=7)).isoformat(),
-        this_week=date.today().isoformat(),
-        week_label=_fmt_week_label(monday, sunday),
+        "jobs/calendar_month.html",
+        view=view, anchor=first, today=today,
+        grid_days=grid_days, by_day=by_day,
+        current_month=first.month,
+        label=f"{_MONTH_FULL[first.month - 1]} {first.year}",
+        prev_url=url_for("jobs.calendar", view="month", date=prev_month_first.isoformat()),
+        next_url=url_for("jobs.calendar", view="month", date=next_month_first.isoformat()),
+        today_url=url_for("jobs.calendar", view="month", date=today.isoformat()),
     )
-
-
-_MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-
-def _fmt_week_label(monday: date, sunday: date) -> str:
-    if monday.month == sunday.month:
-        return (f"{_MONTH_ABBR[monday.month - 1]} {monday.day}–{sunday.day}, "
-                f"{sunday.year}")
-    return (f"{_MONTH_ABBR[monday.month - 1]} {monday.day} – "
-            f"{_MONTH_ABBR[sunday.month - 1]} {sunday.day}, {sunday.year}")
 
 
 # ---------- Property → properties dropdown helper for HTMX (Job form) ----------

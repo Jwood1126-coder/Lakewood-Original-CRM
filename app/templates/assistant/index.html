@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Assistant — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Assistant</h1>
+  <div class="actions">
+    <form method="post" action="{{ url_for('assistant.new_conversation') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">+ New chat</button>
+    </form>
+  </div>
+</div>
+
+{% if not enabled %}
+<div class="flash flash-warning">
+  Assistant is off. Either ANTHROPIC_API_KEY isn't set in Railway, or it's
+  toggled off in <a href="{{ url_for('settings.assistant') }}">Settings → Assistant</a>.
+</div>
+{% else %}
+<p class="muted">Model: <code>{{ model }}</code></p>
+{% endif %}
+
+{% if conversations %}
+<div class="card-list">
+  {% for c in conversations %}
+    <a href="{{ url_for('assistant.view', conversation_id=c.id) }}" class="card"
+       style="text-decoration:none; color:inherit; display:block">
+      <strong>{{ c.title or 'New chat' }}</strong>
+      <div class="muted" style="font-size:0.85rem">
+        {{ c.messages|length }} messages · {{ c.updated_at.strftime("%b %d, %I:%M %p") }} UTC
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-icon">💬</div>
+  <p>No chats yet. Start one to ask about your schedule, clients, or jobs.</p>
+  <form method="post" action="{{ url_for('assistant.new_conversation') }}" style="margin:0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="contrast">+ Start a chat</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

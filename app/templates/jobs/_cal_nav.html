@@ -1,0 +1,23 @@
+{# Shared header for the three calendar views. Expects:
+   view, label, prev_url, today_url, next_url, anchor #}
+<div class="page-head">
+  <h1>Calendar</h1>
+  <div class="actions">
+    <a href="{{ prev_url }}" role="button" class="secondary outline">←</a>
+    <a href="{{ today_url }}" role="button" class="secondary outline">Today</a>
+    <a href="{{ next_url }}" role="button" class="secondary outline">→</a>
+  </div>
+</div>
+
+<div class="cal-toolbar">
+  <div class="cal-label">{{ label }}</div>
+  <div class="cal-views">
+    {% set anchor_iso = anchor.isoformat() %}
+    <a href="{{ url_for('jobs.calendar', view='month', date=anchor_iso) }}"
+       class="{{ 'active' if view == 'month' else '' }}">Month</a>
+    <a href="{{ url_for('jobs.calendar', view='week', date=anchor_iso) }}"
+       class="{{ 'active' if view == 'week' else '' }}">Week</a>
+    <a href="{{ url_for('jobs.calendar', view='day', date=anchor_iso) }}"
+       class="{{ 'active' if view == 'day' else '' }}">Day</a>
+  </div>
+</div>

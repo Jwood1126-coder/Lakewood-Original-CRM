@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Calendar — {{ label }}{% endblock %}
+
+{% block content %}
+{% include "jobs/_cal_nav.html" %}
+
+<div class="cal-month">
+  <div class="cal-month-dow">
+    {% for d in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
+      <div>{{ d }}</div>
+    {% endfor %}
+  </div>
+  <div class="cal-month-grid">
+    {% for d in grid_days %}
+      {% set is_other = d.month != current_month %}
+      {% set day_jobs = by_day[d] %}
+      <a href="{{ url_for('jobs.calendar', view='day', date=d.isoformat()) }}"
+         class="cal-month-cell{% if d == today %} today{% endif %}{% if is_other %} other-month{% endif %}{% if day_jobs %} has-jobs{% endif %}">
+        <div class="cal-month-num">{{ d.day }}</div>
+        {% if day_jobs %}
+          {% for j in day_jobs[:3] %}
+            <div class="cal-chip status-{{ j.status }}">
+              {% if j.scheduled_time %}<span class="t">{{ j.time_display }}</span> {% endif %}{{ j.title }}
+            </div>
+          {% endfor %}
+          {% if day_jobs|length > 3 %}
+            <div class="cal-more">+{{ day_jobs|length - 3 }} more</div>
+          {% endif %}
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
