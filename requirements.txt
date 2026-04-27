@@ -29,8 +29,9 @@ anthropic==0.39.0
 # Backups (Backblaze B2 via S3-compatible API)
 boto3==1.35.49
 
-# PDF generation (Phase 3, programmatic PDF)
-xhtml2pdf==0.2.16
+# PDF generation: deferred to Phase 3.
+# xhtml2pdf was pulling in pycairo (needs system Cairo). When Phase 3 lands,
+# we'll evaluate fpdf2 (pure Python, no native deps) as the simpler choice.
 
 # Production server
 gunicorn==23.0.0
