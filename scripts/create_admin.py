@@ -30,10 +30,24 @@ def main():
     parser.add_argument(
         "--display-name", default=None, help="Optional friendly name"
     )
+    parser.add_argument(
+        "--only-if-missing",
+        action="store_true",
+        help="Skip silently if any User already exists. Used in release step "
+             "so deploys don't reset the password every time.",
+    )
     args = parser.parse_args()
 
     app = create_app()
     with app.app_context():
+        # If --only-if-missing and any user exists, do nothing.
+        if args.only_if_missing:
+            from sqlalchemy import func
+            count = db.session.scalar(select(func.count(User.id))) or 0
+            if count > 0:
+                print(f"Admin bootstrap skipped: {count} user(s) already exist")
+                return 0
+
         email = (args.email or app.config["ADMIN_EMAIL"]).strip().lower()
         password = args.password or app.config["ADMIN_PASSWORD"]
 
