@@ -193,9 +193,10 @@ APP_TIMEZONE=America/New_York
 # Recommended:
 ANTHROPIC_API_KEY=sk-ant-...
 ANTHROPIC_MODEL=claude-opus-4-7
-GMAIL_USER=you@gmail.com
-GMAIL_APP_PASSWORD=xxxxxxxxxxxxxxxx
-NOTIFY_EMAIL=you@gmail.com
+# Outlook (default) — or set SMTP_HOST/PORT/USE_TLS for Gmail/Yahoo/etc.
+SMTP_USER=you@outlook.com
+SMTP_PASSWORD=xxxxxxxxxxxxxxxx
+NOTIFY_EMAIL=you@outlook.com, you@gmail.com   # comma-sep = multiple recipients
 
 # Optional cloud backups:
 B2_ENDPOINT_URL=https://s3.us-east-005.backblazeb2.com

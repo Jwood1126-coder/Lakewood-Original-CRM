@@ -82,6 +82,9 @@ class NotificationForm(FlaskForm):
                                      default=True)
     email_channel   = BooleanField("Email channel (in addition to in-app)",
                                     default=True)
-    notify_email_to = StringField("Send email to",
-                                   validators=[Optional(), Email(), Length(max=255)])
+    notify_email_to = StringField(
+        "Send email to (comma-separate for multiple)",
+        validators=[Optional(), Length(max=500)],
+        render_kw={"placeholder": "you@gmail.com, you@outlook.com"},
+    )
     submit = SubmitField("Save notification preferences")

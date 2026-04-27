@@ -95,9 +95,20 @@ class Config:
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
     ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-7")
 
-    # --- Gmail SMTP (Phase 4.5) ---
-    GMAIL_USER = os.environ.get("GMAIL_USER")
-    GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+    # --- SMTP (notifications-to-self only; never sent to customers) ---
+    # Works with any SMTP provider. Defaults match Outlook.com personal.
+    # Aliases for backwards compat: GMAIL_USER, GMAIL_APP_PASSWORD.
+    SMTP_HOST = os.environ.get("SMTP_HOST", "smtp-mail.outlook.com")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "1") == "1"  # STARTTLS on 587
+    SMTP_USER = (
+        os.environ.get("SMTP_USER")
+        or os.environ.get("GMAIL_USER")          # legacy
+    )
+    SMTP_PASSWORD = (
+        os.environ.get("SMTP_PASSWORD")
+        or os.environ.get("GMAIL_APP_PASSWORD")  # legacy
+    )
     NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL")
 
     # --- Backblaze B2 (Phase 1 backups) ---

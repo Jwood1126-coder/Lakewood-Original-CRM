@@ -249,8 +249,8 @@ def notifications():
         flash("Notification preferences saved.", "success")
         return redirect(url_for("settings.notifications"))
 
-    has_email = bool(current_app.config.get("GMAIL_USER")
-                     and current_app.config.get("GMAIL_APP_PASSWORD"))
+    has_email = bool(current_app.config.get("SMTP_USER")
+                     and current_app.config.get("SMTP_PASSWORD"))
     return render_template(
         "settings/notifications.html",
         form=form,

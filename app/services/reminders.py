@@ -80,7 +80,7 @@ def _emit_job_day_reminder(today: date, jobs):
         to = (get_setting("notify_email_to")
               or current_app.config.get("NOTIFY_EMAIL")
               or "").strip()
-        if to and current_app.config.get("GMAIL_USER"):
+        if to and current_app.config.get("SMTP_USER"):
             try:
                 from app.services.email import send_email
                 send_email(to=to, subject=title, html=html)
