@@ -28,11 +28,20 @@ from app.models.setting import get_setting
 
 
 def _already_sent_today(kind: str) -> bool:
-    today_start = datetime.combine(date.today(), datetime.min.time())
+    """M1 fix: was using `date.today()` (server-local, which is UTC on Railway).
+    That disagreed with the scheduler's APP_TIMEZONE 'today' for ~4-5 hours
+    around midnight Eastern. Now: convert operator-local midnight back to
+    naive UTC for the comparison against Notification.created_at (utcnow)."""
+    from datetime import timezone
+    from app.utils.timezone import app_tz, today_local
+    local_midnight = datetime.combine(today_local(),
+                                       datetime.min.time(),
+                                       tzinfo=app_tz())
+    utc_midnight_naive = local_midnight.astimezone(timezone.utc).replace(tzinfo=None)
     return db.session.scalar(
         select(Notification.id).where(
             Notification.kind == kind,
-            Notification.created_at >= today_start,
+            Notification.created_at >= utc_midnight_naive,
         )
     ) is not None
 
@@ -43,10 +52,15 @@ def tick_reminders() -> dict:
     # Job-day reminder: only between 5:30am and 7:30am local, and only if not
     # already sent today, and only if there's something to remind about, and
     # only if the daily briefing isn't already enabled at a similar time.
-    if get_setting("notify_job_day", "1") == "1" and not get_setting("notify_daily", "1") == "1":
-        now = datetime.now()
+    # H3 fix: was `not get_setting(...) == "1"` which parses as
+    # `(not "1") == "1"` → `False == "1"` → always False → reminder never
+    # fired. Use explicit `!=`.
+    daily_briefing_on = get_setting("notify_daily", "1") == "1"
+    if get_setting("notify_job_day", "1") == "1" and not daily_briefing_on:
+        from app.utils.timezone import now_local, today_local
+        now = now_local()
         if 5 <= now.hour <= 7 and not _already_sent_today("job_day_reminder"):
-            today = date.today()
+            today = today_local()
             jobs_today = db.session.scalars(
                 select(Job).options(joinedload(Job.client), joinedload(Job.prop))
                 .where(Job.scheduled_date == today, Job.status != "canceled")

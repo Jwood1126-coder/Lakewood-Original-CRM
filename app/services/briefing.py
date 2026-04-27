@@ -21,7 +21,9 @@ from app.models.setting import get_setting
 
 
 def _today_data():
-    today = date.today()
+    # M1 fix: operator-local "today", not server-UTC
+    from app.utils.timezone import today_local
+    today = today_local()
     today_jobs = db.session.scalars(
         select(Job).options(joinedload(Job.client), joinedload(Job.prop))
         .where(Job.scheduled_date == today, Job.status != "canceled")

@@ -50,11 +50,14 @@ def _populate_choices(form: InvoiceForm, preselect_client_id: int | None = None)
         form.job_id.choices = [(0, "— none —")]
 
 
-def _save_line_items(invoice: Invoice) -> None:
+def _save_line_items(invoice: Invoice) -> list[str]:
+    """Returns warnings for any rejected rows (H5 fix: surface silent drops)."""
     descs = request.form.getlist("li_description[]")
     qtys = request.form.getlist("li_qty[]")
     prices = request.form.getlist("li_price[]")
     taxable_indexes = set(request.form.getlist("li_taxable_idx[]"))
+
+    warnings: list[str] = []
 
     for li in list(invoice.line_items):
         db.session.delete(li)
@@ -68,7 +71,10 @@ def _save_line_items(invoice: Invoice) -> None:
         try:
             qty = parse_qty(qtys[i] if i < len(qtys) else "1")
             price_cents = dollars_to_cents(prices[i] if i < len(prices) else "0")
-        except ValueError:
+        except (ValueError, TypeError) as e:
+            warnings.append(
+                f"Row {i+1} '{d[:40]}' skipped — bad number ({e})"
+            )
             continue
         db.session.add(LineItem(
             invoice_id=invoice.id,
@@ -79,6 +85,7 @@ def _save_line_items(invoice: Invoice) -> None:
             taxable=str(i) in taxable_indexes,
         ))
         pos += 1
+    return warnings
 
 
 @bp.route("/")
@@ -139,8 +146,10 @@ def new_invoice():
         )
         db.session.add(invoice)
         db.session.flush()
-        _save_line_items(invoice)
+        warnings = _save_line_items(invoice)
         db.session.commit()
+        for w in warnings:
+            flash(w, "warning")
         flash(f"Created invoice #{invoice.number}.", "success")
         return redirect(url_for("invoices.view_invoice", invoice_id=invoice.id))
 
@@ -188,9 +197,11 @@ def edit_invoice(invoice_id: int):
         invoice.notes = (form.notes.data or "").strip() or None
         invoice.tax_rate_override = form.tax_rate_override.data
         invoice.due_date = form.due_date.data
-        _save_line_items(invoice)
+        warnings = _save_line_items(invoice)
         invoice.recompute_status()
         db.session.commit()
+        for w in warnings:
+            flash(w, "warning")
         flash("Saved.", "success")
         return redirect(url_for("invoices.view_invoice", invoice_id=invoice.id))
 
@@ -202,6 +213,16 @@ def edit_invoice(invoice_id: int):
 @login_required
 def delete_invoice(invoice_id: int):
     invoice = db.session.get(Invoice, invoice_id) or abort(404)
+    # L6 fix: invoices with payment history are accounting records and
+    # cannot be deleted. Mark them void instead — keeps the audit trail.
+    if invoice.has_payments:
+        flash(
+            f"Invoice #{invoice.number} has recorded payments and cannot be "
+            "deleted. Mark it Void instead — that preserves the financial "
+            "record while taking the invoice out of A/R.",
+            "error",
+        )
+        return redirect(url_for("invoices.view_invoice", invoice_id=invoice.id))
     db.session.delete(invoice)
     db.session.commit()
     flash("Invoice deleted.", "info")
@@ -216,6 +237,12 @@ def change_status(invoice_id: int, new_status: str):
     invoice = db.session.get(Invoice, invoice_id) or abort(404)
     if new_status not in INVOICE_STATUSES:
         abort(400)
+    # M11 fix: explicit state-machine guard so e.g. paid -> sent isn't allowed
+    if not invoice.can_transition_to(new_status):
+        flash(f"Can't go from {INVOICE_STATUS_LABELS[invoice.status]} to "
+              f"{INVOICE_STATUS_LABELS[new_status]}.", "error")
+        return redirect(url_for("invoices.view_invoice", invoice_id=invoice.id))
+
     prev = invoice.status
     invoice.status = new_status
     if new_status == "sent" and not invoice.sent_at:

@@ -280,6 +280,10 @@ def ar_aging():
         .where(Invoice.status.in_(["sent", "partial"]))
         .order_by(Invoice.due_date.nulls_last())
     ).all()
+    # H7 fix: pre-load all payment totals in one query (vs N+1 via balance_cents)
+    paid_map = Invoice.paid_cents_bulk([i.id for i in open_invoices])
+    for inv in open_invoices:
+        inv._paid_cents_cache = paid_map.get(inv.id, 0)
 
     buckets = {
         "current": {"label": "Current (not yet due)", "cents": 0, "invoices": []},

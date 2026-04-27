@@ -21,7 +21,10 @@ bp = Blueprint("main", __name__)
 @bp.route("/")
 @login_required
 def index():
-    today = date.today()
+    # M1 fix: operator-local "today", not server-UTC. Means around midnight
+    # Eastern, the dashboard's "today" matches the wall clock the operator sees.
+    from app.utils.timezone import today_local
+    today = today_local()
     week_end = today + timedelta(days=7)
 
     today_jobs = db.session.scalars(
@@ -96,10 +99,17 @@ def index():
     ) or 0
     client_count = db.session.scalar(select(func.count(Client.id))) or 0
 
-    # Total open balance across all clients (cents)
-    ar_total_cents = sum(i.balance_cents for i in db.session.scalars(
+    # Total open balance across all clients (cents).
+    # H7 fix: was N+1 (one SUM query per invoice via .balance_cents).
+    # Now: one SELECT for invoices + one GROUP-BY SUM for all payments.
+    open_invs = db.session.scalars(
         select(Invoice).where(Invoice.status.in_(["sent", "partial"]))
-    ).all())
+    ).all()
+    paid_map = Invoice.paid_cents_bulk([i.id for i in open_invs])
+    for inv in open_invs:
+        inv._paid_cents_cache = paid_map.get(inv.id, 0)
+    ar_total_cents = sum(max(0, i.total_cents - paid_map.get(i.id, 0))
+                         for i in open_invs)
 
     return render_template(
         "main/index.html",

@@ -43,18 +43,19 @@ def _populate_choices(form: QuoteForm, preselect_client_id: int | None = None) -
         form.property_id.choices = []
 
 
-def _save_line_items(quote: Quote) -> None:
-    """Replace the quote's line items from request.form arrays."""
+def _save_line_items(quote: Quote) -> list[str]:
+    """Replace the quote's line items from request.form arrays.
+
+    Returns a list of warnings for any rows that were rejected so the
+    caller can surface them. (H5 fix: previously silent drops.)
+    """
     descs = request.form.getlist("li_description[]")
     qtys = request.form.getlist("li_qty[]")
     prices = request.form.getlist("li_price[]")
-    taxables = request.form.getlist("li_taxable[]")  # only present when checked
-    # Convert taxable[] to a per-row bool by checking if its index appears
-    # Workaround: HTML doesn't submit unchecked checkboxes, so we read a hidden
-    # "taxable_index" array that records which row indexes have the checkbox
     taxable_indexes = set(request.form.getlist("li_taxable_idx[]"))
 
-    # Drop existing
+    warnings: list[str] = []
+
     for li in list(quote.line_items):
         db.session.delete(li)
     db.session.flush()
@@ -63,12 +64,17 @@ def _save_line_items(quote: Quote) -> None:
     for i, desc in enumerate(descs):
         d = (desc or "").strip()
         if not d:
+            # Empty description silently skipped — that's how "delete a row"
+            # works in the JS editor. Not a warning.
             continue
         try:
             qty = parse_qty(qtys[i] if i < len(qtys) else "1")
             price_cents = dollars_to_cents(prices[i] if i < len(prices) else "0")
-        except ValueError:
-            continue  # skip rows with bad numbers
+        except (ValueError, TypeError) as e:
+            warnings.append(
+                f"Row {i+1} '{d[:40]}' skipped — bad number ({e})"
+            )
+            continue
         taxable = str(i) in taxable_indexes
         db.session.add(LineItem(
             quote_id=quote.id,
@@ -79,6 +85,7 @@ def _save_line_items(quote: Quote) -> None:
             taxable=taxable,
         ))
         pos += 1
+    return warnings
 
 
 @bp.route("/")
@@ -126,8 +133,10 @@ def new_quote():
         )
         db.session.add(quote)
         db.session.flush()
-        _save_line_items(quote)
+        warnings = _save_line_items(quote)
         db.session.commit()
+        for w in warnings:
+            flash(w, "warning")
         flash(f"Created quote Q-{quote.number}.", "success")
         return redirect(url_for("quotes.view_quote", quote_id=quote.id))
 
@@ -159,8 +168,10 @@ def edit_quote(quote_id: int):
         quote.internal_notes = (form.internal_notes.data or "").strip() or None
         quote.tax_rate_override = form.tax_rate_override.data
         quote.valid_until = form.valid_until.data
-        _save_line_items(quote)
+        warnings = _save_line_items(quote)
         db.session.commit()
+        for w in warnings:
+            flash(w, "warning")
         flash("Saved.", "success")
         return redirect(url_for("quotes.view_quote", quote_id=quote.id))
 
@@ -216,6 +227,13 @@ def convert_to_job(quote_id: int):
         flash("Quote already converted.", "warning")
         return redirect(url_for("jobs.view_job", job_id=quote.converted_to_job_id))
 
+    # H2 fix: previously allowed converting from any status (draft, declined,
+    # expired). Conversion is only meaningful from sent or accepted.
+    if quote.status not in ("sent", "accepted"):
+        flash(f"Cannot convert a {quote.status_label.lower()} quote. "
+              f"Mark it sent or accepted first.", "error")
+        return redirect(url_for("quotes.view_quote", quote_id=quote.id))
+
     job = Job(
         client_id=quote.client_id,
         property_id=quote.property_id,
@@ -232,10 +250,11 @@ def convert_to_job(quote_id: int):
     db.session.add(job)
     db.session.flush()
     quote.converted_to_job_id = job.id
-    if quote.status != "accepted":
-        quote.status = "accepted"
-        if not quote.accepted_at:
-            quote.accepted_at = datetime.utcnow()
+    # H2 fix: previously had dead intermediate "accepted" assignment that was
+    # immediately overwritten. accepted_at must always be set if null since
+    # converted implies it was accepted.
+    if not quote.accepted_at:
+        quote.accepted_at = datetime.utcnow()
     quote.status = "converted"
     db.session.commit()
     notify_quote_converted(quote, job)
