@@ -2,12 +2,14 @@
 {% block title %}{{ "Edit" if prop else "New" }} property — {{ business_name }}{% endblock %}
 
 {% block content %}
-<p style="color:var(--pico-muted-color); margin-bottom:0.2rem">
+<p class="muted" style="margin-bottom:0.2rem">
   <a href="{{ url_for('clients.view_client', client_id=client.id) }}">← {{ client.name }}</a>
 </p>
-<h1>{{ "Edit" if prop else "New" }} property</h1>
+<div class="page-head">
+  <h1>{{ "Edit" if prop else "New" }} property</h1>
+</div>
 
-<form method="post" novalidate style="max-width:36rem">
+<form method="post" novalidate>
   {{ form.hidden_tag() }}
 
   <label for="{{ form.label.id }}">Label</label>
@@ -40,19 +42,20 @@
     <div>
       <label for="{{ form.county.id }}">County</label>
       {{ form.county() }}
-      <small>Leave blank — auto-filled from ZIP.</small>
+      <small class="muted">Auto-fills from ZIP if blank.</small>
     </div>
     <div>
       <label for="{{ form.tax_rate.id }}">Tax rate</label>
       {{ form.tax_rate() }}
-      <small>Leave blank — defaults to county rate.</small>
+      <small class="muted">Auto from county if blank.</small>
     </div>
   </div>
 
   <label for="{{ form.notes.id }}">Notes</label>
   {{ form.notes() }}
+  <small class="muted">Access codes, gate codes, dog warnings, etc.</small>
 
-  <div style="display:flex; gap:0.5rem; align-items:center; margin-top:1rem">
+  <div class="btn-row" style="margin-top:1rem">
     {{ form.submit(class_="contrast") }}
     <a href="{{ url_for('properties.view_property', property_id=prop.id) if prop else url_for('clients.view_client', client_id=client.id) }}"
        role="button" class="secondary">Cancel</a>

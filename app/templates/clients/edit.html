@@ -2,9 +2,11 @@
 {% block title %}{{ "Edit" if client else "New" }} client — {{ business_name }}{% endblock %}
 
 {% block content %}
-<h1>{{ "Edit" if client else "New" }} client</h1>
+<div class="page-head">
+  <h1>{{ "Edit" if client else "New" }} client</h1>
+</div>
 
-<form method="post" novalidate style="max-width:36rem">
+<form method="post" novalidate>
   {{ form.hidden_tag() }}
 
   <label for="{{ form.name.id }}">Name *</label>
@@ -25,7 +27,7 @@
   <label for="{{ form.notes.id }}">Notes</label>
   {{ form.notes() }}
 
-  <div style="display:flex; gap:0.5rem; align-items:center; margin-top:1rem">
+  <div class="btn-row" style="margin-top:1rem">
     {{ form.submit(class_="contrast") }}
     <a href="{{ url_for('clients.view_client', client_id=client.id) if client else url_for('clients.list_clients') }}"
        role="button" class="secondary">Cancel</a>

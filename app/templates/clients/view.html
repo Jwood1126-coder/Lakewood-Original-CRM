@@ -2,59 +2,94 @@
 {% block title %}{{ client.name }} — {{ business_name }}{% endblock %}
 
 {% block content %}
-<div style="display:flex; align-items:baseline; gap:1rem; flex-wrap:wrap">
-  <h1 style="margin:0">{{ client.name }}</h1>
-  <a href="{{ url_for('clients.edit_client', client_id=client.id) }}"
-     style="margin-left:auto">Edit</a>
-  <form method="post" action="{{ url_for('clients.delete_client', client_id=client.id) }}"
-        style="display:inline; margin:0"
-        onsubmit="return confirm('Delete {{ client.name|e }} and all their properties? This cannot be undone.')">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="secondary outline">Delete</button>
-  </form>
-</div>
-
-<p style="color:var(--pico-muted-color)">
-  {% if client.phone %}<a href="tel:{{ client.phone }}">📞 {{ client.display_phone }}</a>{% endif %}
-  {% if client.email %} · <a href="mailto:{{ client.email }}">{{ client.email }}</a>{% endif %}
+<p class="muted" style="margin-bottom:0.2rem">
+  <a href="{{ url_for('clients.list_clients') }}">← All clients</a>
 </p>
 
-{% if client.notes %}
-  <article style="background:var(--pico-card-background-color); padding:1rem">
-    <strong>Notes</strong>
+<div class="page-head">
+  <h1>{{ client.name }}</h1>
+  <div class="actions">
+    <a href="{{ url_for('clients.edit_client', client_id=client.id) }}" role="button" class="secondary outline">Edit</a>
+    <form method="post" action="{{ url_for('clients.delete_client', client_id=client.id) }}"
+          style="display:inline; margin:0"
+          onsubmit="return confirm('Delete {{ client.name|e }} and all their properties? This cannot be undone.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex; gap:1rem; flex-wrap:wrap">
+    {% if client.phone %}
+      <div><a href="tel:{{ client.phone }}">📞 {{ client.display_phone }}</a></div>
+    {% endif %}
+    {% if client.email %}
+      <div><a href="mailto:{{ client.email }}">✉️ {{ client.email }}</a></div>
+    {% endif %}
+    {% if not client.phone and not client.email %}
+      <div class="muted">No contact info on file</div>
+    {% endif %}
+  </div>
+  {% if client.notes %}
+    <hr style="margin:0.8rem 0">
     <div style="white-space:pre-wrap">{{ client.notes }}</div>
-  </article>
+  {% endif %}
+</div>
+
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">Properties</h2>
+  <div class="actions">
+    <a href="{{ url_for('properties.new_property', client_id=client.id) }}"
+       role="button" class="contrast">+ Add property</a>
+  </div>
+</div>
+
+{% if client.properties %}
+  <div class="card-list">
+    {% for p in client.properties %}
+      <div class="card">
+        <div style="display:flex; gap:0.6rem; align-items:baseline; flex-wrap:wrap">
+          <a href="{{ url_for('properties.view_property', property_id=p.id) }}"
+             style="font-weight:600">{{ p.label }}</a>
+          <span class="muted">·</span>
+          <span class="muted">{{ p.county or '—' }}</span>
+          <span class="muted">{{ p.tax_rate_percent }} tax</span>
+          <a href="{{ p.maps_url }}" target="_blank" rel="noopener" style="margin-left:auto">📍 Map</a>
+        </div>
+        <div class="muted" style="margin-top:0.3rem">{{ p.address_one_line }}</div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">No properties yet for this client.
+    <a href="{{ url_for('properties.new_property', client_id=client.id) }}">Add one.</a></p>
 {% endif %}
 
-<section style="margin-top:2rem">
-  <div style="display:flex; align-items:baseline; gap:1rem">
-    <h2 style="margin:0">Properties</h2>
-    <a href="{{ url_for('properties.new_property', client_id=client.id) }}"
-       role="button" class="contrast" style="margin-left:auto">+ Add property</a>
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">Recent jobs</h2>
+  <div class="actions">
+    <a href="{{ url_for('jobs.new_job', client_id=client.id) }}"
+       role="button" class="contrast">+ Schedule job</a>
   </div>
+</div>
 
-  {% if client.properties %}
-    <table class="table-rows" style="margin-top:1rem">
-      <thead>
-        <tr><th>Label</th><th>Address</th><th>County</th><th>Tax rate</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for p in client.properties %}
-          <tr>
-            <td><a href="{{ url_for('properties.view_property', property_id=p.id) }}">{{ p.label }}</a></td>
-            <td>{{ p.address_one_line }}</td>
-            <td>{{ p.county or '—' }}</td>
-            <td>{{ p.tax_rate_percent }}</td>
-            <td><a href="{{ p.maps_url }}" target="_blank" rel="noopener">Map ↗</a></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p style="color:var(--pico-muted-color); margin-top:1rem">
-      No properties yet for this client.
-      <a href="{{ url_for('properties.new_property', client_id=client.id) }}">Add one.</a>
-    </p>
-  {% endif %}
-</section>
+{% if recent_jobs %}
+  <div class="card-list">
+    {% for j in recent_jobs %}
+      <a href="{{ url_for('jobs.view_job', job_id=j.id) }}" class="job-card status-{{ j.status }}">
+        <div class="job-row">
+          <span class="time">{% if j.scheduled_date %}{{ j.scheduled_date.strftime("%b %d") }}{% else %}—{% endif %}</span>
+          <span class="title">{{ j.title }}</span>
+          <span class="pill pill-{{ j.status }}">{{ j.status_label }}</span>
+        </div>
+        {% if j.prop %}
+          <div class="job-row"><span class="address">{{ j.prop.address_line1 }}</span></div>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">No jobs yet for this client.</p>
+{% endif %}
 {% endblock %}

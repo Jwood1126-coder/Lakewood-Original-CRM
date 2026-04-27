@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }} — {{ business_name }}{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem">
+  <a href="{{ url_for('clients.view_client', client_id=job.client.id) }}">← {{ job.client.name }}</a>
+</p>
+
+<div class="page-head">
+  <h1>{{ job.title }}</h1>
+  <div class="actions">
+    <span class="pill pill-{{ job.status }}">{{ job.status_label }}</span>
+    <a href="{{ url_for('jobs.edit_job', job_id=job.id) }}" role="button" class="secondary outline">Edit</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex; gap:1rem; flex-wrap:wrap">
+    <div>
+      <div class="muted" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em">When</div>
+      <div>
+        {% if job.scheduled_date %}
+          {{ job.scheduled_date.strftime("%A, %b %d, %Y") }}{% if job.scheduled_time %} · {{ job.time_display }}{% endif %}
+        {% else %}
+          <span class="muted">Not scheduled</span>
+        {% endif %}
+        {% if job.est_hours %}<br><small class="muted">Est. {{ job.est_hours }} hr</small>{% endif %}
+      </div>
+    </div>
+    <div style="margin-left:auto; text-align:right">
+      <div class="muted" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em">Where</div>
+      <div>
+        {{ job.prop.address_one_line }}<br>
+        <a href="{{ job.prop.maps_url }}" target="_blank" rel="noopener">📍 Open in Maps</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if job.scope %}
+<div class="card">
+  <div class="muted" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em">Scope</div>
+  <div style="white-space:pre-wrap; margin-top:0.4rem">{{ job.scope }}</div>
+</div>
+{% endif %}
+
+{# ----- Status quick-actions ----- #}
+{% set has_active = job.visits | selectattr('is_active') | list | length > 0 %}
+<div class="sticky-cta">
+  {% if not has_active and job.status in ('scheduled', 'in_progress') %}
+    <form method="post" action="{{ url_for('jobs.start_visit', job_id=job.id) }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">▶ Start visit</button>
+    </form>
+  {% endif %}
+  {% if has_active %}
+    <form method="post" action="{{ url_for('jobs.end_visit', job_id=job.id) }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">⏹ End visit</button>
+    </form>
+  {% endif %}
+  {% if job.can_transition_to('complete') %}
+    <form method="post" action="{{ url_for('jobs.change_status', job_id=job.id, new_status='complete') }}"
+          style="margin:0"
+          onsubmit="return confirm('Mark this job complete?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary">✓ Mark complete</button>
+    </form>
+  {% endif %}
+  {% if job.status == 'complete' %}
+    <a href="{{ url_for('jobs.new_job', repeat_from=job.id) }}" role="button" class="secondary">↻ Repeat job</a>
+  {% endif %}
+</div>
+
+{# ----- Visits ----- #}
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">
+    Visits
+    {% if job.visits %}<span class="muted" style="font-size:0.9rem; font-weight:400">
+      ({{ job.visits|length }} · {{ job.total_visit_hours }}h total{% if job.total_miles %} · {{ job.total_miles }} mi{% endif %})
+    </span>{% endif %}
+  </h2>
+</div>
+
+{% for v in job.visits %}
+  <div class="visit-row">
+    <div class="when">
+      {% if v.scheduled_date %}{{ v.scheduled_date.strftime("%a, %b %d") }}{% else %}—{% endif %}
+      {% if v.is_active %}
+        <span class="pill pill-in_progress" style="font-size:0.65rem">⏱ on site</span>
+      {% endif %}
+    </div>
+    <div class="meta">
+      {% if v.arrived_at %}Arrived {{ v.arrived_at.strftime("%I:%M %p") }}{% endif %}
+      {% if v.departed_at %} → departed {{ v.departed_at.strftime("%I:%M %p") }}{% endif %}
+      {% if v.duration %} · {{ v.duration_display }}{% endif %}
+      {% if v.miles %} · {{ v.miles }} mi{% endif %}
+    </div>
+    {% if v.notes %}<div style="white-space:pre-wrap">{{ v.notes }}</div>{% endif %}
+    <div style="text-align:right">
+      <form method="post" action="{{ url_for('jobs.delete_visit', visit_id=v.id) }}"
+            style="margin:0; display:inline"
+            onsubmit="return confirm('Delete this visit?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="secondary outline" style="font-size:0.75rem; padding:0.2rem 0.5rem; min-height:auto">Delete</button>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <p class="muted" style="margin-bottom:1rem">No visits logged yet. Tap "Start visit" when you arrive on site.</p>
+{% endfor %}
+
+{# ----- Manual visit log (collapsed) ----- #}
+<details style="margin-top:1rem">
+  <summary>+ Log a past visit</summary>
+  <form method="post" action="{{ url_for('jobs.log_visit', job_id=job.id) }}" style="margin-top:1rem">
+    {{ visit_form.hidden_tag() }}
+    <div class="grid">
+      <div>
+        <label>{{ visit_form.scheduled_date.label }}</label>
+        {{ visit_form.scheduled_date() }}
+      </div>
+      <div>
+        <label>{{ visit_form.miles.label }}</label>
+        {{ visit_form.miles() }}
+      </div>
+    </div>
+    <div class="grid">
+      <div>
+        <label>{{ visit_form.arrived_at_time.label }}</label>
+        {{ visit_form.arrived_at_time() }}
+      </div>
+      <div>
+        <label>{{ visit_form.departed_at_time.label }}</label>
+        {{ visit_form.departed_at_time() }}
+      </div>
+    </div>
+    <label>{{ visit_form.notes.label }}</label>
+    {{ visit_form.notes() }}
+    {{ visit_form.submit(class_="contrast") }}
+  </form>
+</details>
+
+<hr>
+
+<div class="btn-row">
+  {% if job.status != 'canceled' and job.can_transition_to('canceled') %}
+  <form method="post" action="{{ url_for('jobs.change_status', job_id=job.id, new_status='canceled') }}"
+        style="margin:0; flex:1"
+        onsubmit="return confirm('Cancel this job?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="secondary outline" style="width:100%">Cancel job</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('jobs.delete_job', job_id=job.id) }}"
+        style="margin:0; flex:1"
+        onsubmit="return confirm('PERMANENTLY delete this job and all its visits?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="secondary outline" style="width:100%; color:var(--lo-danger); border-color:var(--lo-danger)">Delete job</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit job" if job else "New job" }} — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ "Edit job" if job else "New job" }}</h1>
+</div>
+
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+
+  <label for="{{ form.title.id }}">Job title *</label>
+  {{ form.title() }}
+  {% for err in form.title.errors %}<small class="error">{{ err }}</small>{% endfor %}
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.client_id.id }}">Client *</label>
+      {{ form.client_id(
+          **{"hx-get": url_for('jobs.property_options'),
+             "hx-trigger": "change",
+             "hx-target": "#" + form.property_id.id,
+             "hx-include": "this",
+             "hx-swap": "innerHTML"}) }}
+    </div>
+    <div>
+      <label for="{{ form.property_id.id }}">Property *</label>
+      {{ form.property_id() }}
+    </div>
+  </div>
+
+  <label for="{{ form.scope.id }}">Scope of work</label>
+  {{ form.scope() }}
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.scheduled_date.id }}">Date</label>
+      {{ form.scheduled_date() }}
+    </div>
+    <div>
+      <label for="{{ form.scheduled_time.id }}">Start time</label>
+      {{ form.scheduled_time() }}
+    </div>
+    <div>
+      <label for="{{ form.est_hours.id }}">Est. hours</label>
+      {{ form.est_hours() }}
+    </div>
+  </div>
+
+  <label for="{{ form.notes.id }}">Internal notes</label>
+  {{ form.notes() }}
+  <small class="muted">Only you see these.</small>
+
+  <div class="btn-row" style="margin-top:1rem">
+    {{ form.submit(class_="contrast") }}
+    <a href="{{ url_for('jobs.view_job', job_id=job.id) if job else url_for('jobs.list_jobs') }}"
+       role="button" class="secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

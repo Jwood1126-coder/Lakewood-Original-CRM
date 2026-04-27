@@ -54,8 +54,15 @@ def new_client():
 @bp.route("/<int:client_id>")
 @login_required
 def view_client(client_id: int):
+    from app.models.job import Job  # local import: avoid circulars at module load
     client = db.session.get(Client, client_id) or abort(404)
-    return render_template("clients/view.html", client=client)
+    recent_jobs = db.session.scalars(
+        select(Job)
+        .where(Job.client_id == client.id)
+        .order_by(Job.scheduled_date.desc().nulls_last(), Job.created_at.desc())
+        .limit(10)
+    ).all()
+    return render_template("clients/view.html", client=client, recent_jobs=recent_jobs)
 
 
 @bp.route("/<int:client_id>/edit", methods=["GET", "POST"])

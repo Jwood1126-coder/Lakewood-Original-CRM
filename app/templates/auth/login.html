@@ -3,23 +3,22 @@
 
 {% block content %}
 <div class="auth-shell">
-  <h2 style="margin-top:0">Sign in</h2>
+  <h1><span class="brand-mark">LO</span> Sign in</h1>
+  <p class="muted" style="margin-top:-0.6rem">{{ business_name }}</p>
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
 
     <label for="{{ form.email.id }}">Email</label>
-    {{ form.email(class_="", placeholder="you@example.com") }}
+    {{ form.email(placeholder="you@example.com") }}
     {% for err in form.email.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
     <label for="{{ form.password.id }}">Password</label>
     {{ form.password() }}
     {% for err in form.password.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
-    <label>
-      {{ form.remember() }} {{ form.remember.label.text }}
-    </label>
+    <label>{{ form.remember() }} {{ form.remember.label.text }}</label>
 
-    {{ form.submit(class_="contrast") }}
+    {{ form.submit(class_="contrast", style="width:100%; margin-top:0.5rem") }}
   </form>
 </div>
 {% endblock %}

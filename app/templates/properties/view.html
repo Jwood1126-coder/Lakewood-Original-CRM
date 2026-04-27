@@ -2,78 +2,72 @@
 {% block title %}{{ prop.label }} — {{ prop.client.name }}{% endblock %}
 
 {% block content %}
-<p style="color:var(--pico-muted-color); margin-bottom:0.2rem">
+<p class="muted" style="margin-bottom:0.2rem">
   <a href="{{ url_for('clients.view_client', client_id=prop.client.id) }}">← {{ prop.client.name }}</a>
 </p>
 
-<div style="display:flex; align-items:baseline; gap:1rem; flex-wrap:wrap">
-  <h1 style="margin:0">{{ prop.label }}</h1>
-  <a href="{{ url_for('properties.edit_property', property_id=prop.id) }}"
-     style="margin-left:auto">Edit</a>
-  <form method="post" action="{{ url_for('properties.delete_property', property_id=prop.id) }}"
-        style="display:inline; margin:0"
-        onsubmit="return confirm('Delete this property and all its photos? This cannot be undone.')">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="secondary outline">Delete</button>
-  </form>
+<div class="page-head">
+  <h1>{{ prop.label }}</h1>
+  <div class="actions">
+    <a href="{{ url_for('properties.edit_property', property_id=prop.id) }}" role="button" class="secondary outline">Edit</a>
+    <form method="post" action="{{ url_for('properties.delete_property', property_id=prop.id) }}"
+          style="display:inline; margin:0"
+          onsubmit="return confirm('Delete this property and all its photos?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete</button>
+    </form>
+  </div>
 </div>
 
-<p>
-  {{ prop.address_one_line }}<br>
-  <a href="{{ prop.maps_url }}" target="_blank" rel="noopener">Open in Maps ↗</a>
-</p>
-
-<dl class="grid">
-  <div>
-    <dt><small>County</small></dt>
-    <dd>{{ prop.county or '—' }}</dd>
+<div class="card">
+  <div>{{ prop.address_one_line }}</div>
+  <div style="margin-top:0.4rem">
+    <a href="{{ prop.maps_url }}" target="_blank" rel="noopener">📍 Open in Maps</a>
+    <span class="muted">·</span>
+    <span class="muted">{{ prop.county or 'Unknown county' }}</span>
+    <span class="muted">·</span>
+    <span class="muted">{{ prop.tax_rate_percent }} tax</span>
   </div>
-  <div>
-    <dt><small>Tax rate</small></dt>
-    <dd>{{ prop.tax_rate_percent }}</dd>
-  </div>
-</dl>
-
-{% if prop.notes %}
-  <article style="background:var(--pico-card-background-color); padding:1rem">
-    <strong>Notes</strong>
+  {% if prop.notes %}
+    <hr style="margin:0.8rem 0">
     <div style="white-space:pre-wrap">{{ prop.notes }}</div>
-  </article>
-{% endif %}
+  {% endif %}
+</div>
 
-<section style="margin-top:2rem">
-  <h2>Photos</h2>
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">Photos</h2>
+  <div class="actions">
+    <a href="{{ url_for('jobs.new_job', client_id=prop.client.id, property_id=prop.id) }}"
+       role="button" class="contrast">+ Schedule job here</a>
+  </div>
+</div>
 
-  <form method="post" enctype="multipart/form-data"
-        action="{{ url_for('properties.upload_photo', property_id=prop.id) }}"
-        style="margin-bottom:1rem">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<form method="post" enctype="multipart/form-data"
+      action="{{ url_for('properties.upload_photo', property_id=prop.id) }}"
+      style="margin-bottom:1rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="btn-row">
     <input type="file" name="photos" accept="image/*" multiple capture="environment">
     <button type="submit" class="contrast">Upload</button>
-  </form>
+  </div>
+</form>
 
-  {% set photos = prop_photos %}
-  {% if photos %}
-    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:0.6rem">
-      {% for p in photos %}
-        <figure style="margin:0">
-          <img src="{{ url_for('properties.serve_photo', rel_path=p.rel_path) }}"
-               alt="{{ p.caption or p.original_filename or '' }}"
-               loading="lazy"
-               style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px">
-          <form method="post"
-                action="{{ url_for('properties.delete_photo_route', photo_id=p.id) }}"
-                onsubmit="return confirm('Delete this photo?')"
-                style="margin:0; text-align:center">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="secondary outline"
-                    style="font-size:0.8rem; padding:0.2rem 0.5rem">Delete</button>
-          </form>
-        </figure>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p style="color:var(--pico-muted-color)">No photos yet.</p>
-  {% endif %}
-</section>
+{% if prop_photos %}
+  <div class="photos-grid">
+    {% for p in prop_photos %}
+      <figure>
+        <img src="{{ url_for('properties.serve_photo', rel_path=p.rel_path) }}"
+             alt="{{ p.caption or p.original_filename or '' }}" loading="lazy">
+        <form method="post" class="photo-del"
+              action="{{ url_for('properties.delete_photo_route', photo_id=p.id) }}"
+              onsubmit="return confirm('Delete this photo?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" aria-label="Delete">×</button>
+        </form>
+      </figure>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">No photos yet.</p>
+{% endif %}
 {% endblock %}

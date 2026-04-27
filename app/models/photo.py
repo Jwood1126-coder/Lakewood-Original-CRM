@@ -1,10 +1,7 @@
-"""Photo — attaches to multiple parents (Property/Quote/Visit/Invoice).
+"""Photo — attaches to one of: Property, Job, or Visit.
 
-We use the "polymorphic association via nullable FKs" pattern rather than
-SQLAlchemy's polymorphic_identity machinery. Reason: it's a third of the
-code, indexes are obvious, and it scales fine to <100k photos.
-
-Exactly one of (property_id, visit_id, quote_id, invoice_id) is set.
+Polymorphic-via-nullable-FKs pattern. Exactly one of the parent FKs is set;
+a CHECK constraint enforces it. Quote/Invoice photos get added in Phase 3.
 """
 from __future__ import annotations
 
@@ -21,7 +18,6 @@ class Photo(db.Model):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    # Relative path under PHOTO_DIR. Stored as forward-slash even on Windows.
     rel_path: Mapped[str] = mapped_column(String(500), nullable=False)
     original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     mimetype: Mapped[str | None] = mapped_column(String(80), nullable=True)
@@ -33,18 +29,20 @@ class Photo(db.Model):
     property_id: Mapped[int | None] = mapped_column(
         ForeignKey("properties.id", ondelete="CASCADE"), nullable=True, index=True
     )
-    # The other parent FKs (visit/quote/invoice) get added in their respective
-    # phases via Alembic migrations — leaving them out now keeps the table tight.
+    job_id: Mapped[int | None] = mapped_column(
+        ForeignKey("jobs.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    visit_id: Mapped[int | None] = mapped_column(
+        ForeignKey("visits.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )
 
     __table_args__ = (
-        # At least one parent must be set. (Currently only property_id, but the
-        # check is written as a guard so adding more FKs later doesn't break it.)
         CheckConstraint(
-            "property_id IS NOT NULL",
+            "(property_id IS NOT NULL) OR (job_id IS NOT NULL) OR (visit_id IS NOT NULL)",
             name="ck_photo_has_parent",
         ),
     )

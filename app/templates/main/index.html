@@ -1,31 +1,124 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — {{ business_name }}{% endblock %}
+{% block title %}Today — {{ business_name }}{% endblock %}
 
 {% block content %}
-<h1>Hello, {{ user.display_name or user.email }}.</h1>
-<p style="color:var(--pico-muted-color)">
-  Phase 0 skeleton. Phase 1 (Clients + Properties) is the next thing to land here.
-</p>
+<div class="page-head">
+  <h1>{{ today.strftime("%A, %b %d") }}</h1>
+  <div class="actions">
+    <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ New job</a>
+  </div>
+</div>
 
-<section class="stat-grid">
+<section class="stat-grid" style="margin-bottom:1.2rem">
+  <div class="stat-card">
+    <div class="label">Today</div>
+    <div class="number">{{ today_jobs|length }}</div>
+    <small class="muted">scheduled</small>
+  </div>
+  <div class="stat-card">
+    <div class="label">In progress</div>
+    <div class="number" style="color:var(--lo-warning)">{{ in_progress_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Open jobs</div>
+    <div class="number">{{ open_count }}</div>
+    <a href="{{ url_for('jobs.list_jobs', status='scheduled') }}">View →</a>
+  </div>
   <div class="stat-card">
     <div class="label">Clients</div>
     <div class="number">{{ client_count }}</div>
-    <a href="{{ url_for('clients.list_clients') }}">View all →</a>
-  </div>
-  <div class="stat-card">
-    <div class="label">Properties</div>
-    <div class="number">{{ property_count }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="label">Today's jobs</div>
-    <div class="number">—</div>
-    <small>Coming in Phase 2</small>
-  </div>
-  <div class="stat-card">
-    <div class="label">Outstanding invoices</div>
-    <div class="number">—</div>
-    <small>Coming in Phase 3</small>
+    <a href="{{ url_for('clients.list_clients') }}">View →</a>
   </div>
 </section>
+
+<section style="margin-bottom:1.5rem">
+  <div class="page-head">
+    <h2 style="margin:0; font-size:1.2rem">On for today</h2>
+  </div>
+  {% if today_jobs %}
+    <div class="card-list">
+      {% for j in today_jobs %}
+        <a href="{{ url_for('jobs.view_job', job_id=j.id) }}"
+           class="job-card status-{{ j.status }}">
+          <div class="job-row">
+            <span class="time">{{ j.time_display if j.scheduled_time else "All day" }}</span>
+            <span class="title">{{ j.title }}</span>
+            <span class="pill pill-{{ j.status }}">{{ j.status_label }}</span>
+          </div>
+          <div class="job-row">
+            <span class="client-name">{{ j.client.name }}</span>
+            {% if j.prop %}<span class="muted">·</span>
+            <span class="address">{{ j.prop.address_line1 }}</span>{% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty" style="padding:1.5rem 1rem">
+      <p>Nothing on the schedule today. Enjoy.</p>
+    </div>
+  {% endif %}
+</section>
+
+{% if overdue_jobs %}
+<section style="margin-bottom:1.5rem">
+  <div class="page-head">
+    <h2 style="margin:0; font-size:1.2rem">⚠ Overdue</h2>
+  </div>
+  <div class="card-list">
+    {% for j in overdue_jobs %}
+      <a href="{{ url_for('jobs.view_job', job_id=j.id) }}"
+         class="job-card status-{{ j.status }}" style="border-left-color:var(--lo-danger)">
+        <div class="job-row">
+          <span class="time" style="color:var(--lo-danger)">{{ j.scheduled_date.strftime("%b %d") }}</span>
+          <span class="title">{{ j.title }}</span>
+          <span class="pill pill-overdue">overdue</span>
+        </div>
+        <div class="job-row">
+          <span class="client-name">{{ j.client.name }}</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if upcoming_jobs %}
+<section>
+  <div class="page-head">
+    <h2 style="margin:0; font-size:1.2rem">Next 7 days</h2>
+    <div class="actions"><a href="{{ url_for('jobs.calendar') }}">Full calendar →</a></div>
+  </div>
+  <div class="card-list">
+    {% for j in upcoming_jobs %}
+      <a href="{{ url_for('jobs.view_job', job_id=j.id) }}"
+         class="job-card status-{{ j.status }}">
+        <div class="job-row">
+          <span class="time">{{ j.scheduled_date.strftime("%a %b %d") }}{% if j.scheduled_time %} · {{ j.time_display }}{% endif %}</span>
+          <span class="title">{{ j.title }}</span>
+        </div>
+        <div class="job-row">
+          <span class="client-name">{{ j.client.name }}</span>
+          {% if j.prop %}<span class="muted">·</span>
+          <span class="address">{{ j.prop.address_line1 }}</span>{% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if not today_jobs and not upcoming_jobs and not overdue_jobs %}
+<div class="empty">
+  <div class="empty-icon">🛠️</div>
+  <p>Nothing scheduled yet.</p>
+  <p>
+    {% if client_count == 0 %}
+      <a href="{{ url_for('clients.new_client') }}" role="button" class="contrast">+ Add your first client</a>
+    {% else %}
+      <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule a job</a>
+    {% endif %}
+  </p>
+</div>
+{% endif %}
 {% endblock %}

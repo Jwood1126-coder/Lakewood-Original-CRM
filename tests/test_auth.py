@@ -11,7 +11,8 @@ def test_login_success(client, user):
         follow_redirects=True,
     )
     assert r.status_code == 200
-    assert b"Hello" in r.data
+    # New dashboard renders today's date as the heading
+    assert b"On for today" in r.data or b"Nothing scheduled yet" in r.data
 
 
 def test_login_wrong_password(client, user):

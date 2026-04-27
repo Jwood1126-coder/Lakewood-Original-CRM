@@ -50,6 +50,7 @@ def _init_extensions(app: Flask) -> None:
 def _register_blueprints(app: Flask) -> None:
     from app.auth.routes import bp as auth_bp
     from app.clients.routes import bp as clients_bp
+    from app.jobs.routes import bp as jobs_bp
     from app.main.routes import bp as main_bp
     from app.properties.routes import bp as properties_bp
 
@@ -57,6 +58,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(clients_bp, url_prefix="/clients")
     app.register_blueprint(properties_bp, url_prefix="/properties")
+    app.register_blueprint(jobs_bp, url_prefix="/jobs")
 
 
 def _register_context(app: Flask) -> None:

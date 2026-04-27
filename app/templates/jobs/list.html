@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Jobs — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Jobs</h1>
+  <div class="actions">
+    <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ New job</a>
+  </div>
+</div>
+
+<div class="btn-row" style="margin-bottom:1rem">
+  <a href="{{ url_for('jobs.list_jobs') }}" role="button"
+     class="{{ 'contrast' if not status else 'secondary outline' }}">All</a>
+  {% for s in statuses %}
+    <a href="{{ url_for('jobs.list_jobs', status=s) }}" role="button"
+       class="{{ 'contrast' if status == s else 'secondary outline' }}">{{ status_labels[s] }}</a>
+  {% endfor %}
+</div>
+
+{% if jobs %}
+  <div class="card-list">
+    {% for j in jobs %}
+      <a href="{{ url_for('jobs.view_job', job_id=j.id) }}"
+         class="job-card status-{{ j.status }}">
+        <div class="job-row">
+          {% if j.scheduled_date %}
+            <span class="time">{{ j.scheduled_date.strftime("%b %d") }}{% if j.scheduled_time %} · {{ j.time_display }}{% endif %}</span>
+          {% else %}
+            <span class="time muted">unsched</span>
+          {% endif %}
+          <span class="title">{{ j.title }}</span>
+          <span class="pill pill-{{ j.status }}">{{ j.status_label }}</span>
+        </div>
+        <div class="job-row">
+          <span class="client-name">{{ j.client.name }}</span>
+          {% if j.prop %}<span class="muted">·</span>
+          <span class="address">{{ j.prop.address_line1 }}</span>{% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    <div class="empty-icon">🧰</div>
+    <p>No jobs yet{% if status %} with status "{{ status_labels[status] }}"{% endif %}.</p>
+    <p><a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Create your first job</a></p>
+  </div>
+{% endif %}
+{% endblock %}

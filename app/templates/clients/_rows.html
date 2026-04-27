@@ -1,18 +1,16 @@
 <tbody>
   {% for c in clients %}
     <tr>
-      <td><a href="{{ url_for('clients.view_client', client_id=c.id) }}">{{ c.name }}</a></td>
-      <td>
-        {% if c.phone %}
-          <a href="tel:{{ c.phone }}">{{ c.display_phone }}</a>
-        {% else %}—{% endif %}
+      <td data-label="Name">
+        <a href="{{ url_for('clients.view_client', client_id=c.id) }}">{{ c.name }}</a>
       </td>
-      <td>
-        {% if c.email %}
-          <a href="mailto:{{ c.email }}">{{ c.email }}</a>
-        {% else %}—{% endif %}
+      <td data-label="Phone">
+        {% if c.phone %}<a href="tel:{{ c.phone }}">{{ c.display_phone }}</a>{% else %}<span class="muted">—</span>{% endif %}
       </td>
-      <td>{{ c.properties|length }}</td>
+      <td data-label="Email">
+        {% if c.email %}<a href="mailto:{{ c.email }}">{{ c.email }}</a>{% else %}<span class="muted">—</span>{% endif %}
+      </td>
+      <td data-label="Properties">{{ c.properties|length }}</td>
     </tr>
   {% endfor %}
 </tbody>
