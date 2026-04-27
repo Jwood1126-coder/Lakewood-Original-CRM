@@ -23,8 +23,9 @@ Pillow==11.0.0
 # Scheduling
 APScheduler==3.10.4
 
-# Anthropic SDK (assistant; Phase 5)
-anthropic==0.39.0
+# Anthropic SDK (assistant). Pinned >=0.45 because earlier versions
+# call httpx.Client(proxies=...) which was removed in httpx 0.28+.
+anthropic>=0.45.0,<1.0.0
 
 # Backups (Backblaze B2 via S3-compatible API)
 boto3==1.35.49
