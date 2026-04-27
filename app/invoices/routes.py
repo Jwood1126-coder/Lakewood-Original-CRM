@@ -211,15 +211,25 @@ def delete_invoice(invoice_id: int):
 @bp.route("/<int:invoice_id>/status/<new_status>", methods=["POST"])
 @login_required
 def change_status(invoice_id: int, new_status: str):
+    from app.services.events import notify_invoice_paid, notify_invoice_sent
+
     invoice = db.session.get(Invoice, invoice_id) or abort(404)
     if new_status not in INVOICE_STATUSES:
         abort(400)
+    prev = invoice.status
     invoice.status = new_status
     if new_status == "sent" and not invoice.sent_at:
         invoice.sent_at = datetime.utcnow()
     if new_status == "paid" and not invoice.paid_at:
         invoice.paid_at = datetime.utcnow()
     db.session.commit()
+
+    if new_status != prev:
+        if new_status == "sent":
+            notify_invoice_sent(invoice)
+        elif new_status == "paid":
+            notify_invoice_paid(invoice)
+
     flash(f"Invoice marked {INVOICE_STATUS_LABELS[new_status]}.", "success")
     return redirect(url_for("invoices.view_invoice", invoice_id=invoice.id))
 
@@ -247,6 +257,8 @@ def record_payment(invoice_id: int):
         flash("Payment amount must be greater than zero.", "error")
         return redirect(url_for("invoices.view_invoice", invoice_id=invoice.id))
 
+    from app.services.events import notify_invoice_paid, notify_payment_received
+
     p = Payment(
         invoice_id=invoice.id,
         amount_cents=cents,
@@ -257,8 +269,15 @@ def record_payment(invoice_id: int):
     )
     db.session.add(p)
     db.session.flush()
+    prev_status = invoice.status
     invoice.recompute_status()
     db.session.commit()
+
+    notify_payment_received(p)
+    # If this payment closed out the invoice, send a paid-in-full notice too
+    if invoice.status == "paid" and prev_status != "paid":
+        notify_invoice_paid(invoice)
+
     flash(f"Recorded payment of ${cents/100:.2f}.", "success")
     return redirect(url_for("invoices.view_invoice", invoice_id=invoice.id))
 

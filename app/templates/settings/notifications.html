@@ -53,6 +53,18 @@
   </div>
 
   <div class="card" style="margin-top:1rem">
+    <h3 style="margin-top:0; font-size:1rem">Event triggers (Jobber-style)</h3>
+    <p class="muted" style="margin-top:0">Send me an email when…</p>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_sent() }} A quote is marked sent</label>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_accepted() }} A quote is accepted</label>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_converted() }} A quote is converted to a job</label>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_job_complete() }} A job is marked complete</label>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_invoice_sent() }} An invoice is marked sent</label>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_payment_received() }} A payment is recorded</label>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_invoice_paid() }} An invoice is paid in full 🎉</label>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
     <h3 style="margin-top:0; font-size:1rem">Channels</h3>
     <p class="muted" style="margin-top:0">In-app inbox is always on. Email is in addition.</p>
     <label style="display:flex; align-items:center; gap:0.6rem">

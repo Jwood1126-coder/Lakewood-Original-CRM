@@ -181,9 +181,12 @@ def delete_quote(quote_id: int):
 @bp.route("/<int:quote_id>/status/<new_status>", methods=["POST"])
 @login_required
 def change_status(quote_id: int, new_status: str):
+    from app.services.events import notify_quote_accepted, notify_quote_sent
+
     quote = db.session.get(Quote, quote_id) or abort(404)
     if new_status not in QUOTE_STATUSES:
         abort(400)
+    prev_status = quote.status
     quote.status = new_status
     if new_status == "sent" and not quote.sent_at:
         quote.sent_at = datetime.utcnow()
@@ -192,6 +195,14 @@ def change_status(quote_id: int, new_status: str):
     if new_status == "declined" and not quote.declined_at:
         quote.declined_at = datetime.utcnow()
     db.session.commit()
+
+    # Fire event notifications only on actual transitions
+    if new_status != prev_status:
+        if new_status == "sent":
+            notify_quote_sent(quote)
+        elif new_status == "accepted":
+            notify_quote_accepted(quote)
+
     flash(f"Quote marked {QUOTE_STATUS_LABELS[new_status]}.", "success")
     return redirect(url_for("quotes.view_quote", quote_id=quote.id))
 
@@ -199,6 +210,7 @@ def change_status(quote_id: int, new_status: str):
 @bp.route("/<int:quote_id>/convert-to-job", methods=["POST"])
 @login_required
 def convert_to_job(quote_id: int):
+    from app.services.events import notify_quote_converted
     quote = db.session.get(Quote, quote_id) or abort(404)
     if quote.converted_to_job_id:
         flash("Quote already converted.", "warning")
@@ -226,5 +238,6 @@ def convert_to_job(quote_id: int):
             quote.accepted_at = datetime.utcnow()
     quote.status = "converted"
     db.session.commit()
+    notify_quote_converted(quote, job)
     flash(f"Created job from quote Q-{quote.number}. Pick a date next.", "success")
     return redirect(url_for("jobs.edit_job", job_id=job.id))

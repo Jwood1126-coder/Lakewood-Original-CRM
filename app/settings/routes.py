@@ -224,12 +224,17 @@ def assistant():
 @bp.route("/notifications", methods=["GET", "POST"])
 @login_required
 def notifications():
+    EVENT_KEYS = ("event_quote_sent", "event_quote_accepted",
+                  "event_quote_converted", "event_job_complete",
+                  "event_invoice_sent", "event_invoice_paid",
+                  "event_payment_received")
     form = NotificationForm(data={
         "daily_briefing":  get_setting("notify_daily", "1") == "1",
         "daily_time":      get_setting("notify_daily_time", "06:30"),
         "weekly_briefing": get_setting("notify_weekly", "1") == "1",
         "monthly_report":  get_setting("notify_monthly", "1") == "1",
         "job_day_reminder": get_setting("notify_job_day", "1") == "1",
+        **{k: get_setting(f"notify_{k}", "1") == "1" for k in EVENT_KEYS},
         "email_channel":   get_setting("notify_email", "1") == "1",
         "notify_email_to": get_setting("notify_email_to",
                                        current_app.config.get("NOTIFY_EMAIL") or ""),
@@ -241,6 +246,8 @@ def notifications():
         set_setting("notify_weekly", "1" if form.weekly_briefing.data else "0")
         set_setting("notify_monthly", "1" if form.monthly_report.data else "0")
         set_setting("notify_job_day", "1" if form.job_day_reminder.data else "0")
+        for k in EVENT_KEYS:
+            set_setting(f"notify_{k}", "1" if getattr(form, k).data else "0")
         set_setting("notify_email", "1" if form.email_channel.data else "0")
         set_setting("notify_email_to", (form.notify_email_to.data or "").strip())
         # Re-schedule the cron jobs with the new times

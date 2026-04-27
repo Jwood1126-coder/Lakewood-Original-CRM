@@ -69,6 +69,7 @@ class AssistantForm(FlaskForm):
 
 
 class NotificationForm(FlaskForm):
+    # Scheduled
     daily_briefing  = BooleanField("Daily morning briefing", default=True)
     daily_time      = StringField(
         "Time (24-hour, your local time)",
@@ -80,6 +81,17 @@ class NotificationForm(FlaskForm):
     monthly_report  = BooleanField("Monthly report (1st of month)", default=True)
     job_day_reminder = BooleanField("Reminder the morning of each scheduled job",
                                      default=True)
+
+    # Per-event triggers (Jobber-style "something happened" notifications)
+    event_quote_sent       = BooleanField("Quote marked sent", default=True)
+    event_quote_accepted   = BooleanField("Quote accepted", default=True)
+    event_quote_converted  = BooleanField("Quote converted to job", default=True)
+    event_job_complete     = BooleanField("Job marked complete", default=True)
+    event_invoice_sent     = BooleanField("Invoice marked sent", default=True)
+    event_invoice_paid     = BooleanField("Invoice paid in full", default=True)
+    event_payment_received = BooleanField("Payment recorded", default=True)
+
+    # Channels
     email_channel   = BooleanField("Email channel (in addition to in-app)",
                                     default=True)
     notify_email_to = StringField(
