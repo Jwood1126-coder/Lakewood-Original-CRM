@@ -10,9 +10,10 @@ from sqlalchemy.orm import joinedload
 
 from app.extensions import db
 from app.models.client import Client
+from app.models.invoice import Invoice
 from app.models.job import Job
 from app.models.notification import Notification
-from app.models.property import Property
+from app.models.quote import Quote
 
 bp = Blueprint("main", __name__)
 
@@ -53,14 +54,52 @@ def index():
         .limit(8)
     ).all()
 
+    # ---------- Pipeline / "needs attention" ----------
+
+    quotes_draft = db.session.scalars(
+        select(Quote).options(joinedload(Quote.client))
+        .where(Quote.status == "draft").order_by(Quote.updated_at.desc()).limit(8)
+    ).all()
+    quotes_sent = db.session.scalars(
+        select(Quote).options(joinedload(Quote.client))
+        .where(Quote.status == "sent").order_by(Quote.sent_at.desc().nulls_last()).limit(8)
+    ).all()
+    quotes_accepted_unconverted = db.session.scalars(
+        select(Quote).options(joinedload(Quote.client))
+        .where(Quote.status == "accepted", Quote.converted_to_job_id.is_(None))
+        .order_by(Quote.accepted_at.desc().nulls_last()).limit(8)
+    ).all()
+
+    jobs_needing_invoice = db.session.scalars(
+        select(Job).options(joinedload(Job.client))
+        .where(Job.status == "complete")
+        .order_by(Job.updated_at.desc())
+        .limit(20)
+    ).all()
+    # Filter in Python (cheap at this scale) for "no open invoice yet"
+    jobs_needing_invoice = [j for j in jobs_needing_invoice if j.needs_invoicing][:8]
+
+    invoices_unpaid = db.session.scalars(
+        select(Invoice).options(joinedload(Invoice.client))
+        .where(Invoice.status.in_(["sent", "partial"]))
+        .order_by(Invoice.due_date.nulls_last()).limit(8)
+    ).all()
+    invoices_overdue = [i for i in invoices_unpaid if i.is_overdue]
+
+    # ---------- Counts ----------
+
     in_progress_count = db.session.scalar(
         select(func.count(Job.id)).where(Job.status == "in_progress")
     ) or 0
     open_count = db.session.scalar(
         select(func.count(Job.id)).where(Job.status.in_(["scheduled", "in_progress"]))
     ) or 0
-
     client_count = db.session.scalar(select(func.count(Client.id))) or 0
+
+    # Total open balance across all clients (cents)
+    ar_total_cents = sum(i.balance_cents for i in db.session.scalars(
+        select(Invoice).where(Invoice.status.in_(["sent", "partial"]))
+    ).all())
 
     return render_template(
         "main/index.html",
@@ -69,9 +108,16 @@ def index():
         today_jobs=today_jobs,
         upcoming_jobs=upcoming_jobs,
         overdue_jobs=overdue_jobs,
+        quotes_draft=quotes_draft,
+        quotes_sent=quotes_sent,
+        quotes_accepted_unconverted=quotes_accepted_unconverted,
+        jobs_needing_invoice=jobs_needing_invoice,
+        invoices_unpaid=invoices_unpaid,
+        invoices_overdue=invoices_overdue,
         in_progress_count=in_progress_count,
         open_count=open_count,
         client_count=client_count,
+        ar_total_cents=ar_total_cents,
     )
 
 
@@ -81,7 +127,6 @@ def inbox():
     notifications = db.session.scalars(
         select(Notification).order_by(Notification.created_at.desc()).limit(50)
     ).all()
-    # Mark as read on view (a single-user app — viewing == reading)
     for n in notifications:
         if n.read_at is None:
             n.read_at = datetime.utcnow()

@@ -20,7 +20,7 @@
 </div>
 
 <div class="card">
-  <div style="display:flex; gap:1rem; flex-wrap:wrap">
+  <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center">
     {% if client.phone %}
       <div><a href="tel:{{ client.phone }}">📞 {{ client.display_phone }}</a></div>
     {% endif %}
@@ -30,11 +30,22 @@
     {% if not client.phone and not client.email %}
       <div class="muted">No contact info on file</div>
     {% endif %}
+    {% if client.balance_owed_cents > 0 %}
+      <div style="margin-left:auto">
+        <span class="pill pill-overdue">Balance owed: ${{ '%.2f'|format(client.balance_owed_cents/100) }}</span>
+      </div>
+    {% endif %}
   </div>
   {% if client.notes %}
     <hr style="margin:0.8rem 0">
     <div style="white-space:pre-wrap">{{ client.notes }}</div>
   {% endif %}
+</div>
+
+<div class="btn-row" style="margin-top:1rem">
+  <a href="{{ url_for('jobs.new_job', client_id=client.id) }}" role="button" class="contrast">+ Schedule job</a>
+  <a href="{{ url_for('quotes.new_quote', client_id=client.id) }}" role="button" class="secondary">+ Quote</a>
+  <a href="{{ url_for('invoices.new_invoice', client_id=client.id) }}" role="button" class="secondary">+ Invoice</a>
 </div>
 
 <div class="page-head" style="margin-top:1.4rem">
@@ -64,6 +75,64 @@
 {% else %}
   <p class="muted">No properties yet for this client.
     <a href="{{ url_for('properties.new_property', client_id=client.id) }}">Add one.</a></p>
+{% endif %}
+
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">Quotes</h2>
+  <div class="actions">
+    <a href="{{ url_for('quotes.new_quote', client_id=client.id) }}" role="button" class="contrast">+ Quote</a>
+  </div>
+</div>
+{% if recent_quotes %}
+<div class="card-list">
+  {% for q in recent_quotes %}
+    <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card">
+      <div class="job-row">
+        <span class="time">Q-{{ q.number }}</span>
+        <span class="title">{{ q.subject }}</span>
+        <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
+      </div>
+      <div class="job-row">
+        <span class="address">${{ '%.2f'|format(q.total_cents/100) }}</span>
+        {% if q.valid_until %}<span class="muted">· valid until {{ q.valid_until.strftime("%b %d") }}</span>{% endif %}
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+  <p class="muted">No quotes yet.</p>
+{% endif %}
+
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">Invoices</h2>
+  <div class="actions">
+    <a href="{{ url_for('invoices.new_invoice', client_id=client.id) }}" role="button" class="contrast">+ Invoice</a>
+  </div>
+</div>
+{% if recent_invoices %}
+<div class="card-list">
+  {% for inv in recent_invoices %}
+    <a href="{{ url_for('invoices.view_invoice', invoice_id=inv.id) }}" class="job-card">
+      <div class="job-row">
+        <span class="time">#{{ inv.number }}</span>
+        <span class="title">{{ inv.subject }}</span>
+        {% if inv.is_overdue %}
+          <span class="pill pill-overdue">{{ inv.days_overdue }}d overdue</span>
+        {% else %}
+          <span class="pill pill-{{ inv.status }}">{{ inv.status_label }}</span>
+        {% endif %}
+      </div>
+      <div class="job-row">
+        <span class="address">${{ '%.2f'|format(inv.total_cents/100) }}</span>
+        {% if inv.balance_cents > 0 and inv.status not in ('draft','void') %}
+          <span class="muted">· ${{ '%.2f'|format(inv.balance_cents/100) }} owed</span>
+        {% endif %}
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+  <p class="muted">No invoices yet.</p>
 {% endif %}
 
 <div class="page-head" style="margin-top:1.4rem">

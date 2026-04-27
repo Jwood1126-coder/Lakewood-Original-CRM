@@ -70,7 +70,33 @@
   {% if job.status == 'complete' %}
     <a href="{{ url_for('jobs.new_job', repeat_from=job.id) }}" role="button" class="secondary">↻ Repeat job</a>
   {% endif %}
+  {% if job.status == 'complete' and not job.has_open_invoice %}
+    <a href="{{ url_for('invoices.new_invoice', from_job=job.id) }}" role="button" class="contrast">→ Create invoice</a>
+  {% endif %}
 </div>
+
+{% if job.invoices %}
+<div class="card" style="margin-top:1rem">
+  <strong>Invoices for this job</strong>
+  {% for inv in job.invoices %}
+    <div style="margin-top:0.4rem">
+      <a href="{{ url_for('invoices.view_invoice', invoice_id=inv.id) }}">#{{ inv.number }} — ${{ '%.2f'|format(inv.total_cents/100) }}</a>
+      <span class="pill pill-{{ inv.status }}" style="margin-left:0.4rem">{{ inv.status_label }}</span>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if job.source_quotes %}
+<div class="card" style="margin-top:0.6rem">
+  <strong>From quote</strong>
+  {% for q in job.source_quotes %}
+    <div style="margin-top:0.3rem">
+      <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}">Q-{{ q.number }} — {{ q.subject }}</a>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 {# ----- Visits ----- #}
 <div class="page-head" style="margin-top:1.4rem">

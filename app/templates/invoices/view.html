@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}#{{ invoice.number }} {{ invoice.subject }} — {{ business_name }}{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem">
+  <a href="{{ url_for('clients.view_client', client_id=invoice.client.id) }}">← {{ invoice.client.name }}</a>
+</p>
+
+<div class="page-head">
+  <h1>#{{ invoice.number }} · {{ invoice.subject }}</h1>
+  <div class="actions">
+    {% if invoice.is_overdue %}
+      <span class="pill pill-overdue">{{ invoice.days_overdue }}d overdue</span>
+    {% else %}
+      <span class="pill pill-{{ invoice.status }}">{{ invoice.status_label }}</span>
+    {% endif %}
+    <a href="{{ url_for('invoices.edit_invoice', invoice_id=invoice.id) }}" role="button" class="secondary outline">Edit</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex; flex-wrap:wrap; gap:1rem">
+    <div>
+      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Bill to</div>
+      <div>{{ invoice.client.name }}</div>
+      <div class="muted">{{ invoice.prop.address_one_line }}</div>
+      {% if invoice.job %}
+      <div class="muted" style="margin-top:0.4rem">
+        For job: <a href="{{ url_for('jobs.view_job', job_id=invoice.job.id) }}">{{ invoice.job.title }}</a>
+      </div>
+      {% endif %}
+    </div>
+    <div style="margin-left:auto; text-align:right">
+      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Total</div>
+      <div style="font-size:1.6rem; font-weight:700">${{ '%.2f'|format(invoice.total_cents/100) }}</div>
+      {% if invoice.balance_cents > 0 and invoice.status != 'draft' %}
+      <div class="muted" style="font-size:0.85rem">
+        ${{ '%.2f'|format(invoice.paid_cents/100) }} paid
+        · <strong style="color:var(--lo-warning)">${{ '%.2f'|format(invoice.balance_cents/100) }} owed</strong>
+      </div>
+      {% elif invoice.balance_cents == 0 and invoice.total_cents > 0 %}
+      <div class="muted" style="font-size:0.85rem; color:var(--lo-success)">
+        ✓ Paid in full
+      </div>
+      {% endif %}
+      {% if invoice.due_date %}
+        <small class="muted">Due {{ invoice.due_date.strftime("%b %d, %Y") }}</small>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <table class="table-rows" style="width:100%">
+    <thead>
+      <tr><th>Item</th><th>Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Total</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for li in invoice.line_items %}
+        <tr>
+          <td>{{ li.description }}</td>
+          <td>{{ '%g'|format(li.quantity) }}</td>
+          <td style="text-align:right">${{ li.unit_price_dollars }}</td>
+          <td style="text-align:right">${{ li.line_total_dollars }}</td>
+          <td>{% if li.taxable %}<small class="muted">tax</small>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">No line items — <a href="{{ url_for('invoices.edit_invoice', invoice_id=invoice.id) }}">add some</a>.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if invoice.line_items %}
+    <tfoot>
+      <tr><td colspan="3" style="text-align:right" class="muted">Subtotal</td>
+          <td style="text-align:right">${{ '%.2f'|format(invoice.subtotal_cents/100) }}</td><td></td></tr>
+      <tr><td colspan="3" style="text-align:right" class="muted">Tax ({{ '%.2f%%'|format(invoice.effective_tax_rate*100) }})</td>
+          <td style="text-align:right">${{ '%.2f'|format(invoice.tax_cents/100) }}</td><td></td></tr>
+      <tr><td colspan="3" style="text-align:right"><strong>Total</strong></td>
+          <td style="text-align:right"><strong>${{ '%.2f'|format(invoice.total_cents/100) }}</strong></td><td></td></tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
+{# ----- Status quick-actions ----- #}
+<div class="sticky-cta">
+  {% if invoice.status == 'draft' %}
+    <form method="post" action="{{ url_for('invoices.change_status', invoice_id=invoice.id, new_status='sent') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">Mark sent</button>
+    </form>
+  {% endif %}
+  {% if invoice.status not in ('paid','void') and invoice.balance_cents > 0 %}
+    <a href="#record-payment" role="button" class="contrast">+ Record payment</a>
+  {% endif %}
+  {% if invoice.status != 'void' %}
+    <form method="post" action="{{ url_for('invoices.change_status', invoice_id=invoice.id, new_status='void') }}" style="margin:0"
+          onsubmit="return confirm('Void this invoice?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline">Void</button>
+    </form>
+  {% endif %}
+</div>
+
+{# ----- Payments ----- #}
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">Payments</h2>
+</div>
+
+{% if invoice.payments %}
+{% for p in invoice.payments %}
+  <div class="visit-row">
+    <div class="when">${{ '%.2f'|format(p.amount_cents/100) }} <span class="muted" style="font-weight:400">· {{ p.method_label }}</span></div>
+    <div class="meta">
+      Received {{ p.received_at.strftime("%b %d, %Y %I:%M %p") }}
+      {% if p.reference %} · ref {{ p.reference }}{% endif %}
+    </div>
+    {% if p.notes %}<div style="white-space:pre-wrap">{{ p.notes }}</div>{% endif %}
+    <div style="text-align:right">
+      <form method="post" action="{{ url_for('invoices.delete_payment', payment_id=p.id) }}"
+            style="margin:0; display:inline" onsubmit="return confirm('Remove this payment?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="secondary outline" style="font-size:0.75rem; padding:0.2rem 0.5rem; min-height:auto">Remove</button>
+      </form>
+    </div>
+  </div>
+{% endfor %}
+{% else %}
+  <p class="muted">No payments recorded yet.</p>
+{% endif %}
+
+<details id="record-payment" {% if invoice.balance_cents > 0 %}open{% endif %} style="margin-top:1rem">
+  <summary>+ Record payment</summary>
+  <form method="post" action="{{ url_for('invoices.record_payment', invoice_id=invoice.id) }}" style="margin-top:1rem">
+    {{ payment_form.hidden_tag() }}
+    <div class="grid">
+      <div>
+        <label>{{ payment_form.amount.label }}</label>
+        {{ payment_form.amount(value='%.2f' % (invoice.balance_cents/100) if invoice.balance_cents else '') }}
+      </div>
+      <div>
+        <label>{{ payment_form.method.label }}</label>
+        {{ payment_form.method() }}
+      </div>
+    </div>
+    <label>{{ payment_form.received_at.label }}</label>
+    {{ payment_form.received_at() }}
+    <label>{{ payment_form.reference.label }}</label>
+    {{ payment_form.reference() }}
+    <label>{{ payment_form.notes.label }}</label>
+    {{ payment_form.notes() }}
+    {{ payment_form.submit(class_="contrast") }}
+  </form>
+</details>
+
+{% if invoice.notes %}
+<div class="card">
+  <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Notes</div>
+  <div style="white-space:pre-wrap; margin-top:0.4rem">{{ invoice.notes }}</div>
+</div>
+{% endif %}
+
+<hr>
+<form method="post" action="{{ url_for('invoices.delete_invoice', invoice_id=invoice.id) }}"
+      onsubmit="return confirm('Permanently delete this invoice and all its payments?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete invoice</button>
+</form>
+{% endblock %}

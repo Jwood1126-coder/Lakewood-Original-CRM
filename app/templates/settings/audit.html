@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Audit log — {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "settings/_back.html" %}
+<div class="page-head"><h1>Audit log</h1></div>
+<p class="muted">
+  Every change to clients, properties, jobs, visits, quotes, invoices,
+  line items, and payments is recorded here automatically. Inserts, updates,
+  and deletes all captured with the previous values — so nothing is ever
+  truly lost. Showing the last 200 events.
+</p>
+
+<form method="get" class="card" style="margin-bottom:1rem">
+  <div class="grid">
+    <div>
+      <label for="entity_type">Entity</label>
+      <select name="entity_type" id="entity_type">
+        <option value="">All</option>
+        {% for t in types %}
+          <option value="{{ t }}" {% if f_entity_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="entity_id">Entity ID</label>
+      <input type="number" name="entity_id" id="entity_id" value="{{ f_entity_id or '' }}">
+    </div>
+    <div>
+      <label for="operation">Operation</label>
+      <select name="operation" id="operation">
+        <option value="">All</option>
+        <option value="insert" {% if f_operation == 'insert' %}selected{% endif %}>insert</option>
+        <option value="update" {% if f_operation == 'update' %}selected{% endif %}>update</option>
+        <option value="delete" {% if f_operation == 'delete' %}selected{% endif %}>delete</option>
+      </select>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:0.6rem">
+    <button type="submit" class="contrast">Filter</button>
+    <a href="{{ url_for('settings.audit_log') }}" role="button" class="secondary">Clear</a>
+  </div>
+</form>
+
+{% if rows %}
+<div class="card-list">
+  {% for r in rows %}
+    <details class="card">
+      <summary style="cursor:pointer">
+        <span class="muted" style="font-size:0.78rem">
+          {{ r.created_at.strftime("%Y-%m-%d %H:%M:%S") }} UTC
+        </span>
+        ·
+        <strong>{{ r.operation }}</strong>
+        ·
+        {{ r.entity_type }}{% if r.entity_id %} #{{ r.entity_id }}{% endif %}
+        {% if r.actor_email %} · <span class="muted">{{ r.actor_email }}</span>
+        {% else %} · <span class="muted">{{ r.actor_kind }}</span>{% endif %}
+        {% if r.summary %}<br><span style="font-size:0.92rem">{{ r.summary }}</span>{% endif %}
+      </summary>
+      {% if r.before_json %}
+        <div style="margin-top:0.5rem">
+          <strong style="font-size:0.78rem; color:var(--pico-muted-color); text-transform:uppercase">Before</strong>
+          <pre style="background:var(--pico-card-sectioning-background-color); padding:0.5rem; border-radius:6px; font-size:0.78rem; overflow:auto">{{ r.before_json }}</pre>
+        </div>
+      {% endif %}
+      {% if r.after_json %}
+        <div>
+          <strong style="font-size:0.78rem; color:var(--pico-muted-color); text-transform:uppercase">After</strong>
+          <pre style="background:var(--pico-card-sectioning-background-color); padding:0.5rem; border-radius:6px; font-size:0.78rem; overflow:auto">{{ r.after_json }}</pre>
+        </div>
+      {% endif %}
+    </details>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-icon">📋</div>
+  <p>No audit entries match your filter.</p>
+</div>
+{% endif %}
+{% endblock %}

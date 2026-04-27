@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="{{ app_theme or 'dark' }}">
+{# Map our app theme to one Pico recognizes (light|dark). AMOLED layers on
+   top of the dark Pico baseline via [data-app-theme="amoled"] selectors. #}
+{% set _pico_theme = 'light' if app_theme == 'light' else 'dark' %}
+<html lang="en" data-theme="{{ _pico_theme }}" data-app-theme="{{ app_theme or 'dark' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -23,6 +26,8 @@
         <a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>Today</a>
         <a href="{{ url_for('jobs.calendar') }}" {% if request.endpoint == 'jobs.calendar' %}class="active"{% endif %}>Calendar</a>
         <a href="{{ url_for('jobs.list_jobs') }}" {% if request.endpoint == 'jobs.list_jobs' %}class="active"{% endif %}>Jobs</a>
+        <a href="{{ url_for('quotes.list_quotes') }}" {% if request.blueprint == 'quotes' %}class="active"{% endif %}>Quotes</a>
+        <a href="{{ url_for('invoices.list_invoices') }}" {% if request.blueprint == 'invoices' %}class="active"{% endif %}>Invoices</a>
         <a href="{{ url_for('clients.list_clients') }}" {% if request.blueprint == 'clients' or request.blueprint == 'properties' %}class="active"{% endif %}>Clients</a>
         <a href="{{ url_for('assistant.index') }}" {% if request.blueprint == 'assistant' %}class="active"{% endif %}>Assistant</a>
         <a href="{{ url_for('main.inbox') }}" {% if request.endpoint == 'main.inbox' %}class="active"{% endif %}>
@@ -57,15 +62,39 @@
       <a href="{{ url_for('assistant.index') }}" class="bottombar-fab" aria-label="Assistant">
         <span class="ic">✨</span>
       </a>
-      <a href="{{ url_for('jobs.list_jobs') }}" {% if request.endpoint == 'jobs.list_jobs' %}class="active"{% endif %}>
-        <span class="ic">🧰</span><span class="lbl">Jobs</span>
+      <a href="{{ url_for('clients.list_clients') }}"
+         {% if request.blueprint in ('clients','properties') %}class="active"{% endif %}>
+        <span class="ic">👥</span><span class="lbl">Clients</span>
       </a>
-      <a href="{{ url_for('main.inbox') }}" {% if request.endpoint == 'main.inbox' %}class="active"{% endif %}
+      <a href="#" class="more-trigger" aria-label="More"
+         onclick="event.preventDefault();document.getElementById('more-sheet').classList.toggle('open');"
          style="position:relative">
-        <span class="ic">📬</span><span class="lbl">Inbox</span>
+        <span class="ic">☰</span><span class="lbl">More</span>
         {% if unread_count %}<span class="badge bottombar-badge">{{ unread_count }}</span>{% endif %}
       </a>
     </nav>
+
+    <div id="more-sheet" class="more-sheet"
+         onclick="if(event.target===this)this.classList.remove('open');">
+      <div class="more-sheet-content">
+        <div class="page-head" style="margin-bottom:0.6rem">
+          <h2 style="margin:0; font-size:1.1rem">Menu</h2>
+          <div class="actions">
+            <button onclick="document.getElementById('more-sheet').classList.remove('open');"
+                    class="secondary outline" style="padding:0.3rem 0.7rem; min-height:auto">Close</button>
+          </div>
+        </div>
+        <div class="card-list">
+          <a href="{{ url_for('jobs.list_jobs') }}" class="card" style="text-decoration:none; color:inherit; display:block">🧰 Jobs</a>
+          <a href="{{ url_for('quotes.list_quotes') }}" class="card" style="text-decoration:none; color:inherit; display:block">📋 Quotes</a>
+          <a href="{{ url_for('invoices.list_invoices') }}" class="card" style="text-decoration:none; color:inherit; display:block">🧾 Invoices</a>
+          <a href="{{ url_for('main.inbox') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+            📬 Inbox {% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}
+          </a>
+          <a href="{{ url_for('settings.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">⚙ Settings</a>
+        </div>
+      </div>
+    </div>
   {% endif %}
 
   {% block scripts %}{% endblock %}

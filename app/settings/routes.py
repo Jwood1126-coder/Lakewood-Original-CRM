@@ -11,6 +11,7 @@ from flask import (
     flash,
     redirect,
     render_template,
+    request,
     send_from_directory,
     url_for,
 )
@@ -19,6 +20,7 @@ from sqlalchemy import func, select
 
 from app.auth.forms import ChangePasswordForm
 from app.extensions import db
+from app.models.audit_log import AuditLog
 from app.models.client import Client
 from app.models.job import Job
 from app.models.property import Property
@@ -277,6 +279,39 @@ def notifications_test_email():
         flash(f"Email failed: {e}", "error")
     return redirect(url_for("settings.notifications"))
 
+
+# ---------- Audit log ----------
+
+@bp.route("/audit")
+@login_required
+def audit_log():
+    entity_type = request.args.get("entity_type")
+    entity_id = request.args.get("entity_id", type=int)
+    operation = request.args.get("operation")
+
+    stmt = select(AuditLog).order_by(AuditLog.created_at.desc())
+    if entity_type:
+        stmt = stmt.where(AuditLog.entity_type == entity_type)
+    if entity_id is not None:
+        stmt = stmt.where(AuditLog.entity_id == entity_id)
+    if operation in ("insert", "update", "delete"):
+        stmt = stmt.where(AuditLog.operation == operation)
+    stmt = stmt.limit(200)
+
+    rows = db.session.scalars(stmt).all()
+
+    types = db.session.scalars(
+        select(AuditLog.entity_type).distinct().order_by(AuditLog.entity_type)
+    ).all()
+
+    return render_template(
+        "settings/audit.html",
+        rows=rows, types=types,
+        f_entity_type=entity_type, f_entity_id=entity_id, f_operation=operation,
+    )
+
+
+# ---------- Notifications: send briefing now ----------
 
 @bp.route("/notifications/send-briefing-now", methods=["POST"])
 @login_required

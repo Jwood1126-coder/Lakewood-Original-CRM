@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if quote else "New" }} quote — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ "Edit quote Q-" + quote.number|string if quote else "New quote" }}</h1>
+</div>
+
+<form method="post" novalidate class="has-line-items">
+  {{ form.hidden_tag() }}
+
+  <label for="{{ form.subject.id }}">Subject *</label>
+  {{ form.subject() }}
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.client_id.id }}">Client *</label>
+      {{ form.client_id() }}
+    </div>
+    <div>
+      <label for="{{ form.property_id.id }}">Property *</label>
+      {{ form.property_id() }}
+    </div>
+  </div>
+
+  <h3 style="margin-top:1.4rem; font-size:1rem">Line items</h3>
+  {% include "quotes/_line_items_editor.html" %}
+
+  <div class="grid" style="margin-top:1rem">
+    <div>
+      <label for="{{ form.valid_until.id }}">Valid until</label>
+      {{ form.valid_until() }}
+    </div>
+    <div>
+      <label for="{{ form.tax_rate_override.id }}">Tax rate override</label>
+      {{ form.tax_rate_override() }}
+      <small class="muted">Blank = use property's tax rate</small>
+    </div>
+  </div>
+
+  <label for="{{ form.message_to_customer.id }}">Message to customer</label>
+  {{ form.message_to_customer() }}
+  <small class="muted">Shown on the quote document.</small>
+
+  <label for="{{ form.internal_notes.id }}">Internal notes</label>
+  {{ form.internal_notes() }}
+
+  <div class="btn-row" style="margin-top:1rem">
+    {{ form.submit(class_="contrast") }}
+    <a href="{{ url_for('quotes.view_quote', quote_id=quote.id) if quote else url_for('quotes.list_quotes') }}"
+       role="button" class="secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

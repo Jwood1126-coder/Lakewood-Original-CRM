@@ -1,0 +1,130 @@
+{# Reusable line-items editor for both quotes and invoices.
+   Submits as parallel arrays:
+     li_description[], li_qty[], li_price[], li_taxable_idx[] (indexes of checked) #}
+<table class="line-items-editor table-rows">
+  <thead>
+    <tr>
+      <th style="width:50%">Description</th>
+      <th style="width:60px">Qty</th>
+      <th style="width:90px">Unit price</th>
+      <th style="width:50px;text-align:center">Tax</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="li-rows">
+    {% set rows = (line_items or []) %}
+    {% if not rows and seed_items %}
+      {% set rows = seed_items %}
+    {% endif %}
+    {% if not rows %}
+      {% set rows = [{}] %}
+    {% endif %}
+    {% for r in rows %}
+      <tr class="li-row">
+        <td>
+          <input type="text" name="li_description[]"
+                 value="{{ r.description if r.description is not none else (r.description or '') }}"
+                 placeholder="Service or material">
+        </td>
+        <td>
+          <input type="text" name="li_qty[]" inputmode="decimal"
+                 value="{{ '%g'|format(r.quantity) if r.quantity is defined and r.quantity is not none else '1' }}">
+        </td>
+        <td>
+          <input type="text" name="li_price[]" inputmode="decimal"
+                 placeholder="0.00"
+                 value="{% if r.unit_price_cents is defined %}{{ '%.2f'|format(r.unit_price_cents/100) }}{% elif r.unit_price_dollars is defined %}{{ r.unit_price_dollars }}{% endif %}">
+        </td>
+        <td style="text-align:center">
+          {# This nested form approach uses paired hidden index input on submit #}
+          <input type="checkbox" class="li-taxable" data-idx="{{ loop.index0 }}"
+                 {% if r.taxable %}checked{% endif %}>
+        </td>
+        <td>
+          <button type="button" class="li-del secondary outline"
+                  style="padding:0.2rem 0.5rem; min-height:auto">×</button>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<button type="button" id="li-add-btn" class="secondary outline"
+        style="margin-top:0.4rem">+ Add line item</button>
+
+{# Hidden field that records which row indexes have the taxable checkbox checked.
+   Updated on submit by the inline script. #}
+<div id="li-taxable-hidden-container" style="display:none"></div>
+
+<script>
+(function(){
+  function reindex() {
+    document.querySelectorAll('#li-rows .li-row').forEach((row, i) => {
+      const cb = row.querySelector('.li-taxable');
+      if (cb) cb.dataset.idx = i;
+    });
+  }
+  function addRow() {
+    const tbody = document.getElementById('li-rows');
+    const tpl = document.querySelector('#li-rows .li-row');
+    const clone = tpl.cloneNode(true);
+    clone.querySelectorAll('input').forEach(inp => {
+      if (inp.type === 'checkbox') inp.checked = false;
+      else if (inp.name === 'li_qty[]') inp.value = '1';
+      else inp.value = '';
+    });
+    clone.querySelector('.li-del').addEventListener('click', delHandler);
+    tbody.appendChild(clone);
+    reindex();
+    clone.querySelector('input[name="li_description[]"]').focus();
+  }
+  function delHandler(e) {
+    const tbody = document.getElementById('li-rows');
+    if (tbody.querySelectorAll('.li-row').length === 1) {
+      // Just clear, don't remove the last row
+      const row = e.target.closest('.li-row');
+      row.querySelectorAll('input').forEach(inp => {
+        if (inp.type === 'checkbox') inp.checked = false;
+        else if (inp.name === 'li_qty[]') inp.value = '1';
+        else inp.value = '';
+      });
+    } else {
+      e.target.closest('.li-row').remove();
+      reindex();
+    }
+  }
+  document.querySelectorAll('.li-del').forEach(b => b.addEventListener('click', delHandler));
+  const addBtn = document.getElementById('li-add-btn');
+  if (addBtn) addBtn.addEventListener('click', addRow);
+
+  // On form submit, materialize li_taxable_idx[] hidden inputs from the
+  // checkbox state. (Browsers don't submit unchecked checkboxes.)
+  const form = document.querySelector('form.has-line-items');
+  if (form) {
+    form.addEventListener('submit', () => {
+      const cont = document.getElementById('li-taxable-hidden-container');
+      cont.innerHTML = '';
+      document.querySelectorAll('#li-rows .li-row').forEach((row, i) => {
+        const cb = row.querySelector('.li-taxable');
+        if (cb && cb.checked) {
+          const h = document.createElement('input');
+          h.type = 'hidden';
+          h.name = 'li_taxable_idx[]';
+          h.value = i;
+          cont.appendChild(h);
+        }
+      });
+    });
+  }
+})();
+</script>
+
+<style>
+.line-items-editor { width: 100%; margin: 0.5rem 0; }
+.line-items-editor th { font-size: 0.75rem; color: var(--pico-muted-color); }
+.line-items-editor input { margin: 0; font-size: 16px; }
+.line-items-editor td { padding: 0.3rem 0.2rem; vertical-align: middle; }
+@media (max-width: 720px) {
+  .line-items-editor th:nth-child(4) { display: none; }
+  .line-items-editor td:nth-child(4) { padding-left: 0.3rem; }
+}
+</style>

@@ -25,12 +25,23 @@ def create_app(config_class: type[Config] = Config) -> Flask:
 
     _configure_logging(app)
     _init_extensions(app)
+    _init_audit(app)
     _register_blueprints(app)
     _register_context(app)
     _register_error_handlers(app)
     _start_scheduler(app)
 
     return app
+
+
+def _init_audit(app: Flask) -> None:
+    """Wire automatic audit logging to the SQLAlchemy session."""
+    from app.extensions import db
+    from app.services.audit import init_audit, register_session_events
+    init_audit(app)
+    # Flask-SQLAlchemy 3.x exposes the scoped session via db.session,
+    # but we attach to the underlying Session class so all sessions are covered.
+    register_session_events(db.session)
 
 
 def _start_scheduler(app: Flask) -> None:
@@ -51,9 +62,11 @@ def _register_blueprints(app: Flask) -> None:
     from app.assistant.routes import bp as assistant_bp
     from app.auth.routes import bp as auth_bp
     from app.clients.routes import bp as clients_bp
+    from app.invoices.routes import bp as invoices_bp
     from app.jobs.routes import bp as jobs_bp
     from app.main.routes import bp as main_bp
     from app.properties.routes import bp as properties_bp
+    from app.quotes.routes import bp as quotes_bp
     from app.settings.routes import bp as settings_bp
 
     app.register_blueprint(main_bp)
@@ -61,6 +74,8 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(clients_bp, url_prefix="/clients")
     app.register_blueprint(properties_bp, url_prefix="/properties")
     app.register_blueprint(jobs_bp, url_prefix="/jobs")
+    app.register_blueprint(quotes_bp, url_prefix="/quotes")
+    app.register_blueprint(invoices_bp, url_prefix="/invoices")
     app.register_blueprint(assistant_bp, url_prefix="/assistant")
     app.register_blueprint(settings_bp, url_prefix="/settings")
 

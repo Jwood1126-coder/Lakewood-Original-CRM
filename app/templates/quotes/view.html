@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Q-{{ quote.number }} {{ quote.subject }} — {{ business_name }}{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem">
+  <a href="{{ url_for('clients.view_client', client_id=quote.client.id) }}">← {{ quote.client.name }}</a>
+</p>
+
+<div class="page-head">
+  <h1>Q-{{ quote.number }} · {{ quote.subject }}</h1>
+  <div class="actions">
+    <span class="pill pill-{{ quote.status }}">{{ quote.status_label }}</span>
+    {% if quote.is_expired %}<span class="pill pill-overdue">expired</span>{% endif %}
+    <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}" role="button" class="secondary outline">Edit</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex; flex-wrap:wrap; gap:1rem">
+    <div>
+      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">For</div>
+      <div>{{ quote.client.name }}</div>
+      <div class="muted">{{ quote.prop.address_one_line }}</div>
+    </div>
+    <div style="margin-left:auto; text-align:right">
+      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Total</div>
+      <div style="font-size:1.6rem; font-weight:700">${{ '%.2f'|format(quote.total_cents/100) }}</div>
+      <small class="muted">subtotal ${{ '%.2f'|format(quote.subtotal_cents/100) }} + tax ${{ '%.2f'|format(quote.tax_cents/100) }}</small>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <table class="table-rows" style="width:100%">
+    <thead>
+      <tr><th>Item</th><th>Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Total</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for li in quote.line_items %}
+        <tr>
+          <td>{{ li.description }}</td>
+          <td>{{ '%g'|format(li.quantity) }}</td>
+          <td style="text-align:right">${{ li.unit_price_dollars }}</td>
+          <td style="text-align:right">${{ li.line_total_dollars }}</td>
+          <td>{% if li.taxable %}<small class="muted">tax</small>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">No line items yet — <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}">add some</a>.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if quote.line_items %}
+    <tfoot>
+      <tr><td colspan="3" style="text-align:right" class="muted">Subtotal</td>
+          <td style="text-align:right">${{ '%.2f'|format(quote.subtotal_cents/100) }}</td><td></td></tr>
+      <tr><td colspan="3" style="text-align:right" class="muted">Tax ({{ '%.2f%%'|format(quote.effective_tax_rate*100) }})</td>
+          <td style="text-align:right">${{ '%.2f'|format(quote.tax_cents/100) }}</td><td></td></tr>
+      <tr><td colspan="3" style="text-align:right"><strong>Total</strong></td>
+          <td style="text-align:right"><strong>${{ '%.2f'|format(quote.total_cents/100) }}</strong></td><td></td></tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
+{% if quote.message_to_customer %}
+<div class="card">
+  <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Message to customer</div>
+  <div style="white-space:pre-wrap; margin-top:0.4rem">{{ quote.message_to_customer }}</div>
+</div>
+{% endif %}
+
+{# ----- Status quick-actions ----- #}
+<div class="sticky-cta">
+  {% if quote.status == 'draft' %}
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='sent') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">Mark sent</button>
+    </form>
+  {% endif %}
+  {% if quote.status == 'sent' %}
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='accepted') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">✓ Accepted</button>
+    </form>
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='declined') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline">✗ Declined</button>
+    </form>
+  {% endif %}
+  {% if quote.status in ('accepted',) and not quote.converted_to_job_id %}
+    <form method="post" action="{{ url_for('quotes.convert_to_job', quote_id=quote.id) }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast">→ Convert to job</button>
+    </form>
+  {% endif %}
+  {% if quote.converted_to_job_id %}
+    <a href="{{ url_for('jobs.view_job', job_id=quote.converted_to_job_id) }}"
+       role="button" class="secondary">→ View job #{{ quote.converted_to_job_id }}</a>
+  {% endif %}
+</div>
+
+{% if quote.internal_notes %}
+<div class="card">
+  <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Internal notes</div>
+  <div style="white-space:pre-wrap">{{ quote.internal_notes }}</div>
+</div>
+{% endif %}
+
+<hr>
+
+<form method="post" action="{{ url_for('quotes.delete_quote', quote_id=quote.id) }}"
+      onsubmit="return confirm('Permanently delete this quote?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete quote</button>
+</form>
+{% endblock %}

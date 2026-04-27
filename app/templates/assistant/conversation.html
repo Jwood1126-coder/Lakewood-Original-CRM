@@ -80,13 +80,26 @@
   font-size: 0.7rem;
 }
 .chat-input-bar {
-  display: flex; gap: 0.5rem; align-items: flex-end;
+  display: flex; gap: 0.5rem; align-items: stretch;
   background: var(--pico-card-background-color);
   border: 1px solid var(--pico-card-border-color);
   padding: 0.6rem; border-radius: 12px;
   margin: 0.4rem 0 1rem;
 }
-.chat-input-bar textarea { flex: 1; margin: 0; min-height: 44px; resize: vertical; }
-.chat-input-bar button { white-space: nowrap; }
+.chat-input-bar textarea {
+  flex: 1 1 auto;
+  min-width: 0;        /* critical: lets the flex child actually shrink/grow */
+  width: 100%;
+  margin: 0;
+  min-height: 60px;
+  resize: vertical;
+  font-size: 16px;
+}
+.chat-input-bar button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  align-self: stretch;
+  padding: 0 1.2rem;
+}
 </style>
 {% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if invoice else "New" }} invoice — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ "Edit invoice #" + invoice.number|string if invoice else "New invoice" }}</h1>
+</div>
+
+<form method="post" novalidate class="has-line-items">
+  {{ form.hidden_tag() }}
+
+  <label for="{{ form.subject.id }}">Subject *</label>
+  {{ form.subject() }}
+
+  <div class="grid">
+    <div>
+      <label for="{{ form.client_id.id }}">Client *</label>
+      {{ form.client_id() }}
+    </div>
+    <div>
+      <label for="{{ form.property_id.id }}">Property *</label>
+      {{ form.property_id() }}
+    </div>
+  </div>
+
+  <label for="{{ form.job_id.id }}">Linked job</label>
+  {{ form.job_id() }}
+  <small class="muted">Connecting an invoice to a job tracks revenue per-job.</small>
+
+  <h3 style="margin-top:1.4rem; font-size:1rem">Line items</h3>
+  {% include "quotes/_line_items_editor.html" %}
+
+  <div class="grid" style="margin-top:1rem">
+    <div>
+      <label for="{{ form.due_date.id }}">Due date</label>
+      {{ form.due_date() }}
+    </div>
+    <div>
+      <label for="{{ form.tax_rate_override.id }}">Tax rate override</label>
+      {{ form.tax_rate_override() }}
+      <small class="muted">Blank = property's tax rate</small>
+    </div>
+  </div>
+
+  <label for="{{ form.notes.id }}">Notes</label>
+  {{ form.notes() }}
+
+  <div class="btn-row" style="margin-top:1rem">
+    {{ form.submit(class_="contrast") }}
+    <a href="{{ url_for('invoices.view_invoice', invoice_id=invoice.id) if invoice else url_for('invoices.list_invoices') }}"
+       role="button" class="secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

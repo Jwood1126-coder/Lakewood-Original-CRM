@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Invoices — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Invoices</h1>
+  <div class="actions">
+    <a href="{{ url_for('invoices.new_invoice') }}" role="button" class="contrast">+ New invoice</a>
+  </div>
+</div>
+
+<div class="btn-row" style="margin-bottom:1rem">
+  <a href="{{ url_for('invoices.list_invoices') }}" role="button"
+     class="{{ 'contrast' if not status else 'secondary outline' }}">All</a>
+  {% for s in statuses %}
+    <a href="{{ url_for('invoices.list_invoices', status=s) }}" role="button"
+       class="{{ 'contrast' if status == s else 'secondary outline' }}">{{ status_labels[s] }}</a>
+  {% endfor %}
+  <a href="{{ url_for('invoices.list_invoices', status='overdue') }}" role="button"
+     class="{{ 'contrast' if status == 'overdue' else 'secondary outline' }}"
+     style="color:var(--lo-danger)">Overdue</a>
+</div>
+
+{% if invoices %}
+<div class="card-list">
+  {% for inv in invoices %}
+    <a href="{{ url_for('invoices.view_invoice', invoice_id=inv.id) }}" class="job-card">
+      <div class="job-row">
+        <span class="time">#{{ inv.number }}</span>
+        <span class="title">{{ inv.subject }}</span>
+        {% if inv.is_overdue %}
+          <span class="pill pill-overdue">{{ inv.days_overdue }}d overdue</span>
+        {% else %}
+          <span class="pill pill-{{ inv.status }}">{{ inv.status_label }}</span>
+        {% endif %}
+      </div>
+      <div class="job-row">
+        <span class="client-name">{{ inv.client.name }}</span>
+        <span class="muted">·</span>
+        <span class="address">${{ '%.2f'|format(inv.total_cents/100) }}</span>
+        {% if inv.balance_cents > 0 and inv.status not in ('draft','void') %}
+          <span class="muted">· ${{ '%.2f'|format(inv.balance_cents/100) }} owed</span>
+        {% endif %}
+        {% if inv.due_date %}<span class="muted">· due {{ inv.due_date.strftime("%b %d") }}</span>{% endif %}
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-icon">🧾</div>
+  <p>No invoices yet.</p>
+  <p><a href="{{ url_for('invoices.new_invoice') }}" role="button" class="contrast">+ Create your first invoice</a></p>
+</div>
+{% endif %}
+{% endblock %}

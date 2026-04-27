@@ -17,6 +17,9 @@ from app.extensions import db
 
 if TYPE_CHECKING:
     from app.models.client import Client
+    from app.models.invoice import Invoice
+    from app.models.job import Job
+    from app.models.quote import Quote
 
 
 class Property(db.Model):
@@ -53,6 +56,21 @@ class Property(db.Model):
     )
 
     client: Mapped["Client"] = relationship("Client", back_populates="properties")
+    jobs: Mapped[list["Job"]] = relationship(
+        "Job", back_populates="prop",
+        cascade="all, delete-orphan",
+        order_by="Job.scheduled_date.desc().nulls_last()",
+    )
+    quotes: Mapped[list["Quote"]] = relationship(
+        "Quote", back_populates="prop",
+        cascade="all, delete-orphan",
+        order_by="Quote.created_at.desc()",
+    )
+    invoices: Mapped[list["Invoice"]] = relationship(
+        "Invoice", back_populates="prop",
+        cascade="all, delete-orphan",
+        order_by="Invoice.created_at.desc()",
+    )
 
     @property
     def address_one_line(self) -> str:

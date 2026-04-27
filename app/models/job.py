@@ -16,7 +16,9 @@ from app.extensions import db
 
 if TYPE_CHECKING:
     from app.models.client import Client
+    from app.models.invoice import Invoice
     from app.models.property import Property
+    from app.models.quote import Quote
     from app.models.visit import Visit
 
 JOB_STATUSES = ("scheduled", "in_progress", "complete", "canceled")
@@ -67,14 +69,39 @@ class Job(db.Model):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    client: Mapped["Client"] = relationship("Client")
-    prop: Mapped["Property"] = relationship("Property")
+    client: Mapped["Client"] = relationship("Client", back_populates="jobs")
+    prop: Mapped["Property"] = relationship("Property", back_populates="jobs")
     visits: Mapped[list["Visit"]] = relationship(
         "Visit",
         back_populates="job",
         cascade="all, delete-orphan",
         order_by="Visit.scheduled_date.desc(), Visit.arrived_at.desc()",
     )
+    # Invoices billed for this job (usually 0 or 1, but >1 is allowed
+    # for split-billing scenarios). overlaps= silences SA warning since
+    # Invoice.job is the same join — both views are intentional.
+    invoices: Mapped[list["Invoice"]] = relationship(
+        "Invoice", primaryjoin="Invoice.job_id==Job.id",
+        order_by="Invoice.created_at.desc()",
+        overlaps="job",
+    )
+    # Quotes that converted into this job (usually 0 or 1)
+    source_quotes: Mapped[list["Quote"]] = relationship(
+        "Quote", primaryjoin="Quote.converted_to_job_id==Job.id",
+        order_by="Quote.created_at.desc()",
+        overlaps="converted_job",
+    )
+
+    @property
+    def has_open_invoice(self) -> bool:
+        return any(i.status not in ("draft", "void") for i in (self.invoices or []))
+
+    @property
+    def needs_invoicing(self) -> bool:
+        """Complete jobs without a sent invoice — appears in 'needs attention' tile."""
+        if self.status != "complete":
+            return False
+        return not self.has_open_invoice
 
     # ---------- Computed helpers ----------
 
