@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
     BooleanField,
     RadioField,
@@ -94,6 +95,20 @@ class NotificationForm(FlaskForm):
     # Channels
     email_channel   = BooleanField("Email channel (in addition to in-app)",
                                     default=True)
+
+
+class JobberClientsImportForm(FlaskForm):
+    csv_file = FileField(
+        "Jobber Clients CSV",
+        validators=[
+            FileRequired(),
+            FileAllowed(["csv"], "Upload the CSV file from Jobber's Export Clients."),
+        ],
+    )
+    commit = BooleanField(
+        "Yes, write to the database (uncheck for dry-run preview)", default=False
+    )
+    submit = SubmitField("Import")
     notify_email_to = StringField(
         "Send email to (comma-separate for multiple)",
         validators=[Optional(), Length(max=500)],

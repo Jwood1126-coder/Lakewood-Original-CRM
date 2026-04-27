@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Import Jobber clients — {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "settings/_back.html" %}
+<div class="page-head"><h1>Import Jobber clients</h1></div>
+
+<p class="muted">
+  Upload the CSV file from Jobber's <strong>Clients → More Actions → Export Clients</strong>.
+  Each Jobber row is one (client × property) pair; the importer groups rows by Jobber's
+  client ID so multi-property clients (e.g. landlords) come over correctly.
+  Ohio county + tax rate auto-fill from each property's ZIP. Re-runs are idempotent —
+  clients already imported (matched by Jobber ID stored in their notes) are skipped.
+</p>
+
+<form method="post" enctype="multipart/form-data" novalidate>
+  {{ form.hidden_tag() }}
+
+  <label for="{{ form.csv_file.id }}">Jobber CSV</label>
+  {{ form.csv_file() }}
+  {% for err in form.csv_file.errors %}<small class="error">{{ err }}</small>{% endfor %}
+
+  <div class="card" style="margin-top:1rem">
+    <label style="display:flex; align-items:center; gap:0.6rem">
+      {{ form.commit() }} <strong>{{ form.commit.label.text }}</strong>
+    </label>
+    <small class="muted">
+      Leave unchecked first to preview what will be imported. Check it on the
+      second upload to actually write to the database.
+    </small>
+  </div>
+
+  {{ form.submit(class_="contrast", style="margin-top:1rem") }}
+</form>
+
+{% if result %}
+<hr>
+<h2 style="font-size:1.1rem">Result</h2>
+<div class="card">
+  <p>Parsed <strong>{{ result.total_parsed }}</strong> unique clients
+     ({{ result.total_properties_parsed }} properties total).</p>
+  <ul>
+    <li>Clients created: {{ result.stats.clients_created }}</li>
+    <li>Clients skipped (already imported): {{ result.stats.clients_skipped_existing }}</li>
+    <li>Properties created: {{ result.stats.properties_created }}</li>
+  </ul>
+  {% if result.warnings %}
+    <h3 style="font-size:0.95rem">Warnings</h3>
+    <ul>{% for w in result.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if parsed_preview %}
+<h2 style="font-size:1.1rem; margin-top:1rem">Preview (first 10)</h2>
+<div class="card-list">
+  {% for c in parsed_preview %}
+    <div class="card">
+      <strong>{{ c.name }}</strong>
+      <div class="muted" style="font-size:0.85rem">
+        {{ c.phone or '(no phone)' }} ·
+        {{ c.email or '(no email)' }} ·
+        {{ c.properties|length }} propert{{ 'y' if c.properties|length == 1 else 'ies' }}
+      </div>
+      {% for p in c.properties %}
+        <div style="margin-top:0.3rem; font-size:0.88rem">
+          → {{ p.label }}: {{ p.address_line1 }}, {{ p.city }}, {{ p.state }} {{ p.zip_code }}
+          {% if p.county %}<span class="muted">(county: {{ p.county }}, tax {{ '%.2f%%'|format((p.tax_rate or 0)*100) }})</span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

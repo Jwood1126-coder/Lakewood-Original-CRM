@@ -30,6 +30,7 @@ from app.settings.forms import (
     THEMES,
     AssistantForm,
     BusinessForm,
+    JobberClientsImportForm,
     NotificationForm,
     ProfileForm,
     ThemeForm,
@@ -331,3 +332,65 @@ def notifications_send_briefing():
         current_app.logger.exception("Manual briefing failed")
         flash(f"Briefing failed: {e}", "error")
     return redirect(url_for("settings.notifications"))
+
+
+# ---------- Jobber CSV import (browser upload) ----------
+
+@bp.route("/import-jobber-clients", methods=["GET", "POST"])
+@login_required
+def import_jobber_clients():
+    """Upload Jobber's 'Export Clients' CSV. Dry-run by default;
+    check the box to actually commit. Re-runs are idempotent (skip
+    clients whose Jobber ID is already in our notes)."""
+    from io import StringIO
+    from pathlib import Path
+    import tempfile
+    from scripts.import_jobber_clients import parse_csv, write_clients
+
+    form = JobberClientsImportForm()
+    result = None
+    parsed_preview = None
+
+    if form.validate_on_submit():
+        # Stream upload to a temp file so parse_csv can read by path
+        f = form.csv_file.data
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".csv", delete=False
+        ) as tmp:
+            tmp.write(f.read())
+            tmp_path = Path(tmp.name)
+        try:
+            parsed = parse_csv(tmp_path)
+            parsed_preview = parsed[:10]  # show first 10 in the UI
+            result = write_clients(parsed, commit=form.commit.data)
+            result["total_parsed"] = len(parsed)
+            result["total_properties_parsed"] = sum(
+                len(c.properties) for c in parsed
+            )
+            if form.commit.data:
+                flash(
+                    f"Imported {result['stats']['clients_created']} clients "
+                    f"and {result['stats']['properties_created']} properties.",
+                    "success",
+                )
+            else:
+                flash(
+                    f"Dry run — parsed {len(parsed)} clients. "
+                    f"Tick 'Yes, write to the database' and re-upload to commit.",
+                    "info",
+                )
+        except Exception as e:
+            current_app.logger.exception("Jobber import failed")
+            flash(f"Import failed: {e}", "error")
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    return render_template(
+        "settings/import_jobber_clients.html",
+        form=form,
+        result=result,
+        parsed_preview=parsed_preview,
+    )
