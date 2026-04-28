@@ -11,6 +11,19 @@
   CSV export emails aren't arriving.
 </p>
 
+{% if import_error %}
+<div class="flash flash-error">
+  <strong>Jobber integration is failing to load.</strong>
+  <pre style="white-space:pre-wrap; font-size:0.8rem; margin-top:0.5rem">{{ import_error }}</pre>
+  Most likely cause: the Railway build hasn't installed the new
+  <code>cryptography</code> Python package yet. Wait for the next deploy
+  to complete, or check Railway → Deployments → latest deploy → Build Logs
+  for a pip install error. If <code>cryptography</code> failed to install,
+  you may need to use Railway's "Deploy without cache" option (top-right
+  on the deploy page) so it does a fresh <code>pip install</code>.
+</div>
+{% endif %}
+
 {% if not has_creds %}
 <div class="flash flash-warning">
   <strong>Jobber API credentials not configured.</strong>

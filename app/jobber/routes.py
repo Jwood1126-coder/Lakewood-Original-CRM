@@ -35,13 +35,25 @@ bp = Blueprint("jobber", __name__, template_folder="../templates/jobber")
 @bp.route("/")
 @login_required
 def index():
-    from app.services.jobber import is_connected
     has_creds = bool(current_app.config.get("JOBBER_CLIENT_ID") and
                      current_app.config.get("JOBBER_CLIENT_SECRET"))
+    # Defensive: if cryptography/Jobber service can't import (e.g. Railway
+    # build hasn't installed the new dep yet), don't 500 — render a helpful
+    # message with the actual error so the operator knows what to do.
+    connected = False
+    import_error = None
+    try:
+        from app.services.jobber import is_connected
+        if has_creds:
+            connected = is_connected()
+    except Exception as e:
+        current_app.logger.exception("Jobber service import/check failed")
+        import_error = repr(e)
     return render_template(
         "jobber/index.html",
         has_creds=has_creds,
-        connected=is_connected() if has_creds else False,
+        connected=connected,
+        import_error=import_error,
     )
 
 
