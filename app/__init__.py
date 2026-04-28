@@ -7,6 +7,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import Config, TestConfig
 from app.extensions import (
@@ -29,6 +30,14 @@ def create_app(config_class: type[Config] = Config) -> Flask:
 
     if not app.config["TESTING"]:
         config_class.ensure_dirs()
+        # Trust Railway's edge proxy: it terminates HTTPS and sets
+        # X-Forwarded-Proto=https / X-Forwarded-Host=<your-domain>.
+        # Without this, url_for(_external=True) builds http:// URLs
+        # because internally we receive plain HTTP from the proxy.
+        # x_for=1 trusts the first hop (Railway edge); don't increase.
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1
+        )
 
     _configure_logging(app)
     _init_extensions(app)
