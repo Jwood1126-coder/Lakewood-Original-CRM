@@ -22,7 +22,7 @@ A ──1── B    means "one A is linked to exactly one B"
 
 ```
                   ┌──────────────┐
-                  │   Client     │  ← The customer (you only)
+                  │   Client     │  ← The customer
                   │   "person"   │
                   └──────────────┘
                      │ 1     1     1     1
@@ -33,21 +33,17 @@ A ──1── B    means "one A is linked to exactly one B"
                      │           │ 1     │ 1
                      │ 1     1   ▼ n   ▼ n
                      ▼ n     n   Visit  Payment
-                  ┌────────┐ ┌────────┐ ┌────────┐
-                  │ Photo  │ │Visit   │ │Payment │
-                  └────────┘ └────────┘ └────────┘
 
       Quote → Job  (Quote.converted_to_job_id ──→ Job)
       Job   → Invoice (Invoice.job_id ──→ Job)
 
-   Plus three "system" tables:
-     User ── you (one row)
-     Setting ── key-value config
-     AuditLog ── every change to the above
-
-   Plus assistant + notifications:
-     Conversation → Message
-     Notification (briefings + reminders)
+   Plus operational tables:
+     User           ── you (one row)
+     Setting        ── key-value config + encrypted OAuth tokens
+     AuditLog       ── every change to the above (auto-captured)
+     Notification   ── briefings + reminders + event triggers
+     Conversation/Message ── assistant chat history
+     Photo          ── attached to Property or Job or Visit
 ```
 
 ---
@@ -64,7 +60,7 @@ The root of everything. A client is a person or business you do work for.
 | `name` | "Mrs. Anderson" or "Smith Rentals" |
 | `phone` | 10 digits, stored as just digits ("2165550142"). Display formatting (`(216) 555-0142`) happens at render time. |
 | `email` | Optional |
-| `notes` | Free-text — payment habits, gate codes you keep at the customer level, etc. |
+| `notes` | Free-text — payment habits, gate codes, **plus Jobber-import stamps** like `[Imported from Jobber, client #84770573]` for re-run dedup |
 | `created_at`, `updated_at` | Timestamps |
 
 **A client has many properties, jobs, quotes, and invoices.** When you
@@ -89,22 +85,19 @@ many (e.g., Smith Rentals has 3 rental houses).
 | `address_line1`, `line2`, `city`, `state`, `zip_code` | Address |
 | `county` | Auto-filled from ZIP via the Ohio lookup table |
 | `tax_rate` | Decimal fraction (e.g., 0.0800 = 8%). Auto-set from county. |
-| `notes` | Access codes, gate codes, dog warnings |
+| `notes` | Access codes, gate codes, dog warnings, **plus Jobber-property stamp** like `[Jobber property #abc123]` so subsequent API syncs (jobs/quotes/invoices) can match the property by its Jobber ID |
 
 **Why is `tax_rate` on the property and not the client?** Ohio is a
 *destination-based* sales tax state — the rate depends on where the
-work happens, not who's paying. A landlord client might have rentals in
-two counties with different rates.
+work happens, not who's paying.
 
 ---
 
 ### `jobs` — The work order
 
-A job is the agreement of "I will do X at Y on Z date for $." Jobs go
-through a status lifecycle:
+A job is the agreement of "I will do X at Y on Z date for $." Status lifecycle:
 
 ```
-   draft ── (none — we skip draft, jobs start scheduled)
    scheduled ─→ in_progress ─→ complete
        │            │            │
        └────────────┴─→ canceled ┘
@@ -113,14 +106,13 @@ through a status lifecycle:
 | Field | What it is |
 |---|---|
 | `id` | Unique number |
-| `client_id` | The customer |
-| `property_id` | Where the work happens |
-| `title` | One-line summary ("Replace kitchen faucet") |
+| `client_id` / `property_id` | Required |
+| `title` | One-line summary |
 | `scope` | Free-text description |
 | `status` | scheduled / in_progress / complete / canceled |
 | `scheduled_date`, `scheduled_time` | When |
 | `est_hours` | Your estimate |
-| `notes` | Internal notes (only you see) |
+| `notes` | Internal notes (only you see) — also where Jobber-import stamps live |
 
 **A job has many visits.** A job may have invoices (usually 0 or 1,
 sometimes more for split-billing). A job may be the destination of a
@@ -139,12 +131,12 @@ showed up.
 | Field | What it is |
 |---|---|
 | `id` | Unique number |
-| `job_id` | Which job this visit was for |
+| `job_id` | Which job |
 | `scheduled_date` | Calendar date of the visit |
 | `arrived_at` | Timestamp (UTC) — when you tapped "Start visit" |
 | `departed_at` | Timestamp (UTC) — when you tapped "End visit" |
 | `miles` | Optional — miles you drove for this visit |
-| `notes` | What you did on this visit |
+| `notes` | What you did |
 
 Computed: `duration` (departed − arrived). The job page shows total
 visit hours and total miles across all visits.
@@ -152,8 +144,6 @@ visit hours and total miles across all visits.
 ---
 
 ### `quotes` — The estimate
-
-A quote is what you send to a customer for approval. Status lifecycle:
 
 ```
    draft → sent → (accepted | declined | expired)
@@ -168,22 +158,20 @@ A quote is what you send to a customer for approval. Status lifecycle:
 | `client_id`, `property_id` | Linked customer + location |
 | `subject` | One-line summary |
 | `message_to_customer` | What the customer sees |
-| `internal_notes` | Only you see |
+| `internal_notes` | Only you see — **also where Jobber-import stamps live** (`[Jobber quote #abc]`) |
 | `status` | draft / sent / accepted / declined / expired / converted |
-| `token` | 32-char random URL-safe string. Used for the customer-facing `/q/<token>` URL. |
+| `token` | 32-char random URL-safe string (Phase 3.5 customer-facing) |
 | `tax_rate_override` | Optional — if blank, uses property's tax rate |
 | `valid_until` | Quote expires after this date |
 | `converted_to_job_id` | If accepted and converted, points to the new Job |
 | Various timestamps | created_at, updated_at, sent_at, accepted_at, declined_at |
 
-**A quote has many line items.** The total is computed (no `total_cents`
-column) — sum of line items + tax.
+**Convert validation:** Only quotes in `sent` or `accepted` status can be
+converted to a job (no converting `draft`/`declined`/`expired`).
 
 ---
 
 ### `invoices` — The bill
-
-An invoice is what you bill the customer. Status lifecycle:
 
 ```
    draft → sent → partial → paid
@@ -198,30 +186,37 @@ An invoice is what you bill the customer. Status lifecycle:
 | `client_id`, `property_id` | Linked customer + location |
 | `job_id` | Optional — if billing for a specific job |
 | `subject` | One-line summary |
-| `notes` | Free-text shown on the invoice |
+| `notes` | Free-text — also where Jobber-import stamps live |
 | `status` | draft / sent / partial / paid / void |
 | `token` | Customer-facing URL token |
 | `tax_rate_override` | Same as quote |
 | `due_date` | When payment is due |
 
 **An invoice has many line items and many payments.** Status updates
-automatically based on payment progress (we call
-`invoice.recompute_status()` after every payment).
+automatically based on payment progress (`invoice.recompute_status()`
+runs after every payment add/remove).
+
+**State machine guards:** `paid → sent` is blocked. `paid → void` is
+allowed (refund flow). Draft can't go straight to paid.
+
+**Delete protection:** An invoice with any payments cannot be deleted
+(would lose accounting records). Mark Void instead.
 
 Computed properties:
 - `subtotal_cents`, `tax_cents`, `total_cents`
-- `paid_cents` — sum of all payments
+- `paid_cents` — query-backed (one SUM query, not N+1)
+- `paid_cents_bulk(ids)` — class method for bulk lookup (used in
+  dashboard + A/R aging to avoid N+1)
 - `balance_cents` — total minus paid
-- `is_overdue` — true if balance > 0 and due_date < today
+- `is_overdue` — true if balance > 0 and due_date < today (operator-local TZ)
 - `days_overdue` — for the overdue pill
 
 ---
 
 ### `line_items` — The things on a quote or invoice
 
-A line item is one row on a quote or invoice. Each line item has either a
-`quote_id` OR an `invoice_id` (never both — a CHECK constraint enforces
-at least one is set).
+Each line item has either a `quote_id` OR an `invoice_id` (never both —
+a CHECK constraint enforces at least one is set).
 
 | Field | What it is |
 |---|---|
@@ -240,8 +235,7 @@ at least one is set).
 
 ### `payments` — Recorded against an invoice
 
-Multiple payments per invoice are allowed (deposits, partial payments,
-etc.).
+Multiple payments per invoice are allowed (deposits, partial payments).
 
 | Field | What it is |
 |---|---|
@@ -249,7 +243,7 @@ etc.).
 | `invoice_id` | Which invoice |
 | `amount_cents` | Integer cents |
 | `method` | cash / check / zelle / venmo / card / other |
-| `reference` | Check number, Venmo handle, etc. |
+| `reference` | Check number, Venmo handle, **also Jobber payment ID stamp** |
 | `notes` | Free-text |
 | `received_at` | Timestamp |
 
@@ -276,9 +270,13 @@ Photos are auto-resized on upload to 1600px long-edge JPEG @ q=85
 (typically ~300KB from a 5MB phone photo). EXIF rotation is applied so
 phone-portrait photos display correctly.
 
+**Atomic upload:** writes to a `.tmp` file → adds DB row → commits →
+atomic rename. If anything fails, the .tmp file is cleaned up. No orphan
+JPEGs on disk.
+
 ---
 
-## The four "system" tables
+## The four "operational" tables
 
 ### `users` — The operator (you)
 
@@ -302,6 +300,12 @@ Currently used for:
 - `assistant_enabled`, `assistant_model`
 - `notify_daily`, `notify_daily_time`, `notify_weekly`, `notify_monthly`,
   `notify_job_day`, `notify_email`, `notify_email_to`
+- `notify_event_quote_request_received`, `notify_event_quote_sent`,
+  `notify_event_quote_accepted`, `notify_event_quote_converted`,
+  `notify_event_job_complete`, `notify_event_invoice_sent`,
+  `notify_event_invoice_paid`, `notify_event_payment_received`
+- `jobber_oauth_token_encrypted` — Fernet-encrypted JSON of the OAuth
+  token blob (access_token, refresh_token, expires_at)
 
 Reads fall back to env-var defaults if the key isn't set.
 
@@ -330,8 +334,7 @@ already capture their last-updated time.)
 | `summary` | One-liner for display ("Job #42 status: scheduled → complete") |
 
 The audit row is added inside the same DB transaction as the change.
-So either both succeed or both roll back — the log can't be missing
-events or out of sync.
+So either both succeed or both roll back.
 
 ---
 
@@ -342,7 +345,7 @@ Each row represents one briefing or reminder.
 | Field | What it is |
 |---|---|
 | `id` | Unique number |
-| `kind` | daily_briefing / weekly_briefing / monthly_report / job_day_reminder |
+| `kind` | daily_briefing / weekly_briefing / monthly_report / job_day_reminder / event_quote_sent / event_invoice_paid / etc. |
 | `title` | Subject line |
 | `body_html`, `body_text` | The content |
 | `created_at` | When it was generated |
@@ -361,6 +364,25 @@ tool-calls JSON).
 
 You can scroll through old conversations from the assistant index.
 Deleting a conversation cascades to its messages.
+
+---
+
+## How Jobber import dedup works
+
+Multiple tables use a "stamp the Jobber ID into notes" pattern so re-runs
+of the importer (CSV or API sync) skip already-imported records. Look for:
+
+| Table | Stamp pattern in notes |
+|---|---|
+| Client | `[Imported from Jobber, client #<jobber_id>]` |
+| Property | `[Jobber property #<jobber_id>]` |
+| Job | `[Jobber job #<jobber_id>]` |
+| Quote | `[Jobber quote #<jobber_id>]` (in `internal_notes`) |
+| Invoice | `[Jobber invoice #<jobber_id>]` (in `notes`) |
+| Payment | `[Jobber payment #<jobber_id>]` (in `notes`) |
+
+The importers do `WHERE notes LIKE '%[Jobber X #<id>]%'` to find
+existing matches.
 
 ---
 
@@ -387,15 +409,17 @@ total_cents         = subtotal_cents + tax_cents
 
 ## Time zones: stored UTC, rendered local
 
-All timestamps are stored as UTC. Display uses the operator's
-`APP_TIMEZONE` env var (default `America/New_York`). Scheduled cron jobs
-use that same TZ so the daily briefing fires at 06:30 *your* time.
+All timestamps are stored as UTC. Display uses `APP_TIMEZONE`
+(default `America/New_York`). Anywhere "today" matters (dashboard,
+overdue checks, briefing assembly, reminder dedup), the code uses
+`app/utils/timezone.today_local()` instead of `date.today()`.
+
+Scheduled cron jobs use the same TZ so the daily briefing fires at
+06:30 *your* time.
 
 ---
 
 ## How relationships cascade on delete
-
-When you delete a row, what happens to its dependents?
 
 | Parent | Child | What happens |
 |---|---|---|
@@ -403,14 +427,14 @@ When you delete a row, what happens to its dependents?
 | Client | Job | CASCADE |
 | Client | Quote | CASCADE |
 | Client | Invoice | CASCADE |
-| Property | Job | CASCADE — moving a property is rare; if it happens, you delete + recreate |
+| Property | Job | CASCADE |
 | Property | Quote / Invoice | CASCADE |
 | Property | Photo | CASCADE |
 | Job | Visit | CASCADE |
 | Job | Photo (via visit) | CASCADE indirectly through Visit |
 | Quote | Job (converted_to_job_id) | SET NULL — deleting a quote doesn't kill the job |
 | Job | Invoice (job_id) | SET NULL — deleting a job doesn't kill the invoice |
-| Invoice | Payment | CASCADE |
+| Invoice | Payment | CASCADE — *but* invoice.has_payments check blocks delete at the route |
 | Quote | LineItem | CASCADE |
 | Invoice | LineItem | CASCADE |
 

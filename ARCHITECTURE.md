@@ -1,8 +1,8 @@
 # How this program works (in plain English)
 
-This document explains every meaningful design choice and the architecture
-of the system, with no assumed technical background. If you've ever asked
-"why did we use X instead of Y?" — the answer is here.
+This document explains every meaningful design choice and the
+architecture of the system, with no assumed technical background. If
+you've ever asked "why did we use X instead of Y?" — the answer is here.
 
 ---
 
@@ -40,9 +40,8 @@ fancier is just more pieces that can break.
 ```
 
 The whole business runs out of that one folder. **If you copy that folder
-to a thumb drive, you have a complete copy of the business.** That's not
-an exaggeration — restore that folder onto any computer with Python and
-the app starts back up.
+to a thumb drive, you have a complete copy of the business.** Restore
+that folder onto any computer with Python and the app starts back up.
 
 ### What's a "database file"?
 
@@ -62,11 +61,11 @@ spreadsheets. Each table holds one kind of thing:
 - `audit_log` — one row per change made to any of the above
 - `notifications` — one row per briefing or reminder
 - `conversations` + `messages` — assistant chat history
-- `settings` — key-value pairs (business name, etc.)
+- `settings` — key-value pairs (business name, OAuth tokens, etc.)
 
 [See DATA_SCHEMA.md for what's in each one.](DATA_SCHEMA.md)
 
-### Why SQLite instead of a "real" database like Postgres?
+### Why SQLite instead of Postgres?
 
 Postgres is the standard answer for production apps because it handles
 many simultaneous writers. You're one writer. SQLite handles thousands
@@ -90,16 +89,13 @@ field at the same time), Postgres is a one-line config change away.
 
 ### Python 3.12
 
-The programming language. Chosen because you've shipped Python before
-(the Japan travel app). Familiar = maintainable.
+The programming language. Familiar = maintainable.
 
 ### Flask
 
 The web framework. Receives a request, runs your code, returns HTML.
 Flask is intentionally minimal — you assemble the pieces you want, no
-more. The alternative would be **Django**, which comes with more
-batteries included (admin panel, user system, etc.) but is a bigger
-mental model. We stayed on Flask because you ship Flask.
+more.
 
 ### SQLAlchemy + Alembic
 
@@ -111,8 +107,7 @@ Alembic is the **migration system**. Whenever the database schema changes
 (new column, new table), Alembic records the change as a versioned
 "migration" file. On every deploy, Alembic checks which migrations have
 already run and applies any new ones. **This is how you can change the
-schema later without losing data.** Without migrations, every schema
-change is terrifying.
+schema later without losing data.**
 
 ### Jinja2
 
@@ -125,7 +120,7 @@ The "interactivity" library. Normally, building a real-feeling app means
 a SPA (single-page app) like React — and a separate API. HTMX skips all
 that: HTML pages can do `hx-get="/clients/?q=Smith"` and the response
 HTML is swapped into the page. **No JavaScript framework. No build step.
-No JSON API.** Used in our app for the live client search.
+No JSON API.**
 
 ### Pico.css
 
@@ -149,20 +144,15 @@ We use **prompt caching** so the system prompt is sent once and reused
 for ~5 minutes — drops cost ~10× for follow-up messages in a
 conversation.
 
-### Gmail SMTP
+### SMTP (Outlook / Gmail / etc.)
 
-The "email sender". You generate an **App Password** in your Google
-account once and the app uses it to send emails *from* your Gmail
-*to* your Gmail. **Customers never receive email from the app** — the
-Gmail integration is operator-only.
+The "email sender". Provider-agnostic via env vars. Defaults to Outlook.com
+personal; one config swap and it's Gmail or Microsoft 365 instead.
 
-Why? Two reasons:
-1. Sending email *to customers* from a self-hosted box is a swamp of
-   deliverability problems (SPF, DKIM, DMARC, IP reputation). Avoiding
-   that swamp is a feature.
-2. You write to customers from your phone's email anyway. The app
-   generates a `mailto:` link with the message + PDF attached and
-   opens your normal email client. Cleanest possible.
+You generate an **App Password** in your email account once and the app
+uses it to send emails *from* your account *to* whichever recipients
+you've configured. **Customers never receive email from the app** — the
+SMTP integration is operator-only (briefings, reminders, event notices).
 
 ### Pillow
 
@@ -180,8 +170,29 @@ S3-compatible API.
 
 **Railway** is where the app runs in production. One always-on container,
 one persistent volume mounted at `/data`. Auto-deploys when you `git push`
-to `main`. **Cloudflare** would only enter the picture if you point a
-custom domain at Railway.
+to `main`.
+
+### ProxyFix middleware (subtle but important)
+
+Railway terminates HTTPS at its edge proxy and forwards plain HTTP to
+the container. Without ProxyFix, the app thinks it's serving HTTP and
+generates `http://...` URLs everywhere — which broke the Jobber OAuth
+flow because Jobber requires the redirect URI to match exactly. ProxyFix
+reads `X-Forwarded-Proto: https` from Railway's edge and tells the rest
+of Flask "you're really behind HTTPS."
+
+### Cryptography (Fernet + HKDF)
+
+For encrypting Jobber OAuth tokens at rest. The encryption key is
+derived from `SECRET_KEY` via HKDF-SHA256, so we don't need a separate
+secret to manage. If you rotate `SECRET_KEY`, stored Jobber tokens
+become unreadable and you'd just reconnect Jobber.
+
+### Requests
+
+The HTTP client we use to talk to Jobber's GraphQL API. Not pulled in
+transitively by anything else (anthropic uses httpx, boto3 uses its own
+client) — explicitly listed in requirements.txt.
 
 ---
 
@@ -193,7 +204,10 @@ When you tap "Mrs. Anderson" in the clients list:
 Your phone
    │  GET /clients/42
    ▼
-Railway edge (terminates HTTPS)
+Railway edge (terminates HTTPS, sets X-Forwarded-Proto=https)
+   │
+   ▼
+ProxyFix middleware (tells Flask "scheme is https")
    │
    ▼
 Gunicorn (web server) in the Railway container
@@ -271,8 +285,7 @@ Three layers of backup:
 
 1. **Railway's persistent volume** is replicated within their infra. This
    protects against disk failure but is not really a "backup" — if you
-   accidentally delete a client at 2pm, the volume snapshot has the
-   delete.
+   accidentally delete a client at 2pm, the volume snapshot has the delete.
 2. **Nightly tarball at 03:00 your local time.** A SQL-consistent SQLite
    snapshot + the photos folder + CLAUDE.md, all packed into one
    `snapshot-YYYY-MM-DDTHH-MM-SSZ.tar.gz`.
@@ -323,8 +336,8 @@ browser** at Settings → Assistant. Changes take effect on the next message.
 
 You can pick from:
 - **Opus 4.7** (default) — smartest, ~$15/M input tokens
-- **Sonnet 4.6** — fast, ~$3/M input tokens, 80% as good for tool-use tasks
-- **Haiku 4.5** — fastest, cheapest, less reliable for multi-step tool use
+- **Sonnet 4.6** — fast, ~$3/M input tokens
+- **Haiku 4.5** — fastest, cheapest
 
 Realistic monthly cost on Opus with daily briefings + ~50 chat messages:
 **$10–15/mo.** Sonnet would be ~$2–4/mo. Set a budget alert in the
@@ -336,24 +349,90 @@ Anthropic console as a circuit breaker.
 
 Two delivery channels:
 1. **In-app inbox** at `/inbox`. Always on. Unread badge in the nav.
-2. **Email** via Gmail SMTP. Optional — only if you set `GMAIL_USER` +
-   `GMAIL_APP_PASSWORD`.
+2. **Email** via SMTP (Outlook, Gmail, M365, Yahoo, etc.). Optional —
+   only if you set `SMTP_USER` + `SMTP_PASSWORD`. Multi-recipient via
+   `NOTIFY_EMAIL=jake@gmail.com, jake@outlook.com`.
 
-Three scheduled briefings (configurable per-rule at Settings → Notifications):
+### Scheduled briefings (configurable per-rule at Settings → Notifications)
+
 - **Daily** at 06:30 your local time. Today's jobs + overdue + 7-day
   outlook + a one-sentence narrative from Claude.
 - **Weekly** (planned: Sunday 17:00).
 - **Monthly report** (planned: 1st of month at 08:00).
+- **Job-day reminder** at 06:00 if the daily briefing is off.
 
-Plus a per-rule "job day reminder" that fires at 06:00 if the daily
-briefing is off.
+### Event triggers (Jobber-style)
 
-You can manually trigger today's briefing from Settings → Notifications →
-"Build today's briefing now."
+Per-event email + in-app notifications when meaningful things happen:
+
+- 📩 New website request received
+- Quote sent / accepted / converted
+- Job marked complete
+- Invoice sent / paid in full
+- Payment recorded
+
+Each one has its own toggle. You can disable any individually without
+disabling the email channel.
+
+### Why this design (event helpers vs. audit-log subscription)
+
+Route handlers call the helpers (`notify_invoice_paid(invoice)`)
+explicitly after the DB commit. We **don't** subscribe to the audit log
+because that would couple business meaning ("paid") to incidental schema
+changes ("status went from X to Y"). The event helpers stay readable and
+easy to test.
 
 ---
 
-## 10. Authentication (very simple, on purpose)
+## 10. The website "request a quote" intake
+
+Your WordPress site at lakewoodoriginal.com posts customer requests
+directly into the CRM via `POST /intake/api/request`. The endpoint:
+
+1. Validates required fields + checks honeypot for bots
+2. Per-IP rate-limited (8/hour)
+3. Matches existing client by phone+name OR creates new
+4. Creates a Property at the given address (auto Ohio tax-rate from ZIP)
+5. Creates a Quote in `draft` status with the customer's description
+6. Fires an event notification (📩 New website request) → operator inbox + email
+
+CORS is locked to `https://lakewoodoriginal.com` so only your site can
+post. The route is CSRF-exempt because it's cross-origin (your WordPress
+site is a different domain than the CRM).
+
+A self-hosted fallback form lives at `/intake/request` if the WordPress
+embed isn't ready or you want a direct shareable URL.
+
+[See WEBSITE_INTAKE_SNIPPET.md for the WordPress copy-paste.](WEBSITE_INTAKE_SNIPPET.md)
+
+---
+
+## 11. Jobber migration (one-time)
+
+Two paths because Jobber's CSV export emails sometimes don't arrive:
+
+### CSV path (Settings → Import Jobber clients)
+You download the Clients CSV from Jobber's UI, upload it to the CRM.
+The importer:
+- Groups rows by Jobber's client_id (multi-property rows collapse to one client)
+- Auto-fills Ohio county + tax rate from ZIP
+- Skip-list field for known dupes / test entries (pre-populated based on your data)
+- Idempotent re-runs (Jobber ID stamped in client notes)
+
+### API path (Settings → Jobber sync)
+When CSV exports aren't working, this pulls data directly from
+Jobber's GraphQL API:
+- OAuth flow → encrypted token storage
+- Pages through clients, jobs, quotes, invoices, payments
+- Throttle handling: pre-call sleep + exponential backoff + cool-down between stages
+- Same dedup as the CSV importer
+- Single "🚀 Pull EVERYTHING" button runs all syncs in dependency order
+
+[Detailed flow in JOBBER_INTEGRATION.md.](JOBBER_INTEGRATION.md)
+
+---
+
+## 12. Authentication (very simple, on purpose)
 
 - **You** log in with email + password (Argon2id-hashed).
 - One user. No registration page. Admin user is created by the
@@ -361,9 +440,11 @@ You can manually trigger today's briefing from Settings → Notifications →
   `ADMIN_PASSWORD` env vars.
 - Sessions via signed cookie. "Remember me" extends to 30 days.
 - **No password reset by email** — by design, since we don't send
-  customer email and don't want to depend on Postmark/SES just for
+  customer email and don't want to depend on an email service just for
   one self-recovery flow. Forgot your password? Open Railway's web
   shell and run `python -m scripts.create_admin --password "newpass"`.
+- **Login rate limit**: 8/min, 30/hr per IP via Flask-Limiter. Friendly
+  429 page if exceeded.
 
 **Customers** never log in. Quote/invoice URLs use a 32-character random
 token (`/q/<token>`, `/i/<token>` — Phase 3.5) so you text or email the
@@ -371,12 +452,11 @@ URL and they click to view.
 
 ---
 
-## 11. Themes
+## 13. Themes
 
 Three themes selectable from Settings → Theme:
 
-- **Dark** (default) — comfortable dark UI with amber accent. Good for
-  most uses.
+- **Dark** (default) — comfortable dark UI with amber accent.
 - **AMOLED** — pure black background. Better on OLED phone screens at
   night, slightly easier on the battery. Layered on top of Pico's "dark"
   theme via a custom `data-app-theme="amoled"` attribute (Pico itself
@@ -388,7 +468,7 @@ stored on the User row.
 
 ---
 
-## 12. Mobile-first UI
+## 14. Mobile-first UI
 
 The app was designed for phone use first, desktop second:
 
@@ -404,7 +484,21 @@ The app was designed for phone use first, desktop second:
 
 ---
 
-## 13. What we deliberately didn't build (yet)
+## 15. Time zones (critical detail)
+
+Everything stored in the DB is **UTC** (`datetime.utcnow()`). Everything
+the operator sees is converted to **operator-local** via the
+`APP_TIMEZONE` env var (default `America/New_York`).
+
+Why this matters: server clocks run in UTC. If we used `date.today()`
+on the server, around midnight Eastern the dashboard's "today" would
+disagree with the wall clock for 4–5 hours. We avoid this with
+`app/utils/timezone.py` — `today_local()` and `now_local()` — used in
+the dashboard, briefing, reminder dedup, and invoice overdue check.
+
+---
+
+## 16. What we deliberately didn't build (yet)
 
 | Feature | Why deferred |
 |---|---|
@@ -415,11 +509,13 @@ The app was designed for phone use first, desktop second:
 | Customer login portal | Magic-link tokens cover the use case at zero friction |
 | Photo AI tagging | Future nice-to-have |
 | Multi-user / crew accounts | Single-operator for now |
-| Soft delete (`deleted_at`) | Audit log captures full delete snapshot — recovery is possible without a deleted_at column. Reconsidering later if needed. |
+| Photo upload on intake form | Phase 4 nice-to-have |
+| Cloudflare Turnstile on intake | Add only if spam becomes a real problem |
+| Soft delete (`deleted_at`) | Audit log captures full delete snapshot — recovery is possible without a deleted_at column |
 
 ---
 
-## 14. What "simple is elegant" actually meant
+## 17. What "simple is elegant" actually meant
 
 When designing the system, we explicitly rejected several "industry standard"
 choices because they don't pull their weight at this scale:
@@ -430,9 +526,10 @@ choices because they don't pull their weight at this scale:
   of the UX with 5% of the effort.
 - **Tailwind CSS with build pipeline** — Pico classless gets the same
   polish without Node.
-- **Postmark/SES for transactional email** — Gmail handles our use case.
+- **Postmark/SES for transactional email** — Outlook/Gmail handles our use case.
 - **Docker Compose / Kubernetes** — one process is just a process.
-- **JWT / OAuth** — cookie sessions for one user, full stop.
+- **JWT / OAuth** for our own users — cookie sessions for one user, full stop.
+  (Jobber is a separate use of OAuth — we're a *client* of Jobber's API.)
 
 Each "no" represents present operational simplicity in exchange for some
 future flexibility. If you ever genuinely outgrow a choice, the
