@@ -167,7 +167,8 @@ def sync_jobs_route():
         current_app.logger.exception("Job sync failed")
         flash(f"Job sync failed: {e}", "error")
         return redirect(url_for("jobber.index"))
-    msg = (f"Jobs: {s['created']} created, {s['skipped_existing']} already imported, "
+    msg = (f"Jobs: {s['seen']} seen → {s['created']} created, "
+           f"{s['skipped_existing']} already imported, "
            f"{s['skipped_no_client']} skipped (no matching client/property).")
     if s['errors']:
         msg += f" {len(s['errors'])} errors (check logs)."
@@ -185,8 +186,9 @@ def sync_quotes_route():
         current_app.logger.exception("Quote sync failed")
         flash(f"Quote sync failed: {e}", "error")
         return redirect(url_for("jobber.index"))
-    msg = (f"Quotes: {s['created']} created, {s['skipped_existing']} already imported, "
-           f"{s['skipped_no_client']} skipped.")
+    msg = (f"Quotes: {s['seen']} seen → {s['created']} created, "
+           f"{s['skipped_existing']} already imported, "
+           f"{s['skipped_no_client']} skipped (no matching client/property).")
     if s['errors']:
         msg += f" {len(s['errors'])} errors."
     flash(msg, "success" if not s['errors'] else "warning")
@@ -203,7 +205,9 @@ def sync_invoices_route():
         current_app.logger.exception("Invoice sync failed")
         flash(f"Invoice sync failed: {e}", "error")
         return redirect(url_for("jobber.index"))
-    msg = (f"Invoices: {s['created']} created, {s['skipped_existing']} already imported. "
+    msg = (f"Invoices: {s['seen']} seen → {s['created']} created, "
+           f"{s['skipped_existing']} already imported, "
+           f"{s['skipped_no_client']} skipped (no matching client/property). "
            f"Payments: {s['payments_created']} created.")
     if s['errors']:
         msg += f" {len(s['errors'])} errors."
