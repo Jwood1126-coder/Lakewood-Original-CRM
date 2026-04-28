@@ -47,6 +47,11 @@ requests>=2.32.0
 # Production server
 gunicorn==23.0.0
 
+# PostgreSQL driver — needed when DATABASE_URL is postgresql://...
+# (e.g., Railway's managed Postgres plugin). Harmless when running
+# against SQLite locally.
+psycopg2-binary==2.9.10
+
 # Config / env
 python-dotenv==1.0.1
 

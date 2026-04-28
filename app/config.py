@@ -48,10 +48,22 @@ def _resolve_sqlite_uri(uri: str) -> str:
     return prefix + str((PROJECT_ROOT / rest).resolve()).replace("\\", "/")
 
 
+def _normalize_db_uri(uri: str) -> str:
+    """Make the DATABASE_URL safe for SQLAlchemy 2.x.
+
+    Railway (and Heroku-style providers) hand out 'postgres://...' URIs,
+    but SQLAlchemy 2.x only accepts 'postgresql://...'. Rewrite that prefix.
+    Then route SQLite URIs through the relative-path resolver.
+    """
+    if uri.startswith("postgres://"):
+        uri = "postgresql://" + uri[len("postgres://"):]
+    return _resolve_sqlite_uri(uri)
+
+
 class Config:
     # --- Required ---
     SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-only-do-not-use-in-prod"
-    SQLALCHEMY_DATABASE_URI = _resolve_sqlite_uri(
+    SQLALCHEMY_DATABASE_URI = _normalize_db_uri(
         os.environ.get("DATABASE_URL", "sqlite:///./data/app.db")
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
