@@ -129,7 +129,11 @@ class Config:
     JOBBER_REDIRECT_URI = os.environ.get("JOBBER_REDIRECT_URI")
     # Jobber requires this header on every GraphQL call. Pin to a recent
     # stable version; bump as Jobber publishes new ones.
-    JOBBER_GRAPHQL_VERSION = os.environ.get("JOBBER_GRAPHQL_VERSION", "2024-04-26")
+    # Active versions (per Jobber's changelog): 2025-04-16 (latest stable),
+    # 2025-01-20, 2024-12-05, 2024-11-12. Older versions auto-deprecate
+    # 12 months after a successor releases. Earlier dates (e.g. 2024-04-26)
+    # return 404 — they're not in the version registry at all.
+    JOBBER_GRAPHQL_VERSION = os.environ.get("JOBBER_GRAPHQL_VERSION", "2025-04-16")
 
     # --- Behavior flags ---
     DEBUG = _bool("FLASK_DEBUG", default=False)
