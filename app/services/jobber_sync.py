@@ -350,6 +350,9 @@ query Invoices($first: Int!, $after: String) {
         lineItems {
           nodes { name description quantity unitPrice taxable }
         }
+        paymentRecords {
+          nodes { id amount paymentMethod paymentDate notes }
+        }
       }
     }
   }
@@ -358,11 +361,12 @@ query Invoices($first: Int!, $after: String) {
 
 
 def sync_invoices() -> dict:
-    raw = _paginated(INVOICES_QUERY, "invoices")
+    # Use page_size=10 for invoices — they have nested lineItems AND
+    # paymentRecords, so the per-call point cost on Jobber's rate-limit
+    # accounting is high. Smaller pages = fewer THROTTLED retries.
+    raw = _paginated(INVOICES_QUERY, "invoices", page_size=10)
     stats = {"seen": len(raw), "created": 0, "skipped_existing": 0,
              "skipped_no_client": 0, "payments_created": 0, "errors": []}
-
-    invoice_jids_to_pull_payments = []
 
     for n in raw:
         try:
@@ -415,52 +419,35 @@ def sync_invoices() -> dict:
                     taxable=bool(li_node.get("taxable")),
                 ))
 
-            invoice_jids_to_pull_payments.append((jid, inv.id))
+            # Inline payments — saves N+1 GraphQL calls (one per invoice).
+            payment_nodes = ((n.get("paymentRecords") or {}).get("nodes") or [])
+            n_payments = _import_payment_nodes(inv, payment_nodes)
+            stats["payments_created"] += n_payments
+            if n_payments:
+                inv.recompute_status()
+
             stats["created"] += 1
         except Exception as e:
             stats["errors"].append(f"invoice {n.get('id')}: {e!r}")
 
     db.session.commit()
-
-    # Pull payments per-invoice (Jobber's payments query is scoped under
-    # each invoice). For invoices we just created, fetch + insert payments.
-    for jobber_inv_id, local_inv_id in invoice_jids_to_pull_payments:
-        try:
-            stats["payments_created"] += _sync_payments_for_invoice(
-                jobber_inv_id, local_inv_id
-            )
-        except Exception as e:
-            stats["errors"].append(f"payments for invoice {jobber_inv_id}: {e!r}")
-
-    db.session.commit()
     return stats
 
 
-PAYMENTS_QUERY = """
-query InvoicePayments($id: EncodedId!) {
-  invoice(id: $id) {
-    paymentRecords {
-      nodes {
-        id
-        amount
-        paymentMethod
-        paymentDate
-        notes
-      }
-    }
-  }
-}
-"""
+def _import_payment_nodes(inv: Invoice, nodes: list[dict]) -> int:
+    """Insert Payment rows for an invoice from inline GraphQL results.
 
-
-def _sync_payments_for_invoice(jobber_invoice_id: str, local_invoice_id: int) -> int:
-    data = graphql(PAYMENTS_QUERY, {"id": jobber_invoice_id})
-    nodes = (((data.get("invoice") or {}).get("paymentRecords") or {}).get("nodes") or [])
-    inv = db.session.get(Invoice, local_invoice_id)
-    if inv is None:
-        return 0
+    Idempotent via [Jobber payment #<id>] notes stamp.
+    """
     n_created = 0
+    existing_ids = {
+        pid for pp in (inv.payments or [])
+        for pid in re.findall(r"\[Jobber payment #([^\]]+)\]", pp.notes or "")
+    }
     for p in nodes:
+        pid = p.get("id")
+        if not pid or pid in existing_ids:
+            continue
         amt = _to_cents(p.get("amount"))
         if amt <= 0:
             continue
@@ -473,19 +460,15 @@ def _sync_payments_for_invoice(jobber_invoice_id: str, local_invoice_id: int) ->
                     ))))
         received_at = _parse_iso(p.get("paymentDate")) or datetime.utcnow()
         existing_notes = (p.get("notes") or "")
-        # Dedup: include the Jobber payment id in the notes
-        if any(f"[Jobber payment #{p['id']}]" in (pp.notes or "") for pp in inv.payments):
-            continue
         db.session.add(Payment(
             invoice_id=inv.id,
             amount_cents=amt,
             method=method,
             reference=None,
             received_at=received_at,
-            notes=(existing_notes + f"\n[Jobber payment #{p['id']}]").strip(),
+            notes=(existing_notes + f"\n[Jobber payment #{pid}]").strip(),
         ))
         n_created += 1
     if n_created:
         db.session.flush()
-        inv.recompute_status()
     return n_created
