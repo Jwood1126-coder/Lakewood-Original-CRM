@@ -139,9 +139,13 @@ def _refresh_if_needed(tok: dict) -> dict:
 # ---------- GraphQL client ----------
 
 def graphql(query: str, variables: dict | None = None,
-             max_retries: int = 4) -> dict:
+             max_retries: int = 8) -> dict:
     """POST a GraphQL query. Auto-retries on Jobber's THROTTLED error
-    with exponential backoff (1s, 2s, 4s, 8s)."""
+    with exponential backoff (5s, 10s, 20s, 40s, 60s, 60s, 60s, 60s).
+
+    Also adds a small sleep BEFORE every call to stay under Jobber's
+    point-based rate limit (~2500 points/min default for new apps).
+    """
     tok = _load_token()
     if not tok:
         raise RuntimeError("Jobber not connected — go to Settings → Jobber sync.")
@@ -154,15 +158,29 @@ def graphql(query: str, variables: dict | None = None,
         ),
     }
 
-    backoff = 1.0
+    # Pre-call throttle: small sleep keeps sustained throughput well
+    # under Jobber's burst limit. ~3 req/sec = ~180/min, well below 2500
+    # points/min even at 25-points-per-query worst case.
+    time.sleep(0.35)
+
+    backoff = 5.0
     for attempt in range(max_retries):
         r = requests.post(GRAPH_URL,
                           json={"query": query, "variables": variables or {}},
                           headers=headers, timeout=60)
+        # If Jobber returned 429, honor Retry-After header before parsing body
+        if r.status_code == 429:
+            retry_after = float(r.headers.get("Retry-After", str(backoff)))
+            current_app.logger.info(
+                "Jobber HTTP 429, sleeping %.1fs (attempt %d/%d)",
+                retry_after, attempt + 1, max_retries,
+            )
+            time.sleep(retry_after)
+            backoff = min(backoff * 2, 60)
+            continue
         r.raise_for_status()
         body = r.json()
         errs = body.get("errors") or []
-        # Detect Jobber's rate-limit error and retry
         is_throttled = any(
             (e.get("extensions") or {}).get("code") == "THROTTLED"
             or "throttled" in (e.get("message") or "").lower()
@@ -174,7 +192,7 @@ def graphql(query: str, variables: dict | None = None,
                 backoff, attempt + 1, max_retries,
             )
             time.sleep(backoff)
-            backoff *= 2
+            backoff = min(backoff * 2, 60)
             continue
         if errs:
             raise RuntimeError(f"Jobber GraphQL error: {errs}")

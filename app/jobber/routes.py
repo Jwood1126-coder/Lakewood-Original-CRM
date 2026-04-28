@@ -253,9 +253,12 @@ def sync_all_route():
         current_app.logger.exception("All-sync clients step failed")
         results.append(f"Clients FAILED: {e}")
 
+    import time
     for label, fn_name in [("Jobs", "sync_jobs"),
                             ("Quotes", "sync_quotes"),
                             ("Invoices+Payments", "sync_invoices")]:
+        # Cool-down between stages to let Jobber's rate limiter recover
+        time.sleep(8)
         try:
             from app.services import jobber_sync as js
             s = getattr(js, fn_name)()

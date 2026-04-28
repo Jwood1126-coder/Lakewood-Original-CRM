@@ -137,9 +137,13 @@ def _decimal_qty(q: float | int | str | None) -> Decimal:
         return Decimal("1")
 
 
-def _paginated(query: str, root_field: str, page_size: int = 50,
+def _paginated(query: str, root_field: str, page_size: int = 25,
                 extra_vars: dict | None = None) -> list[dict]:
-    """Page through a Relay-style connection. Returns flat list of node dicts."""
+    """Page through a Relay-style connection. Returns flat list of node dicts.
+
+    Smaller page_size (25 vs 50) reduces per-query point cost on Jobber's
+    rate-limited API. Combined with graphql()'s pre-call sleep, this keeps
+    a full multi-entity sync well under 2500 points/min."""
     out = []
     after = None
     while True:
