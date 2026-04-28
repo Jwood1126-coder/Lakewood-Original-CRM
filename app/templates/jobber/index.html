@@ -75,7 +75,12 @@
 
     <hr>
 
-    <p class="muted" style="font-size:0.85rem">Or run individual syncs:</p>
+    <p class="muted" style="font-size:0.85rem">
+      Or run individual syncs (recommended if "Pull EVERYTHING" hits
+      rate limits — Jobber's quota recovers in 1–2 minutes).
+      <br>Suggested pacing: 👥 → wait 1 min → 🧰 → wait 1 min → 📋 →
+      wait 1 min → 🧾.
+    </p>
 
     <div class="grid">
       <form method="post" action="{{ url_for('jobber.sync_clients') }}" style="margin:0">

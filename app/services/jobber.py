@@ -139,12 +139,13 @@ def _refresh_if_needed(tok: dict) -> dict:
 # ---------- GraphQL client ----------
 
 def graphql(query: str, variables: dict | None = None,
-             max_retries: int = 8) -> dict:
+             max_retries: int = 10) -> dict:
     """POST a GraphQL query. Auto-retries on Jobber's THROTTLED error
-    with exponential backoff (5s, 10s, 20s, 40s, 60s, 60s, 60s, 60s).
+    with exponential backoff (15s, 30s, 60s, then 90s × 7 more).
 
-    Also adds a small sleep BEFORE every call to stay under Jobber's
-    point-based rate limit (~2500 points/min default for new apps).
+    Also sleeps 1.5s BEFORE every call to stay under Jobber's effective
+    rate limit (which is much tighter than their documented 2500 pts/min
+    for our app size).
     """
     tok = _load_token()
     if not tok:
@@ -158,12 +159,13 @@ def graphql(query: str, variables: dict | None = None,
         ),
     }
 
-    # Pre-call throttle: small sleep keeps sustained throughput well
-    # under Jobber's burst limit. ~3 req/sec = ~180/min, well below 2500
-    # points/min even at 25-points-per-query worst case.
-    time.sleep(0.35)
+    # Pre-call throttle: even for tiny apps Jobber's effective limit
+    # appears to be much tighter than the documented 2500 pts/min.
+    # 1.5s pre-sleep keeps sustained rate at ~40 req/min — empirically
+    # safe across long syncs.
+    time.sleep(1.5)
 
-    backoff = 5.0
+    backoff = 15.0
     for attempt in range(max_retries):
         r = requests.post(GRAPH_URL,
                           json={"query": query, "variables": variables or {}},
@@ -176,7 +178,7 @@ def graphql(query: str, variables: dict | None = None,
                 retry_after, attempt + 1, max_retries,
             )
             time.sleep(retry_after)
-            backoff = min(backoff * 2, 60)
+            backoff = min(backoff * 2, 90)
             continue
         r.raise_for_status()
         body = r.json()
@@ -192,7 +194,7 @@ def graphql(query: str, variables: dict | None = None,
                 backoff, attempt + 1, max_retries,
             )
             time.sleep(backoff)
-            backoff = min(backoff * 2, 60)
+            backoff = min(backoff * 2, 90)
             continue
         if errs:
             raise RuntimeError(f"Jobber GraphQL error: {errs}")

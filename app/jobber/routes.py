@@ -257,8 +257,9 @@ def sync_all_route():
     for label, fn_name in [("Jobs", "sync_jobs"),
                             ("Quotes", "sync_quotes"),
                             ("Invoices+Payments", "sync_invoices")]:
-        # Cool-down between stages to let Jobber's rate limiter recover
-        time.sleep(8)
+        # Cool-down between stages — Jobber's bucket needs ~30s to refill
+        # enough to handle the next stage cleanly.
+        time.sleep(30)
         try:
             from app.services import jobber_sync as js
             s = getattr(js, fn_name)()
