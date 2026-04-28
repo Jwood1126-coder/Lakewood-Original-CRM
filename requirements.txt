@@ -40,6 +40,10 @@ Flask-Limiter==3.8.0
 # OAuth token encryption at rest (Jobber API integration)
 cryptography>=43.0.0
 
+# HTTP client (Jobber GraphQL calls). Not pulled in transitively by any
+# other dep — anthropic uses httpx, boto3 uses botocore's own client.
+requests>=2.32.0
+
 # Production server
 gunicorn==23.0.0
 
