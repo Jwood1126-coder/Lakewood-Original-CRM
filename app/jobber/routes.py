@@ -283,3 +283,34 @@ def disconnect():
     _disconnect()
     flash("Disconnected from Jobber.", "info")
     return redirect(url_for("jobber.index"))
+
+
+@bp.route("/introspect/<type_name>")
+@login_required
+def introspect(type_name: str):
+    """Debug helper — list the fields available on a given GraphQL type.
+    Usage: /jobber/introspect/PaymentRecord
+    """
+    from app.services.jobber import graphql
+    query = """
+    query Introspect($name: String!) {
+      __type(name: $name) {
+        name
+        fields { name type { name kind ofType { name kind } } }
+      }
+    }
+    """
+    try:
+        data = graphql(query, {"name": type_name})
+    except Exception as e:
+        return {"error": repr(e)}, 500
+    t = data.get("__type")
+    if not t:
+        return {"error": f"No such type: {type_name}"}, 404
+    fields = []
+    for f in (t.get("fields") or []):
+        ty = f.get("type") or {}
+        of = ty.get("ofType") or {}
+        type_label = ty.get("name") or of.get("name") or ty.get("kind") or "?"
+        fields.append({"name": f["name"], "type": type_label})
+    return {"type": t["name"], "fields": fields}

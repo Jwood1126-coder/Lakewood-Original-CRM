@@ -351,7 +351,7 @@ query Invoices($first: Int!, $after: String) {
           nodes { name description quantity unitPrice taxable }
         }
         paymentRecords {
-          nodes { id amount createdAt }
+          nodes { id amount }
         }
       }
     }
@@ -451,10 +451,10 @@ def _import_payment_nodes(inv: Invoice, nodes: list[dict]) -> int:
         amt = _to_cents(p.get("amount"))
         if amt <= 0:
             continue
-        # PaymentRecord on Jobber's API exposes only id/amount/createdAt
-        # at our access level. Method/notes can be filled in manually
-        # post-import — the audit trail still has the Jobber payment id.
-        received_at = _parse_iso(p.get("createdAt")) or datetime.utcnow()
+        # PaymentRecord on Jobber's API only exposes id + amount at our
+        # access level (paymentMethod/paymentDate/createdAt/notes all
+        # rejected). Use today as received_at; method/date editable after.
+        received_at = datetime.utcnow()
         db.session.add(Payment(
             invoice_id=inv.id,
             amount_cents=amt,
