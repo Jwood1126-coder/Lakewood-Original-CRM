@@ -261,6 +261,7 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
                 zip_code = (addr.get("postalCode") or "").strip()[:10]
                 county = lookup_county(zip_code)
                 props.append({
+                    "jobber_property_id": prop_node.get("id"),
                     "label": "Home" if len(props) == 0 else f"Property #{len(props)+1}",
                     "address_line1": street1,
                     "address_line2": (addr.get("street2") or "").strip(),

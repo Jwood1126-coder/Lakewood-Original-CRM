@@ -107,6 +107,7 @@ class PropertyImport:
     zip_code: str
     county: str | None = None
     tax_rate: Decimal | None = None
+    jobber_property_id: str | None = None  # so other entities can match by it
 
     def address_key(self) -> str:
         """Dedup key within a client: normalized street + city + zip."""
@@ -342,6 +343,10 @@ def write_clients(
         stats["clients_created"] += 1
 
         for p in ci.properties:
+            # Tag the Jobber property ID into notes so the jobs/quotes/
+            # invoices syncs can find this property later.
+            notes = (f"[Jobber property #{p.jobber_property_id}]"
+                     if p.jobber_property_id else None)
             prop = Property(
                 client_id=client.id,
                 label=p.label,
@@ -352,6 +357,7 @@ def write_clients(
                 zip_code=p.zip_code,
                 county=p.county,
                 tax_rate=p.tax_rate or Decimal("0.0575"),
+                notes=notes,
             )
             db.session.add(prop)
             stats["properties_created"] += 1

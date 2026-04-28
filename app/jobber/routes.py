@@ -142,6 +142,7 @@ def sync_clients():
                 zip_code=p["zip_code"],
                 county=p["county"],
                 tax_rate=p["tax_rate"],
+                jobber_property_id=p.get("jobber_property_id"),
             ))
         parsed.append(ci)
 
@@ -153,6 +154,121 @@ def sync_clients():
         f"Created {result['stats']['properties_created']} properties.",
         "success",
     )
+    return redirect(url_for("jobber.index"))
+
+
+@bp.route("/sync/jobs", methods=["POST"])
+@login_required
+def sync_jobs_route():
+    from app.services.jobber_sync import sync_jobs
+    try:
+        s = sync_jobs()
+    except Exception as e:
+        current_app.logger.exception("Job sync failed")
+        flash(f"Job sync failed: {e}", "error")
+        return redirect(url_for("jobber.index"))
+    msg = (f"Jobs: {s['created']} created, {s['skipped_existing']} already imported, "
+           f"{s['skipped_no_client']} skipped (no matching client/property).")
+    if s['errors']:
+        msg += f" {len(s['errors'])} errors (check logs)."
+    flash(msg, "success" if not s['errors'] else "warning")
+    return redirect(url_for("jobber.index"))
+
+
+@bp.route("/sync/quotes", methods=["POST"])
+@login_required
+def sync_quotes_route():
+    from app.services.jobber_sync import sync_quotes
+    try:
+        s = sync_quotes()
+    except Exception as e:
+        current_app.logger.exception("Quote sync failed")
+        flash(f"Quote sync failed: {e}", "error")
+        return redirect(url_for("jobber.index"))
+    msg = (f"Quotes: {s['created']} created, {s['skipped_existing']} already imported, "
+           f"{s['skipped_no_client']} skipped.")
+    if s['errors']:
+        msg += f" {len(s['errors'])} errors."
+    flash(msg, "success" if not s['errors'] else "warning")
+    return redirect(url_for("jobber.index"))
+
+
+@bp.route("/sync/invoices", methods=["POST"])
+@login_required
+def sync_invoices_route():
+    from app.services.jobber_sync import sync_invoices
+    try:
+        s = sync_invoices()
+    except Exception as e:
+        current_app.logger.exception("Invoice sync failed")
+        flash(f"Invoice sync failed: {e}", "error")
+        return redirect(url_for("jobber.index"))
+    msg = (f"Invoices: {s['created']} created, {s['skipped_existing']} already imported. "
+           f"Payments: {s['payments_created']} created.")
+    if s['errors']:
+        msg += f" {len(s['errors'])} errors."
+    flash(msg, "success" if not s['errors'] else "warning")
+    return redirect(url_for("jobber.index"))
+
+
+@bp.route("/sync/all", methods=["POST"])
+@login_required
+def sync_all_route():
+    """Pull everything in dependency order: clients first, then jobs/
+    quotes/invoices. Each step is independent; if one fails the others
+    still try."""
+    results = []
+
+    # Clients (reuses the existing endpoint's logic)
+    try:
+        from app.services.jobber import fetch_all_clients
+        from scripts.import_jobber_clients import (
+            ClientImport, PropertyImport, write_clients,
+        )
+        api_rows = fetch_all_clients(page_size=50)
+        parsed = []
+        for row in api_rows:
+            ci = ClientImport(
+                jobber_client_id=row["jobber_client_id"], name=row["name"],
+                phone=row["phone"], email=row["email"],
+                is_company=row["is_company"], company_name=row["company_name"],
+                contact_first=row["contact_first"], contact_last=row["contact_last"],
+                lead_source=row["lead_source"], referred_by=row["referred_by"],
+                created_at=row["created_at"],
+            )
+            for p in row["properties"]:
+                ci.properties.append(PropertyImport(
+                    label=p["label"], address_line1=p["address_line1"],
+                    address_line2=p["address_line2"], city=p["city"],
+                    state=p["state"], zip_code=p["zip_code"],
+                    county=p["county"], tax_rate=p["tax_rate"],
+                    jobber_property_id=p.get("jobber_property_id"),
+                ))
+            parsed.append(ci)
+        r = write_clients(parsed, commit=True)
+        results.append(f"Clients +{r['stats']['clients_created']} "
+                       f"(skipped {r['stats']['clients_skipped_existing']}); "
+                       f"properties +{r['stats']['properties_created']}")
+    except Exception as e:
+        current_app.logger.exception("All-sync clients step failed")
+        results.append(f"Clients FAILED: {e}")
+
+    for label, fn_name in [("Jobs", "sync_jobs"),
+                            ("Quotes", "sync_quotes"),
+                            ("Invoices+Payments", "sync_invoices")]:
+        try:
+            from app.services import jobber_sync as js
+            s = getattr(js, fn_name)()
+            extra = (f", payments +{s['payments_created']}"
+                     if 'payments_created' in s else "")
+            results.append(
+                f"{label} +{s['created']} (skipped {s['skipped_existing']}){extra}"
+            )
+        except Exception as e:
+            current_app.logger.exception("All-sync %s step failed", label)
+            results.append(f"{label} FAILED: {e}")
+
+    flash(" · ".join(results), "success")
     return redirect(url_for("jobber.index"))
 
 
