@@ -257,7 +257,7 @@ query Quotes($first: Int!, $after: String) {
         property { id }
         amounts { subtotal total }
         lineItems {
-          nodes { name description quantity unitCost taxable }
+          nodes { name description quantity unitPrice taxable }
         }
       }
     }
@@ -313,7 +313,7 @@ def sync_quotes() -> dict:
                     quote_id=q.id,
                     description=desc[:500],
                     quantity=_decimal_qty(li_node.get("quantity")),
-                    unit_price_cents=_to_cents(li_node.get("unitCost")),
+                    unit_price_cents=_to_cents(li_node.get("unitPrice")),
                     taxable=bool(li_node.get("taxable")),
                 ))
             stats["created"] += 1
@@ -341,10 +341,10 @@ query Invoices($first: Int!, $after: String) {
         dueDate
         createdAt
         client { id }
-        property { id }
+        propertyIds
         amounts { subtotal total taxAmount }
         lineItems {
-          nodes { name description quantity unitCost taxable }
+          nodes { name description quantity unitPrice taxable }
         }
       }
     }
@@ -374,7 +374,11 @@ def sync_invoices() -> dict:
             if not client:
                 stats["skipped_no_client"] += 1
                 continue
-            prop = _property_for(client, (n.get("property") or {}).get("id"))
+            # Invoice.propertyIds is [String!] (Jobber's invoice can span
+            # multiple properties — almost always one). Take the first.
+            property_ids = n.get("propertyIds") or []
+            jobber_prop_id = property_ids[0] if property_ids else None
+            prop = _property_for(client, jobber_prop_id)
             if prop is None:
                 stats["skipped_no_client"] += 1
                 continue
@@ -403,7 +407,7 @@ def sync_invoices() -> dict:
                     invoice_id=inv.id,
                     description=desc[:500],
                     quantity=_decimal_qty(li_node.get("quantity")),
-                    unit_price_cents=_to_cents(li_node.get("unitCost")),
+                    unit_price_cents=_to_cents(li_node.get("unitPrice")),
                     taxable=bool(li_node.get("taxable")),
                 ))
 

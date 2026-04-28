@@ -138,7 +138,10 @@ def _refresh_if_needed(tok: dict) -> dict:
 
 # ---------- GraphQL client ----------
 
-def graphql(query: str, variables: dict | None = None) -> dict:
+def graphql(query: str, variables: dict | None = None,
+             max_retries: int = 4) -> dict:
+    """POST a GraphQL query. Auto-retries on Jobber's THROTTLED error
+    with exponential backoff (1s, 2s, 4s, 8s)."""
     tok = _load_token()
     if not tok:
         raise RuntimeError("Jobber not connected — go to Settings → Jobber sync.")
@@ -146,19 +149,38 @@ def graphql(query: str, variables: dict | None = None) -> dict:
     headers = {
         "Authorization": f"Bearer {tok['access_token']}",
         "Content-Type": "application/json",
-        # Jobber requires this header on every call as of 2024.
         "X-JOBBER-GRAPHQL-VERSION": current_app.config.get(
-            "JOBBER_GRAPHQL_VERSION", "2024-04-26"
+            "JOBBER_GRAPHQL_VERSION", "2025-04-16"
         ),
     }
-    r = requests.post(GRAPH_URL,
-                      json={"query": query, "variables": variables or {}},
-                      headers=headers, timeout=60)
-    r.raise_for_status()
-    body = r.json()
-    if body.get("errors"):
-        raise RuntimeError(f"Jobber GraphQL error: {body['errors']}")
-    return body.get("data") or {}
+
+    backoff = 1.0
+    for attempt in range(max_retries):
+        r = requests.post(GRAPH_URL,
+                          json={"query": query, "variables": variables or {}},
+                          headers=headers, timeout=60)
+        r.raise_for_status()
+        body = r.json()
+        errs = body.get("errors") or []
+        # Detect Jobber's rate-limit error and retry
+        is_throttled = any(
+            (e.get("extensions") or {}).get("code") == "THROTTLED"
+            or "throttled" in (e.get("message") or "").lower()
+            for e in errs
+        )
+        if is_throttled and attempt < max_retries - 1:
+            current_app.logger.info(
+                "Jobber THROTTLED, sleeping %.1fs (attempt %d/%d)",
+                backoff, attempt + 1, max_retries,
+            )
+            time.sleep(backoff)
+            backoff *= 2
+            continue
+        if errs:
+            raise RuntimeError(f"Jobber GraphQL error: {errs}")
+        return body.get("data") or {}
+
+    raise RuntimeError("Jobber GraphQL: exhausted retries (rate-limited)")
 
 
 # ---------- sync helpers ----------
