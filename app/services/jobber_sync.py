@@ -256,10 +256,8 @@ query Quotes($first: Int!, $after: String) {
         title
         message
         quoteStatus
-        createdAt
         client { id }
         property { id }
-        amounts { subtotal total }
         lineItems {
           nodes { name description quantity unitPrice taxable }
         }
@@ -271,7 +269,9 @@ query Quotes($first: Int!, $after: String) {
 
 
 def sync_quotes() -> dict:
-    raw = _paginated(QUOTES_QUERY, "quotes")
+    # page_size=10: same reasoning as invoices — nested lineItems push
+    # the per-call point cost up, smaller pages = fewer THROTTLED retries.
+    raw = _paginated(QUOTES_QUERY, "quotes", page_size=10)
     stats = {"seen": len(raw), "created": 0, "skipped_existing": 0,
              "skipped_no_client": 0, "errors": []}
 
