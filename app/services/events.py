@@ -81,6 +81,31 @@ def _base_url() -> str:
         return ""
 
 
+# ---------- Intake events ----------
+
+def notify_quote_request_received(quote: Quote, source: str = "website") -> None:
+    """A new quote-request just came in from the public intake form."""
+    if get_setting("notify_event_quote_request_received", "1") != "1":
+        return
+    base = _base_url()
+    title = f"📩 New request from {quote.client.name} ({source})"
+    body = f"""
+      <h2 style='margin:0 0 0.4rem;color:#1d4ed8'>New service request</h2>
+      <p><b>{escape(quote.client.name)}</b></p>
+      <p>
+        {('📞 ' + escape(quote.client.display_phone)) if quote.client.phone else ''}
+        {('<br>✉️ ' + escape(quote.client.email)) if quote.client.email else ''}
+      </p>
+      <p><b>What they want:</b><br>{escape(quote.subject)}</p>
+      {f'<p><b>Address:</b> {escape(quote.prop.address_one_line)}</p>' if quote.prop else ''}
+      {f"<p style='white-space:pre-wrap'><b>Their description:</b><br>{escape(quote.internal_notes or '')}</p>" if quote.internal_notes else ''}
+      <p style='font-size:0.85rem;color:#888'>
+        <a href="{base}/quotes/{quote.id}">Open in CRM ↗</a> · drafted as Q-{quote.number}
+      </p>
+    """
+    _emit("event_quote_request_received", title, body)
+
+
 # ---------- Quote events ----------
 
 def notify_quote_sent(quote: Quote) -> None:

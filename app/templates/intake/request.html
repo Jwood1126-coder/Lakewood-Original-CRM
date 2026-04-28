@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Request a Quote — {{ business_name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+<main class="container" style="max-width:42rem; padding:2rem 1rem">
+  <h1 style="display:flex; align-items:center; gap:0.6rem">
+    <span class="brand-mark">LO</span> Request a Quote
+  </h1>
+  <p class="muted">Tell us what you need and we'll get back within one business day.</p>
+
+  {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
+
+  <form method="post" novalidate>
+    <input type="text" name="website" tabindex="-1" autocomplete="off"
+           style="position:absolute;left:-9999px" aria-hidden="true">
+
+    <label for="name">Your name *</label>
+    <input id="name" name="name" required value="{{ values.name or '' }}">
+
+    <div class="grid">
+      <div>
+        <label for="phone">Phone</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" value="{{ values.phone or '' }}">
+      </div>
+      <div>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="{{ values.email or '' }}">
+      </div>
+    </div>
+    <small class="muted">Phone or email — at least one.</small>
+
+    <label for="service" style="margin-top:1rem">What do you need?</label>
+    <select id="service" name="service">
+      {% for s in services %}
+        <option value="{{ s.key }}" {% if values.service == s.key %}selected{% endif %}>
+          {{ s.label }} — {{ s.examples }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <label for="description">Project description *</label>
+    <textarea id="description" name="description" rows="5" required
+              placeholder="What needs doing? Photos help if you can text them after.">{{ values.description or '' }}</textarea>
+
+    <label for="address" style="margin-top:1rem">Address</label>
+    <input id="address" name="address" autocomplete="address-line1" value="{{ values.address or '' }}">
+
+    <div class="grid">
+      <div>
+        <label for="city">City</label>
+        <select id="city" name="city">
+          <option value="">— pick —</option>
+          {% for c in cities %}
+            <option value="{{ c }}" {% if values.city == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+          <option value="other" {% if values.city == 'other' %}selected{% endif %}>Other (we'll see if we can help)</option>
+        </select>
+      </div>
+      <div>
+        <label for="zip">ZIP</label>
+        <input id="zip" name="zip" inputmode="numeric" maxlength="10" value="{{ values.zip or '' }}">
+      </div>
+    </div>
+
+    <button type="submit" class="contrast" style="margin-top:1.5rem; width:100%; padding:0.9rem">
+      Send request
+    </button>
+  </form>
+
+  <hr>
+  <p class="muted" style="text-align:center; font-size:0.85rem">
+    Or call/text us directly at <a href="tel:+12167707034">(216) 770-7034</a>.
+  </p>
+</main>
+</body>
+</html>

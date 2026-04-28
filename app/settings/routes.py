@@ -225,10 +225,10 @@ def assistant():
 @bp.route("/notifications", methods=["GET", "POST"])
 @login_required
 def notifications():
-    EVENT_KEYS = ("event_quote_sent", "event_quote_accepted",
-                  "event_quote_converted", "event_job_complete",
-                  "event_invoice_sent", "event_invoice_paid",
-                  "event_payment_received")
+    EVENT_KEYS = ("event_quote_request_received", "event_quote_sent",
+                  "event_quote_accepted", "event_quote_converted",
+                  "event_job_complete", "event_invoice_sent",
+                  "event_invoice_paid", "event_payment_received")
     form = NotificationForm(data={
         "daily_briefing":  get_setting("notify_daily", "1") == "1",
         "daily_time":      get_setting("notify_daily_time", "06:30"),

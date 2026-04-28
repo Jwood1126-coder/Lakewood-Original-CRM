@@ -55,6 +55,7 @@
   <div class="card" style="margin-top:1rem">
     <h3 style="margin-top:0; font-size:1rem">Event triggers (Jobber-style)</h3>
     <p class="muted" style="margin-top:0">Send me an email when…</p>
+    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_request_received() }} 📩 A request comes in from the website</label>
     <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_sent() }} A quote is marked sent</label>
     <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_accepted() }} A quote is accepted</label>
     <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_converted() }} A quote is converted to a job</label>

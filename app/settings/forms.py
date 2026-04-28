@@ -84,6 +84,7 @@ class NotificationForm(FlaskForm):
                                      default=True)
 
     # Per-event triggers (Jobber-style "something happened" notifications)
+    event_quote_request_received = BooleanField("📩 New request from website", default=True)
     event_quote_sent       = BooleanField("Quote marked sent", default=True)
     event_quote_accepted   = BooleanField("Quote accepted", default=True)
     event_quote_converted  = BooleanField("Quote converted to job", default=True)

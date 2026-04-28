@@ -73,6 +73,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.assistant.routes import bp as assistant_bp
     from app.auth.routes import bp as auth_bp
     from app.clients.routes import bp as clients_bp
+    from app.intake.routes import bp as intake_bp
     from app.invoices.routes import bp as invoices_bp
     from app.jobs.routes import bp as jobs_bp
     from app.main.routes import bp as main_bp
@@ -91,6 +92,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(reports_bp, url_prefix="/reports")
     app.register_blueprint(assistant_bp, url_prefix="/assistant")
     app.register_blueprint(settings_bp, url_prefix="/settings")
+    app.register_blueprint(intake_bp, url_prefix="/intake")
 
 
 def _register_context(app: Flask) -> None:

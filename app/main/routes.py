@@ -63,6 +63,13 @@ def index():
         select(Quote).options(joinedload(Quote.client))
         .where(Quote.status == "draft").order_by(Quote.updated_at.desc()).limit(8)
     ).all()
+    # Website-intake quotes are flagged in internal_notes with "Source: website"
+    website_requests = db.session.scalars(
+        select(Quote).options(joinedload(Quote.client))
+        .where(Quote.status == "draft",
+               Quote.internal_notes.like("%Source: website%"))
+        .order_by(Quote.created_at.desc()).limit(8)
+    ).all()
     quotes_sent = db.session.scalars(
         select(Quote).options(joinedload(Quote.client))
         .where(Quote.status == "sent").order_by(Quote.sent_at.desc().nulls_last()).limit(8)
@@ -121,6 +128,7 @@ def index():
         quotes_draft=quotes_draft,
         quotes_sent=quotes_sent,
         quotes_accepted_unconverted=quotes_accepted_unconverted,
+        website_requests=website_requests,
         jobs_needing_invoice=jobs_needing_invoice,
         invoices_unpaid=invoices_unpaid,
         invoices_overdue=invoices_overdue,
