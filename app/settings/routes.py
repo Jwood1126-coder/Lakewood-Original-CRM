@@ -362,11 +362,15 @@ def import_jobber_clients():
         try:
             parsed = parse_csv(tmp_path)
             parsed_preview = parsed[:10]  # show first 10 in the UI
-            result = write_clients(parsed, commit=form.commit.data)
+            skip_ids = {s.strip() for s in (form.skip_jobber_ids.data or "").split(",")
+                         if s.strip()}
+            result = write_clients(parsed, commit=form.commit.data,
+                                   skip_jobber_ids=skip_ids)
             result["total_parsed"] = len(parsed)
             result["total_properties_parsed"] = sum(
                 len(c.properties) for c in parsed
             )
+            result["skip_ids"] = sorted(skip_ids)
             if form.commit.data:
                 flash(
                     f"Imported {result['stats']['clients_created']} clients "

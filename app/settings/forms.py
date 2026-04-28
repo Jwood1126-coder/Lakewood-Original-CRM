@@ -105,6 +105,12 @@ class JobberClientsImportForm(FlaskForm):
             FileAllowed(["csv"], "Upload the CSV file from Jobber's Export Clients."),
         ],
     )
+    skip_jobber_ids = StringField(
+        "Skip these Jobber client IDs (comma-separated)",
+        validators=[Optional(), Length(max=2000)],
+        default="84770573, 88263281, 95558820, 109517633",
+        render_kw={"placeholder": "e.g. 84770573, 88263281"},
+    )
     commit = BooleanField(
         "Yes, write to the database (uncheck for dry-run preview)", default=False
     )

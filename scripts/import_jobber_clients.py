@@ -306,16 +306,25 @@ def _existing_client_for(cid: str) -> Client | None:
     )
 
 
-def write_clients(parsed: list[ClientImport], commit: bool) -> dict:
+def write_clients(
+    parsed: list[ClientImport],
+    commit: bool,
+    skip_jobber_ids: set[str] | None = None,
+) -> dict:
+    skip_jobber_ids = skip_jobber_ids or set()
     stats = {
         "clients_created": 0,
         "clients_skipped_existing": 0,
+        "clients_skipped_user_request": 0,
         "properties_created": 0,
         "properties_skipped_dup": 0,
     }
     warnings: list[str] = []
 
     for ci in parsed:
+        if ci.jobber_client_id in skip_jobber_ids:
+            stats["clients_skipped_user_request"] += 1
+            continue
         existing = _existing_client_for(ci.jobber_client_id)
         if existing is not None:
             stats["clients_skipped_existing"] += 1
@@ -357,12 +366,55 @@ def write_clients(parsed: list[ClientImport], commit: bool) -> dict:
 
 # ---------- CLI ----------
 
+def detect_probable_dups(parsed: list[ClientImport]) -> list[tuple[ClientImport, ClientImport]]:
+    """Return pairs of clients that look like the same person within ONE CSV.
+
+    Heuristic: same email (case-insensitive) — strongest signal.
+    Same name + same phone — also strong.
+    Returns the older one (by created_at) first in each pair so the caller
+    can recommend keeping the older.
+    """
+    by_email: dict[str, list[ClientImport]] = {}
+    by_name_phone: dict[tuple[str, str], list[ClientImport]] = {}
+    for c in parsed:
+        if c.email:
+            by_email.setdefault(c.email.lower(), []).append(c)
+        if c.phone and c.name:
+            by_name_phone.setdefault((c.name.lower(), c.phone), []).append(c)
+
+    pairs: list[tuple[ClientImport, ClientImport]] = []
+    seen: set[tuple[str, str]] = set()
+    for group in list(by_email.values()) + list(by_name_phone.values()):
+        if len(group) < 2:
+            continue
+        group_sorted = sorted(
+            group,
+            key=lambda c: c.created_at or datetime.min,
+        )
+        for newer in group_sorted[1:]:
+            key = tuple(sorted([group_sorted[0].jobber_client_id,
+                                 newer.jobber_client_id]))
+            if key in seen:
+                continue
+            seen.add(key)
+            pairs.append((group_sorted[0], newer))
+    return pairs
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv_path", help="Path to Jobber Clients CSV")
     parser.add_argument("--commit", action="store_true",
                         help="Actually write to the DB. Without this flag, dry-run only.")
+    parser.add_argument(
+        "--skip-jobber-ids",
+        default="",
+        help="Comma-separated Jobber client IDs to skip. "
+             "Use this to drop test entries and known duplicates.",
+    )
     args = parser.parse_args()
+
+    skip_ids = {s.strip() for s in args.skip_jobber_ids.split(",") if s.strip()}
 
     csv_path = Path(args.csv_path)
     if not csv_path.exists():
@@ -373,6 +425,22 @@ def main():
     print(f"\nParsed {len(parsed)} unique clients from {csv_path.name}")
     total_props = sum(len(c.properties) for c in parsed)
     print(f"  {total_props} properties total\n")
+
+    # Surface probable duplicates in the dry-run preview
+    dups = detect_probable_dups(parsed)
+    if dups:
+        print("=" * 60)
+        print(f"PROBABLE DUPLICATES ({len(dups)} pairs):")
+        print("=" * 60)
+        for older, newer in dups:
+            why = []
+            if older.email and older.email == newer.email:
+                why.append(f"same email ({older.email})")
+            if older.phone and older.phone == newer.phone:
+                why.append(f"same phone ({older.phone})")
+            print(f"  {older.name!r}: keep #{older.jobber_client_id}, "
+                  f"skip #{newer.jobber_client_id}  ({'; '.join(why)})")
+        print()
 
     # Sample preview (first 5)
     print("=" * 60)
@@ -391,7 +459,7 @@ def main():
 
     app = create_app()
     with app.app_context():
-        result = write_clients(parsed, commit=args.commit)
+        result = write_clients(parsed, commit=args.commit, skip_jobber_ids=skip_ids)
 
     print("=" * 60)
     if args.commit:

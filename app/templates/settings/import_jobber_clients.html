@@ -20,6 +20,16 @@
   {{ form.csv_file() }}
   {% for err in form.csv_file.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
+  <label for="{{ form.skip_jobber_ids.id }}" style="margin-top:1rem">{{ form.skip_jobber_ids.label.text }}</label>
+  {{ form.skip_jobber_ids() }}
+  <small class="muted">
+    Pre-filled with: <code>84770573</code> (Jacob Wood — your own test entries),
+    plus the older-ID side of three known duplicates from your file:
+    <code>88263281</code> (Maria), <code>95558820</code> (Haley Bajdas),
+    <code>109517633</code> (Andy Lewis).
+    Edit the list to skip more or fewer.
+  </small>
+
   <div class="card" style="margin-top:1rem">
     <label style="display:flex; align-items:center; gap:0.6rem">
       {{ form.commit() }} <strong>{{ form.commit.label.text }}</strong>
@@ -42,8 +52,12 @@
   <ul>
     <li>Clients created: {{ result.stats.clients_created }}</li>
     <li>Clients skipped (already imported): {{ result.stats.clients_skipped_existing }}</li>
+    <li>Clients skipped (in your skip list): {{ result.stats.clients_skipped_user_request }}</li>
     <li>Properties created: {{ result.stats.properties_created }}</li>
   </ul>
+  {% if result.skip_ids %}
+    <small class="muted">Skipped IDs: <code>{{ result.skip_ids|join(', ') }}</code></small>
+  {% endif %}
   {% if result.warnings %}
     <h3 style="font-size:0.95rem">Warnings</h3>
     <ul>{% for w in result.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
