@@ -191,6 +191,8 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
     from app.utils.ohio_tax import lookup_county, lookup_rate
     from app.utils.phone import normalize_phone
 
+    # Client.properties is a plain [Property!] (NOT a Relay connection),
+    # so query its fields directly — no `nodes { ... }` wrapper.
     QUERY = """
     query Clients($first: Int!, $after: String) {
       clients(first: $first, after: $after) {
@@ -206,16 +208,14 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
             phones { number primary }
             emails { address primary }
             properties {
-              nodes {
-                id
-                address {
-                  street1
-                  street2
-                  city
-                  province
-                  postalCode
-                  country
-                }
+              id
+              address {
+                street1
+                street2
+                city
+                province
+                postalCode
+                country
               }
             }
           }
@@ -251,9 +251,9 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
                 filter(None, [node.get("firstName"), node.get("lastName")])
             ).strip() or f"Unnamed (Jobber #{node['id']})"
 
-            # Properties
+            # Properties — Client.properties is [Property!] (plain list)
             props = []
-            for prop_node in (node.get("properties") or {}).get("nodes") or []:
+            for prop_node in (node.get("properties") or []):
                 addr = prop_node.get("address") or {}
                 street1 = (addr.get("street1") or "").strip()
                 if not street1:
