@@ -351,7 +351,7 @@ query Invoices($first: Int!, $after: String) {
           nodes { name description quantity unitPrice taxable }
         }
         paymentRecords {
-          nodes { id amount paymentMethod paymentDate notes }
+          nodes { id amount createdAt }
         }
       }
     }
@@ -451,22 +451,17 @@ def _import_payment_nodes(inv: Invoice, nodes: list[dict]) -> int:
         amt = _to_cents(p.get("amount"))
         if amt <= 0:
             continue
-        method_raw = (p.get("paymentMethod") or "").lower()
-        method = "check" if "check" in method_raw else (
-            "cash" if "cash" in method_raw else (
-                "card" if "card" in method_raw or "stripe" in method_raw else (
-                    "zelle" if "zelle" in method_raw else (
-                        "venmo" if "venmo" in method_raw else "other"
-                    ))))
-        received_at = _parse_iso(p.get("paymentDate")) or datetime.utcnow()
-        existing_notes = (p.get("notes") or "")
+        # PaymentRecord on Jobber's API exposes only id/amount/createdAt
+        # at our access level. Method/notes can be filled in manually
+        # post-import — the audit trail still has the Jobber payment id.
+        received_at = _parse_iso(p.get("createdAt")) or datetime.utcnow()
         db.session.add(Payment(
             invoice_id=inv.id,
             amount_cents=amt,
-            method=method,
+            method="other",
             reference=None,
             received_at=received_at,
-            notes=(existing_notes + f"\n[Jobber payment #{pid}]").strip(),
+            notes=f"[Jobber payment #{pid}]",
         ))
         n_created += 1
     if n_created:
