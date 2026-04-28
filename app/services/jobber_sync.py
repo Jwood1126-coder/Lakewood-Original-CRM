@@ -26,6 +26,7 @@ sensible fallback and log a warning.
 """
 from __future__ import annotations
 
+import base64
 import re
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
@@ -90,20 +91,55 @@ def _parse_iso_date(raw: str | None) -> date | None:
     return dt.date() if dt else None
 
 
+def _candidate_jobber_ids(jobber_id: str) -> list[str]:
+    """Return all forms of a Jobber id we might have stored.
+
+    The CSV importer stamps the *raw numeric* Jobber id (e.g. 1234567).
+    The API sync stamps the *Relay-encoded global id*
+    (e.g. Z2lkOi8vSm9iYmVyL0NsaWVudC8xMjM0NTY3 = base64 of
+    gid://Jobber/Client/1234567).
+
+    Quote/invoice payloads always carry the encoded form. To match either
+    style of stored stamp we try both: the raw input AND any numeric
+    suffix we can decode from it.
+    """
+    out = [jobber_id]
+    try:
+        # base64 padding can be missing; pad to a multiple of 4
+        padded = jobber_id + "=" * (-len(jobber_id) % 4)
+        decoded = base64.b64decode(padded).decode("utf-8", errors="ignore")
+        # Expect "gid://Jobber/Client/1234567" — take the trailing segment
+        if "/" in decoded:
+            tail = decoded.rsplit("/", 1)[-1].strip()
+            if tail and tail not in out:
+                out.append(tail)
+    except Exception:
+        pass
+    return out
+
+
 def _client_by_jobber_id(jobber_client_id: str) -> Client | None:
-    return db.session.scalar(
-        select(Client).where(
-            Client.notes.like(f"%[Imported from Jobber, client #{jobber_client_id}]%")
+    for cid in _candidate_jobber_ids(jobber_client_id):
+        c = db.session.scalar(
+            select(Client).where(
+                Client.notes.like(f"%[Imported from Jobber, client #{cid}]%")
+            )
         )
-    )
+        if c:
+            return c
+    return None
 
 
 def _property_for(client: Client, jobber_property_id: str | None) -> Property | None:
     """Find a Property by Jobber property ID stamped in notes; else first prop."""
     if jobber_property_id:
+        candidates = _candidate_jobber_ids(jobber_property_id)
         for p in (client.properties or []):
-            if p.notes and f"[Jobber property #{jobber_property_id}]" in p.notes:
-                return p
+            if not p.notes:
+                continue
+            for pid in candidates:
+                if f"[Jobber property #{pid}]" in p.notes:
+                    return p
     # Fallback: first property under the client
     return (client.properties or [None])[0]
 
@@ -162,13 +198,22 @@ def _paginated(query: str, root_field: str, page_size: int = 25,
 
 
 def _get_existing_id_by_tag(model, kind: str, jobber_id: str):
-    """Find an existing local record by its Jobber-id stamp."""
+    """Find an existing local record by its Jobber-id stamp.
+
+    Tries both the raw id and any decoded numeric form (see
+    _candidate_jobber_ids) so dedup works regardless of which import path
+    originally stored the record.
+    """
     notes_col = getattr(model, "internal_notes", None) or getattr(model, "notes", None)
     if notes_col is None:
         return None
-    return db.session.scalar(
-        select(model).where(notes_col.like(f"%[Jobber {kind} #{jobber_id}]%"))
-    )
+    for jid in _candidate_jobber_ids(jobber_id):
+        row = db.session.scalar(
+            select(model).where(notes_col.like(f"%[Jobber {kind} #{jid}]%"))
+        )
+        if row:
+            return row
+    return None
 
 
 # ---------- JOBS ----------
