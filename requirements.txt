@@ -37,6 +37,9 @@ boto3==1.35.49
 # Rate limiting (login throttle, future API endpoints)
 Flask-Limiter==3.8.0
 
+# OAuth token encryption at rest (Jobber API integration)
+cryptography>=43.0.0
+
 # Production server
 gunicorn==23.0.0
 

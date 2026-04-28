@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Jobber sync — {{ business_name }}{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem">
+  <a href="{{ url_for('settings.index') }}">← Settings</a>
+</p>
+<div class="page-head"><h1>Jobber sync</h1></div>
+<p class="muted">
+  Pull data directly from Jobber's API into this CRM. Use this if Jobber's
+  CSV export emails aren't arriving.
+</p>
+
+{% if not has_creds %}
+<div class="flash flash-warning">
+  <strong>Jobber API credentials not configured.</strong>
+  In Railway → Variables, set:
+  <ul>
+    <li><code>JOBBER_CLIENT_ID</code></li>
+    <li><code>JOBBER_CLIENT_SECRET</code></li>
+  </ul>
+  Get these at <a href="https://developer.getjobber.com/" target="_blank" rel="noopener">developer.getjobber.com</a>
+  → your app → Details. Also set the app's <strong>Callback URL</strong> there to
+  <code>{{ url_for('jobber.callback', _external=True) }}</code>
+</div>
+{% else %}
+
+<div class="card">
+  <strong>Status:</strong>
+  {% if connected %}
+    <span class="pill pill-paid">✓ Connected</span>
+  {% else %}
+    <span class="pill pill-draft">Not connected</span>
+  {% endif %}
+</div>
+
+<div class="card-list" style="margin-top:1rem">
+  {% if not connected %}
+    <form method="post" action="{{ url_for('jobber.connect') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast" style="width:100%; padding:1rem">
+        Connect to Jobber →
+      </button>
+      <small class="muted">
+        Opens Jobber's login + consent page in this window. Make sure your
+        Jobber developer-app Callback URL is set to:<br>
+        <code>{{ url_for('jobber.callback', _external=True) }}</code>
+      </small>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('jobber.sync_clients') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast" style="width:100%; padding:1rem"
+              onclick="this.disabled=true; this.textContent='Pulling… can take a minute'; this.form.submit();">
+        Pull all clients + properties from Jobber
+      </button>
+      <small class="muted">
+        Same dedup as the CSV importer — clients we've already imported (matched
+        by Jobber ID) are skipped.
+      </small>
+    </form>
+
+    <hr>
+
+    <form method="post" action="{{ url_for('jobber.disconnect') }}"
+          onsubmit="return confirm('Disconnect Jobber? You can reconnect anytime.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline">Disconnect</button>
+    </form>
+  {% endif %}
+</div>
+
+<details style="margin-top:1.4rem">
+  <summary>Setup checklist</summary>
+  <ol>
+    <li>Sign in at <a href="https://developer.getjobber.com" target="_blank" rel="noopener">developer.getjobber.com</a> → open your app (e.g. "Lakewood Original Assistant")</li>
+    <li>Set <strong>Callback URL</strong> to: <code>{{ url_for('jobber.callback', _external=True) }}</code></li>
+    <li>Save the developer app</li>
+    <li>Copy the app's <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+    <li>Set them as <code>JOBBER_CLIENT_ID</code> and <code>JOBBER_CLIENT_SECRET</code> in Railway → Variables</li>
+    <li>Wait for Railway to redeploy (~1 min)</li>
+    <li>Come back here, click <strong>Connect to Jobber</strong></li>
+  </ol>
+</details>
+
+{% endif %}
+{% endblock %}

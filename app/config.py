@@ -121,6 +121,16 @@ class Config:
     STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
+    # --- Jobber API (one-shot data migration; OAuth flow) ---
+    JOBBER_CLIENT_ID = os.environ.get("JOBBER_CLIENT_ID")
+    JOBBER_CLIENT_SECRET = os.environ.get("JOBBER_CLIENT_SECRET")
+    # Optional override for the OAuth callback URL. Defaults to
+    # request.url_root + "/jobber/callback" at runtime if unset.
+    JOBBER_REDIRECT_URI = os.environ.get("JOBBER_REDIRECT_URI")
+    # Jobber requires this header on every GraphQL call. Pin to a recent
+    # stable version; bump as Jobber publishes new ones.
+    JOBBER_GRAPHQL_VERSION = os.environ.get("JOBBER_GRAPHQL_VERSION", "2024-04-26")
+
     # --- Behavior flags ---
     DEBUG = _bool("FLASK_DEBUG", default=False)
     TESTING = False

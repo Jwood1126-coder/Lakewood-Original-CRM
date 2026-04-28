@@ -58,8 +58,13 @@
   </a>
 
   <a href="{{ url_for('settings.import_jobber_clients') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>📥 Import Jobber clients</strong>
+    <strong>📥 Import Jobber clients (CSV)</strong>
     <div class="muted" style="font-size:0.9rem">Upload your Jobber Clients CSV (one-time)</div>
+  </a>
+
+  <a href="{{ url_for('jobber.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>🔌 Jobber sync (API)</strong>
+    <div class="muted" style="font-size:0.9rem">Pull data directly from Jobber via OAuth — when CSV exports aren't working</div>
   </a>
 
 </div>
