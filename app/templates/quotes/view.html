@@ -12,6 +12,7 @@
     <span class="pill pill-{{ quote.status }}">{{ quote.status_label }}</span>
     {% if quote.is_expired %}<span class="pill pill-overdue">expired</span>{% endif %}
     <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}" role="button" class="secondary outline">Edit</a>
+    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print quote">🖨 Print</button>
   </div>
 </div>
 
@@ -21,6 +22,9 @@
       <div class="muted" style="font-size:0.78rem; text-transform:uppercase">For</div>
       <div>{{ quote.client.name }}</div>
       <div class="muted">{{ quote.prop.address_one_line }}</div>
+      {% if quote.prop %}
+        <a href="{{ quote.prop.maps_url }}" target="_blank" rel="noopener">📍 Open in Maps</a>
+      {% endif %}
     </div>
     <div style="margin-left:auto; text-align:right">
       <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Total</div>
@@ -30,26 +34,39 @@
   </div>
 </div>
 
+{% if quote.scheduled_date %}
+<div class="card" style="border-left:3px solid var(--lo-accent)">
+  <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center">
+    <div>
+      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">📅 Estimate visit</div>
+      <div style="font-weight:600">
+        {{ quote.scheduled_date.strftime("%A, %b %d, %Y") }}{% if quote.scheduled_time %} · {{ quote.time_display }}{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
-  <table class="table-rows" style="width:100%">
+  <table class="table-rows table-cards" style="width:100%">
     <thead>
       <tr><th>Item</th><th>Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Total</th><th></th></tr>
     </thead>
     <tbody>
       {% for li in quote.line_items %}
         <tr>
-          <td>{{ li.description }}</td>
-          <td>{{ '%g'|format(li.quantity) }}</td>
-          <td style="text-align:right">${{ li.unit_price_dollars }}</td>
-          <td style="text-align:right">${{ li.line_total_dollars }}</td>
-          <td>{% if li.taxable %}<small class="muted">tax</small>{% endif %}</td>
+          <td data-label="Item">{{ li.description }}</td>
+          <td data-label="Qty">{{ '%g'|format(li.quantity) }}</td>
+          <td data-label="Unit" style="text-align:right">${{ li.unit_price_dollars }}</td>
+          <td data-label="Total" style="text-align:right">${{ li.line_total_dollars }}</td>
+          <td data-label="Taxable">{% if li.taxable %}<small class="muted">tax</small>{% endif %}</td>
         </tr>
       {% else %}
         <tr><td colspan="5" class="muted">No line items yet — <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}">add some</a>.</td></tr>
       {% endfor %}
     </tbody>
     {% if quote.line_items %}
-    <tfoot>
+    <tfoot class="hide-on-mobile">
       <tr><td colspan="3" style="text-align:right" class="muted">Subtotal</td>
           <td style="text-align:right">${{ '%.2f'|format(quote.subtotal_cents/100) }}</td><td></td></tr>
       <tr><td colspan="3" style="text-align:right" class="muted">Tax ({{ '%.2f%%'|format(quote.effective_tax_rate*100) }})</td>
@@ -103,6 +120,47 @@
   <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Internal notes</div>
   <div style="white-space:pre-wrap">{{ quote.internal_notes }}</div>
 </div>
+{% endif %}
+
+{# ----- Photos ----- #}
+<div class="page-head" style="margin-top:1.4rem">
+  <h2 style="margin:0; font-size:1.2rem">
+    Site photos
+    {% if quote.photos %}<span class="muted" style="font-size:0.9rem; font-weight:400">({{ quote.photos|length }})</span>{% endif %}
+  </h2>
+</div>
+
+<form method="post" action="{{ url_for('quotes.upload_photo', quote_id=quote.id) }}"
+      enctype="multipart/form-data" style="margin-bottom:1rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="display:flex; gap:0.5rem; flex-wrap:wrap">
+    <input type="file" name="photos" accept="image/*" capture="environment" multiple
+           style="flex:1; min-width:0">
+    <button type="submit" class="contrast">📸 Add photos</button>
+  </div>
+  <small class="muted">
+    Tap to use your camera. Multiple at once is fine. Photos auto-resize so
+    your data isn't burned through.
+  </small>
+</form>
+
+{% if quote.photos %}
+  <div class="photos-grid">
+    {% for p in quote.photos %}
+      <figure>
+        <img src="{{ url_for('properties.serve_photo', rel_path=p.rel_path) }}"
+             alt="{{ p.caption or p.original_filename or 'photo' }}" loading="lazy">
+        <form method="post" class="photo-del"
+              action="{{ url_for('quotes.delete_photo_route', photo_id=p.id) }}"
+              data-confirm="Delete this photo?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" aria-label="Delete">×</button>
+        </form>
+      </figure>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">No photos yet. Tap the camera button above when you're on-site.</p>
 {% endif %}
 
 <hr>

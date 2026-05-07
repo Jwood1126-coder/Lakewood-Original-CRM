@@ -9,22 +9,26 @@
 <form method="post" novalidate>
   {{ form.hidden_tag() }}
 
-  <label for="{{ form.title.id }}">Job title *</label>
+  <label for="{{ form.title.id }}">Job title <span class="req">*</span></label>
   {{ form.title() }}
   {% for err in form.title.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
   <div class="grid">
     <div>
-      <label for="{{ form.client_id.id }}">Client *</label>
+      <label for="{{ form.client_id.id }}">Client <span class="req">*</span></label>
       {{ form.client_id(
           **{"hx-get": url_for('jobs.property_options'),
              "hx-trigger": "change",
              "hx-target": "#" + form.property_id.id,
              "hx-include": "this",
-             "hx-swap": "innerHTML"}) }}
+             "hx-swap": "innerHTML",
+             "hx-indicator": "#property-loading"}) }}
     </div>
     <div>
-      <label for="{{ form.property_id.id }}">Property *</label>
+      <label for="{{ form.property_id.id }}">
+        Property <span class="req">*</span>
+        <span id="property-loading" class="htmx-spinner" aria-hidden="true"></span>
+      </label>
       {{ form.property_id() }}
     </div>
   </div>

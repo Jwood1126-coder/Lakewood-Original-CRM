@@ -9,16 +9,16 @@
 <form method="post" novalidate class="has-line-items">
   {{ form.hidden_tag() }}
 
-  <label for="{{ form.subject.id }}">Subject *</label>
+  <label for="{{ form.subject.id }}">Subject <span class="req">*</span></label>
   {{ form.subject() }}
 
   <div class="grid">
     <div>
-      <label for="{{ form.client_id.id }}">Client *</label>
+      <label for="{{ form.client_id.id }}">Client <span class="req">*</span></label>
       {{ form.client_id() }}
     </div>
     <div>
-      <label for="{{ form.property_id.id }}">Property *</label>
+      <label for="{{ form.property_id.id }}">Property <span class="req">*</span></label>
       {{ form.property_id() }}
     </div>
   </div>

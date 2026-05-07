@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 
 from app.extensions import db
 from app.models.client import Client
+from app.models.inbox_message import InboxMessage
 from app.models.invoice import Invoice
 from app.models.job import Job
 from app.models.notification import Notification
@@ -163,6 +164,33 @@ def inbox_mark_all_read():
     db.session.commit()
     flash("Inbox cleared.", "success")
     return redirect(url_for("main.inbox"))
+
+
+@bp.route("/messages")
+@login_required
+def messages():
+    """Unified inbox of communications (Gmail-sourced for now)."""
+    msgs = db.session.scalars(
+        select(InboxMessage)
+        .options(joinedload(InboxMessage.client))
+        .order_by(InboxMessage.received_at.desc())
+        .limit(200)
+    ).all()
+    unread_count = db.session.scalar(
+        select(func.count(InboxMessage.id))
+        .where(InboxMessage.read_at.is_(None))
+    ) or 0
+    try:
+        from app.services.gmail import is_connected
+        gmail_connected = is_connected()
+    except Exception:
+        gmail_connected = False
+    return render_template(
+        "main/messages.html",
+        messages=msgs,
+        unread_count=unread_count,
+        gmail_connected=gmail_connected,
+    )
 
 
 @bp.route("/health")

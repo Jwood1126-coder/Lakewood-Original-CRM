@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import base64
 import re
-from datetime import date, datetime
+from datetime import date, datetime, time, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
 from flask import current_app
@@ -43,6 +43,7 @@ from app.models.payment import Payment
 from app.models.property import Property
 from app.models.quote import Quote
 from app.services.jobber import graphql
+from app.utils.timezone import app_tz
 
 # ---------- helpers ----------
 
@@ -78,17 +79,47 @@ INVOICE_STATUS_MAP = {
 
 
 def _parse_iso(raw: str | None) -> datetime | None:
+    """Parse a Jobber ISO 8601 timestamp into UTC-naive (storage convention).
+
+    Jobber returns UTC ('Z'-suffixed). Storage convention for raw timestamps
+    is UTC-naive (see app/utils/timezone.py). For values that get split into
+    operator-local date+time pairs (e.g. Job.scheduled_date/time), use
+    `_parse_iso_local` instead so we don't display 4 AM EDT for a midnight job.
+    """
     if not raw:
         return None
     try:
-        return datetime.fromisoformat(raw.replace("Z", "+00:00")).replace(tzinfo=None)
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(timezone.utc).replace(tzinfo=None)
     except ValueError:
         return None
+
+
+def _parse_iso_local(raw: str | None) -> datetime | None:
+    """Parse a Jobber ISO 8601 timestamp into operator-local naive time.
+
+    Use this for values that get split into separate date and time columns
+    (Job.scheduled_date / Job.scheduled_time). Jobber stores all-day jobs as
+    midnight in the operator's timezone but returns them in UTC, so without
+    this conversion an EDT-midnight job arrives as 04:00:00 naive.
+    """
+    if not raw:
+        return None
+    try:
+        aware = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return aware.astimezone(app_tz()).replace(tzinfo=None)
 
 
 def _parse_iso_date(raw: str | None) -> date | None:
     dt = _parse_iso(raw)
     return dt.date() if dt else None
+
+
+# Times Jobber emits for "all day / no time set" jobs after we convert UTC →
+# operator local. Midnight is the obvious one; we also treat it as
+# "unscheduled time" so the calendar shows "All day" instead of "12:00 AM".
+_ALL_DAY_TIMES = {time(0, 0)}
 
 
 def _candidate_jobber_ids(jobber_id: str) -> list[str]:
@@ -266,8 +297,11 @@ def sync_jobs() -> dict:
                 stats["skipped_no_client"] += 1
                 continue
 
-            start = _parse_iso(n.get("startAt"))
+            start = _parse_iso_local(n.get("startAt"))
             status = JOB_STATUS_MAP.get(n.get("jobStatus", "").upper(), "scheduled")
+            sched_time = start.time() if start else None
+            if sched_time in _ALL_DAY_TIMES:
+                sched_time = None
 
             job = Job(
                 client_id=client.id,
@@ -276,7 +310,7 @@ def sync_jobs() -> dict:
                 scope=(n.get("instructions") or "").strip() or None,
                 status=status,
                 scheduled_date=start.date() if start else None,
-                scheduled_time=start.time() if start else None,
+                scheduled_time=sched_time,
                 notes=f"[Jobber job #{jid}] (Jobber #{n.get('jobNumber') or '?'})",
             )
             db.session.add(job)

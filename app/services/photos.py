@@ -27,15 +27,13 @@ def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def save_photo_for_property(property_id: int, file: FileStorage) -> Photo:
-    """Resize and store a photo for a Property. Commits the row to the DB.
+def _save_photo(parent_kwarg: str, parent_id: int, subdir_name: str,
+                file: FileStorage) -> Photo:
+    """Common photo-write pipeline. parent_kwarg is e.g. 'property_id' /
+    'quote_id' — the FK column to populate on the Photo row.
 
-    Raises ValueError on invalid mimetype or unreadable image.
-
-    H1 fix: was writing the file BEFORE the DB row, with no cleanup on commit
-    failure — leaving orphan JPEGs on disk. Now: write to a temp path, then
-    add+commit the DB row, then rename into place. If anything fails, the
-    temp file is unlinked.
+    H1 fix: write to a temp path → commit DB row → rename into place. If
+    anything fails the tmp file is unlinked so we never leave orphan JPEGs.
     """
     if not file or not file.filename:
         raise ValueError("No file provided")
@@ -43,7 +41,7 @@ def save_photo_for_property(property_id: int, file: FileStorage) -> Photo:
         raise ValueError(f"Unsupported file type: {file.mimetype}")
 
     photo_root: Path = current_app.config["PHOTO_DIR"]
-    subdir = Path("properties") / str(property_id)
+    subdir = Path(subdir_name) / str(parent_id)
     _ensure_dir(photo_root / subdir)
 
     try:
@@ -75,15 +73,13 @@ def save_photo_for_property(property_id: int, file: FileStorage) -> Photo:
             bytes=len(payload),
             width=width,
             height=height,
-            property_id=property_id,
+            **{parent_kwarg: parent_id},
         )
         db.session.add(photo)
         db.session.commit()
-        # DB committed — now move file into final location
         tmp_path.replace(abs_path)
         return photo
     except Exception:
-        # Roll back DB state and clean up the tmp file
         db.session.rollback()
         try:
             tmp_path.unlink(missing_ok=True)
@@ -94,6 +90,17 @@ def save_photo_for_property(property_id: int, file: FileStorage) -> Photo:
         except OSError:
             pass
         raise
+
+
+def save_photo_for_property(property_id: int, file: FileStorage) -> Photo:
+    """Resize + store a photo attached to a Property."""
+    return _save_photo("property_id", property_id, "properties", file)
+
+
+def save_photo_for_quote(quote_id: int, file: FileStorage) -> Photo:
+    """Resize + store a photo attached to a Quote (used during scheduled
+    estimate visits)."""
+    return _save_photo("quote_id", quote_id, "quotes", file)
 
 
 def delete_photo(photo: Photo) -> None:

@@ -14,6 +14,7 @@ from wtforms import (
     StringField,
     SubmitField,
     TextAreaField,
+    TimeField,
 )
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
@@ -25,6 +26,17 @@ class QuoteForm(FlaskForm):
     )
     client_id = SelectField("Client", coerce=int, validators=[DataRequired()], choices=[])
     property_id = SelectField("Property", coerce=int, validators=[DataRequired()], choices=[])
+
+    # Estimate-visit appointment fields. Optional — many quotes never get a
+    # site visit. When set, the visit shows on Schedule + Calendar.
+    scheduled_date = DateField(
+        "Estimate visit date", validators=[Optional()],
+        render_kw={"inputmode": "numeric"},
+    )
+    scheduled_time = TimeField(
+        "Estimate visit time", validators=[Optional()],
+        render_kw={"step": "300"},
+    )
 
     valid_until = DateField("Valid until", validators=[Optional()])
     tax_rate_override = DecimalField(

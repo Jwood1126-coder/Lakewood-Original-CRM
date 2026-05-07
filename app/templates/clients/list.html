@@ -9,17 +9,21 @@
   </div>
 </div>
 
-<form method="get" style="margin-bottom:1rem">
+<form method="get" style="margin-bottom:1rem; position:relative">
   <input type="search"
          name="q"
          value="{{ q }}"
          placeholder="Search by name, phone, or email…"
+         aria-label="Search clients"
          hx-get="{{ url_for('clients.list_clients') }}"
          hx-trigger="keyup changed delay:300ms, search"
          hx-target="#client-rows"
          hx-select="#client-rows tbody"
          hx-swap="outerHTML"
+         hx-indicator="closest form"
          autofocus>
+  <span class="htmx-spinner" aria-hidden="true"
+        style="position:absolute; right:0.9rem; top:50%; transform:translateY(-50%); margin:0"></span>
 </form>
 
 {% if clients %}

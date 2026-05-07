@@ -11,15 +11,17 @@ from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import db
 
 if TYPE_CHECKING:
+    from datetime import time as _time
     from app.models.client import Client
     from app.models.job import Job
     from app.models.line_item import LineItem
+    from app.models.photo import Photo
     from app.models.property import Property
 
 QUOTE_STATUSES = ("draft", "sent", "accepted", "declined", "expired", "converted")
@@ -61,6 +63,11 @@ class Quote(db.Model):
     tax_rate_override: Mapped[Decimal | None] = mapped_column(Numeric(6, 4), nullable=True)
     valid_until: Mapped[date | None] = mapped_column(Date, nullable=True)
 
+    # Optional scheduled site visit — used for free-estimate appointments
+    # before any line items exist. Surfaces on Schedule + Calendar.
+    scheduled_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    scheduled_time: Mapped["_time | None"] = mapped_column(Time, nullable=True)
+
     converted_to_job_id: Mapped[int | None] = mapped_column(
         ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
     )
@@ -84,6 +91,10 @@ class Quote(db.Model):
     )
     converted_job: Mapped["Job | None"] = relationship(
         "Job", primaryjoin="Quote.converted_to_job_id==Job.id"
+    )
+    photos: Mapped[list["Photo"]] = relationship(
+        "Photo", primaryjoin="Photo.quote_id==Quote.id",
+        cascade="all, delete-orphan", order_by="Photo.created_at.desc()",
     )
 
     @property
@@ -121,6 +132,18 @@ class Quote(db.Model):
         if self.status not in ("sent",):
             return False
         return bool(self.valid_until and self.valid_until < date.today())
+
+    @property
+    def time_display(self) -> str:
+        """12-hour clock format for the scheduled visit time. Mirrors Job.time_display."""
+        t = self.scheduled_time
+        if not t:
+            return "—"
+        h = t.hour
+        m = t.minute
+        suffix = "AM" if h < 12 else "PM"
+        h12 = h if 1 <= h <= 12 else (12 if h == 0 else h - 12)
+        return f"{h12}:{m:02d} {suffix}"
 
     @staticmethod
     def next_number(session) -> int:

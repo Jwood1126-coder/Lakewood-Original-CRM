@@ -14,18 +14,30 @@
     {% for d in grid_days %}
       {% set is_other = d.month != current_month %}
       {% set day_jobs = by_day[d] %}
+      {% set day_estimates = by_day_estimates[d] %}
+      {% set total_items = (day_jobs|length) + (day_estimates|length) %}
       <a href="{{ url_for('jobs.calendar', view='day', date=d.isoformat()) }}"
-         class="cal-month-cell{% if d == today %} today{% endif %}{% if is_other %} other-month{% endif %}{% if day_jobs %} has-jobs{% endif %}">
+         class="cal-month-cell{% if d == today %} today{% endif %}{% if is_other %} other-month{% endif %}{% if total_items %} has-jobs{% endif %}">
         <div class="cal-month-num">{{ d.day }}</div>
-        {% if day_jobs %}
-          {% for j in day_jobs[:3] %}
+        {% set ns = namespace(shown=0) %}
+        {% for q in day_estimates %}
+          {% if ns.shown < 3 %}
+            <div class="cal-chip status-estimate">
+              {% if q.scheduled_time %}<span class="t">{{ q.time_display }}</span> {% endif %}📋 {{ q.subject }}
+            </div>
+            {% set ns.shown = ns.shown + 1 %}
+          {% endif %}
+        {% endfor %}
+        {% for j in day_jobs %}
+          {% if ns.shown < 3 %}
             <div class="cal-chip status-{{ j.status }}">
               {% if j.scheduled_time %}<span class="t">{{ j.time_display }}</span> {% endif %}{{ j.title }}
             </div>
-          {% endfor %}
-          {% if day_jobs|length > 3 %}
-            <div class="cal-more">+{{ day_jobs|length - 3 }} more</div>
+            {% set ns.shown = ns.shown + 1 %}
           {% endif %}
+        {% endfor %}
+        {% if total_items > 3 %}
+          <div class="cal-more">+{{ total_items - 3 }} more</div>
         {% endif %}
       </a>
     {% endfor %}

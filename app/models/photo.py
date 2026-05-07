@@ -1,7 +1,7 @@
-"""Photo — attaches to one of: Property, Job, or Visit.
+"""Photo — attaches to one of: Property, Job, Visit, or Quote.
 
 Polymorphic-via-nullable-FKs pattern. Exactly one of the parent FKs is set;
-a CHECK constraint enforces it. Quote/Invoice photos get added in Phase 3.
+a CHECK constraint enforces it.
 """
 from __future__ import annotations
 
@@ -35,6 +35,9 @@ class Photo(db.Model):
     visit_id: Mapped[int | None] = mapped_column(
         ForeignKey("visits.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    quote_id: Mapped[int | None] = mapped_column(
+        ForeignKey("quotes.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
@@ -42,7 +45,8 @@ class Photo(db.Model):
 
     __table_args__ = (
         CheckConstraint(
-            "(property_id IS NOT NULL) OR (job_id IS NOT NULL) OR (visit_id IS NOT NULL)",
+            "(property_id IS NOT NULL) OR (job_id IS NOT NULL) "
+            "OR (visit_id IS NOT NULL) OR (quote_id IS NOT NULL)",
             name="ck_photo_has_parent",
         ),
     )

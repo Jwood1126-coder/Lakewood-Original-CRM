@@ -214,6 +214,87 @@ body {
   .app-main { padding-left: 0.9rem; padding-right: 0.9rem; }
 }
 
+/* ===== Confirm modal =====
+   Replaces native window.confirm() for destructive form submits. Hidden
+   until JS adds .open. Sits above the bottom tab bar (z 300 > more-sheet
+   200 > bottombar). */
+#lo-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+}
+#lo-confirm-overlay.open { display: flex; }
+#lo-confirm-overlay .lo-confirm-card {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--lo-card-radius);
+  padding: 1.2rem 1.2rem 0.9rem;
+  max-width: 24rem;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+#lo-confirm-overlay #lo-confirm-msg {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--pico-color);
+}
+#lo-confirm-overlay .lo-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+#lo-confirm-overlay .lo-confirm-actions button { min-height: var(--lo-tap); margin: 0; }
+#lo-confirm-overlay .lo-confirm-go.lo-danger {
+  background: var(--lo-danger);
+  border-color: var(--lo-danger);
+  color: #fff;
+}
+
+/* ===== htmx loading indicator =====
+   Any element with .htmx-spinner is hidden by default and shown when its
+   target request is in flight. htmx toggles `.htmx-request` on the
+   element specified by hx-indicator (or the requesting element). */
+.htmx-spinner {
+  display: none;
+  width: 1em;
+  height: 1em;
+  border: 2px solid var(--pico-muted-border-color);
+  border-top-color: var(--lo-accent);
+  border-radius: 50%;
+  animation: lo-spin 0.7s linear infinite;
+  vertical-align: -0.15em;
+  margin-left: 0.4rem;
+}
+.htmx-request .htmx-spinner,
+.htmx-request.htmx-spinner { display: inline-block; }
+.htmx-request[aria-busy], .htmx-request[aria-busy] * { cursor: progress; }
+@keyframes lo-spin { to { transform: rotate(360deg); } }
+
+/* When the form/input itself is the indicator, dim it slightly so the user
+   gets visual confirmation the request is in flight even if the spinner is
+   off-screen. */
+.htmx-request input[type="search"],
+.htmx-request select { opacity: 0.7; }
+
+/* ===== Form labels ===== */
+label .req {
+  color: var(--lo-danger);
+  font-weight: 700;
+  margin-left: 0.15rem;
+}
+/* Inputs with the native `required` attribute get a subtle accent so the
+   user knows what's needed before they hit submit. */
+input:required, select:required, textarea:required {
+  border-left: 3px solid var(--lo-accent);
+}
+
 /* ===== Flash messages ===== */
 .flash {
   padding: 0.75rem 1rem;
@@ -268,6 +349,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+a.stat-card:hover {
+  background: var(--pico-card-sectioning-background-color);
+  border-color: var(--lo-accent);
 }
 .stat-card .number { font-size: 1.8rem; font-weight: 700; color: var(--pico-color); line-height: 1.1; }
 .stat-card .label  { color: var(--pico-muted-color); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -318,6 +406,7 @@ body {
 .job-card.status-complete    { border-left-color: var(--lo-success); opacity: 0.85; }
 .job-card.status-in_progress { border-left-color: var(--lo-warning); }
 .job-card.status-canceled    { border-left-color: var(--lo-muted); opacity: 0.6; }
+.job-card.status-estimate    { border-left-color: var(--lo-info); }
 .job-card .job-row {
   display: flex;
   align-items: center;
@@ -330,9 +419,106 @@ body {
   color: var(--lo-accent);
   min-width: 4.5rem;
 }
-.job-card .title { font-weight: 600; font-size: 1.05rem; flex: 1 1 auto; }
-.job-card .client-name { color: var(--pico-muted-color); font-size: 0.92rem; }
-.job-card .address { color: var(--pico-muted-color); font-size: 0.88rem; }
+.job-card .title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.job-card .client-name {
+  color: var(--pico-muted-color);
+  font-size: 0.92rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.job-card .address {
+  color: var(--pico-muted-color);
+  font-size: 0.88rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Schedule page ===== */
+.sched-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--lo-card-radius);
+  background: var(--pico-card-sectioning-background-color);
+}
+.sched-section { margin-bottom: 1.4rem; }
+.sched-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem 0;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--pico-card-border-color);
+}
+.sched-section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.sched-count {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--pico-card-sectioning-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pico-muted-color);
+}
+.sched-overdue .sched-section-head { border-bottom-color: var(--lo-danger); }
+.sched-overdue .sched-section-head h2 { color: var(--lo-danger); }
+.sched-overdue .job-card { border-left-color: var(--lo-danger); }
+.sched-today .sched-section-head h2 { color: var(--lo-accent); }
+
+/* The schedule view splits the card into a body link + an actions strip */
+.sched-section .job-card {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+.sched-section .job-card-body {
+  display: grid;
+  gap: 0.4rem;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+.sched-section .job-card-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
+  margin-left: 0.6rem;
+}
+.sched-section .job-card-actions button,
+.sched-section .job-card-actions a[role="button"] {
+  min-height: 2.4rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 1rem;
+  margin: 0;
+}
+@media (max-width: 540px) {
+  .sched-section .job-card { grid-template-columns: 1fr; }
+  .sched-section .job-card-actions { margin-left: 0; justify-content: flex-end; }
+}
 
 /* ===== Tap-friendly anchor "buttons" ===== */
 a[role="button"], button, .btn {
@@ -413,6 +599,10 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
     letter-spacing: 0.04em;
     flex: 0 0 7rem;
   }
+  /* tfoot rows use colspan and right-align their values; the totals are
+     also shown in the summary card above the line items, so just hide the
+     tfoot on mobile rather than try to card-ify it. */
+  .hide-on-mobile { display: none !important; }
 }
 
 /* ===== Empty state ===== */
@@ -551,6 +741,7 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 .cal-chip.status-complete    { border-left-color: var(--lo-success); opacity: 0.85; }
 .cal-chip.status-in_progress { border-left-color: var(--lo-warning); }
 .cal-chip.status-canceled    { border-left-color: var(--lo-muted); opacity: 0.55; }
+.cal-chip.status-estimate    { border-left-color: var(--lo-info); background: rgba(59, 130, 246, 0.06); }
 .cal-more { font-size: 0.7rem; color: var(--pico-muted-color); }
 
 /* Mobile: shrink the month grid, hide chips except a dot indicator */
@@ -615,6 +806,7 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 .cal-day .cal-job.status-complete    { border-left-color: var(--lo-success); }
 .cal-day .cal-job.status-in_progress { border-left-color: var(--lo-warning); }
 .cal-day .cal-job.status-canceled    { border-left-color: var(--lo-muted); opacity: 0.6; }
+.cal-day .cal-job.status-estimate    { border-left-color: var(--lo-info); }
 
 /* ===== Visits list ===== */
 .visit-row {
@@ -663,6 +855,73 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
   max-height: 75vh;
   overflow: auto;
+}
+.more-sheet-list { display: grid; gap: 0.55rem; }
+.more-item {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem;
+  background: var(--pico-card-sectioning-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  border-left: 3px solid transparent;
+  border-radius: var(--lo-card-radius);
+  padding: 0.7rem 0.9rem;
+  text-decoration: none;
+  color: inherit;
+}
+.more-item strong { font-size: 1rem; font-weight: 600; }
+.more-item small { font-size: 0.82rem; }
+.more-item:hover { border-color: var(--pico-muted-border-color); }
+.more-item.active {
+  border-left-color: var(--lo-accent);
+  background: var(--lo-accent-soft);
+}
+
+/* ===== Print styles =====
+   Optimised for invoice/quote handouts. Strips chrome, forces a clean
+   white-paper look, hides interactive controls, and re-shows the line-item
+   tfoot we hide on small screens (operator-printed invoices need the
+   per-line totals visible). Apply <body class="print-document"> on a page
+   to opt in to the document-style layout; otherwise just basic chrome
+   stripping happens for any print. */
+@media print {
+  .topbar, .bottombar, .more-sheet, #lo-confirm-overlay,
+  .sticky-cta, .htmx-spinner, .flash, form[method="post"],
+  .actions a[role="button"], .actions button,
+  .btn-row, details, hr + form { display: none !important; }
+  body { padding: 0 !important; background: #fff !important; color: #000 !important; }
+  .app-main { padding: 0 !important; max-width: 100% !important; }
+  a { color: inherit !important; text-decoration: none !important; }
+  .card {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  .pill {
+    background: transparent !important;
+    color: #000 !important;
+    border: 1px solid #888 !important;
+  }
+  .muted, .pico-muted-color { color: #555 !important; }
+  /* Override the mobile-only hide so totals print on every paper format. */
+  .hide-on-mobile { display: table-row-group !important; }
+  table.table-rows { border-collapse: collapse; width: 100%; }
+  table.table-rows th, table.table-rows td {
+    border-bottom: 1px solid #ddd !important;
+    padding: 0.4rem 0.5rem !important;
+  }
+  table.table-rows tfoot td {
+    border-top: 1px solid #888 !important;
+    border-bottom: none !important;
+  }
+  /* Don't card-ify tables in print — readers expect the grid layout. */
+  .table-cards thead { display: table-header-group !important; }
+  .table-cards tr { display: table-row !important; padding: 0 !important; margin: 0 !important; }
+  .table-cards td { display: table-cell !important; }
+  .table-cards td::before { content: none !important; }
+  /* Header de-emphasis */
+  .page-head h1 { font-size: 1.4rem !important; }
 }
 
 /* Badges (unread counts etc.) */

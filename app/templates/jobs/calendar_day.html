@@ -4,8 +4,26 @@
 {% block content %}
 {% include "jobs/_cal_nav.html" %}
 
-{% if jobs %}
+{% if jobs or estimates %}
   <div class="card-list">
+    {% for q in estimates %}
+      <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}"
+         class="job-card status-estimate">
+        <div class="job-row">
+          <span class="time">{{ q.time_display if q.scheduled_time else "All day" }}</span>
+          <span class="title">📋 {{ q.subject }}</span>
+          <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
+          <span class="pill pill-accepted">estimate</span>
+        </div>
+        <div class="job-row">
+          <span class="client-name">{{ q.client.name }}</span>
+          {% if q.prop %}<span class="muted">·</span>
+          <span class="address">{{ q.prop.address_line1 }}</span>{% endif %}
+          {% if q.client.phone %}<span class="muted">·</span>
+          <span class="address">{{ q.client.display_phone }}</span>{% endif %}
+        </div>
+      </a>
+    {% endfor %}
     {% for j in jobs %}
       <a href="{{ url_for('jobs.view_job', job_id=j.id) }}"
          class="job-card status-{{ j.status }}">
@@ -28,6 +46,7 @@
     <p>Nothing scheduled for {{ label }}.</p>
     <p>
       <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule a job</a>
+      <a href="{{ url_for('quotes.new_quote') }}" role="button" class="secondary">+ Schedule estimate</a>
     </p>
   </div>
 {% endif %}

@@ -19,7 +19,7 @@
         <div style="display:flex; align-items:baseline; gap:0.5rem">
           <strong>{{ n.title }}</strong>
           <span class="muted" style="font-size:0.78rem; margin-left:auto">
-            {{ n.created_at.strftime("%b %d, %I:%M %p") }} UTC
+            {{ n.created_at | local_dt("%b %d, %-I:%M %p") }}
             {% if n.sent_email_at %} · ✉ emailed{% endif %}
           </span>
         </div>

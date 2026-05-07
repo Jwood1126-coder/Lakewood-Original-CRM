@@ -10,30 +10,29 @@
 </div>
 
 <section class="stat-grid" style="margin-bottom:1.2rem">
-  <div class="stat-card">
+  <a href="{{ url_for('jobs.calendar', view='day') }}" class="stat-card">
     <div class="label">Today</div>
     <div class="number">{{ today_jobs|length }}</div>
     <small class="muted">scheduled</small>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="{{ url_for('jobs.list_jobs', status='in_progress') }}" class="stat-card">
     <div class="label">In progress</div>
     <div class="number" style="color:var(--lo-warning)">{{ in_progress_count }}</div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="{{ url_for('jobs.schedule') }}" class="stat-card">
     <div class="label">Open jobs</div>
     <div class="number">{{ open_count }}</div>
-    <a href="{{ url_for('jobs.list_jobs', status='scheduled') }}">View →</a>
-  </div>
-  <div class="stat-card">
+    <small class="muted">View schedule →</small>
+  </a>
+  <a href="{{ url_for('invoices.list_invoices', status='sent') }}" class="stat-card">
     <div class="label">A/R outstanding</div>
     <div class="number" style="color:{{ 'var(--lo-warning)' if ar_total_cents > 0 else 'var(--lo-muted)' }}">${{ '%.0f'|format(ar_total_cents/100) }}</div>
-    <a href="{{ url_for('invoices.list_invoices', status='sent') }}">View →</a>
-  </div>
-  <div class="stat-card">
+    <small class="muted">View invoices →</small>
+  </a>
+  <a href="{{ url_for('clients.list_clients') }}" class="stat-card">
     <div class="label">Clients</div>
     <div class="number">{{ client_count }}</div>
-    <a href="{{ url_for('clients.list_clients') }}">View →</a>
-  </div>
+  </a>
 </section>
 
 {# ============ ON FOR TODAY ============ #}

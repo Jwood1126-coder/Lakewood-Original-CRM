@@ -15,7 +15,7 @@
   <label for="{{ form.label.id }}">Label</label>
   {{ form.label() }}
 
-  <label for="{{ form.address_line1.id }}">Address line 1 *</label>
+  <label for="{{ form.address_line1.id }}">Address line 1 <span class="req">*</span></label>
   {{ form.address_line1() }}
   {% for err in form.address_line1.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
@@ -24,15 +24,15 @@
 
   <div class="grid">
     <div>
-      <label for="{{ form.city.id }}">City *</label>
+      <label for="{{ form.city.id }}">City <span class="req">*</span></label>
       {{ form.city() }}
     </div>
     <div>
-      <label for="{{ form.state.id }}">State *</label>
+      <label for="{{ form.state.id }}">State <span class="req">*</span></label>
       {{ form.state() }}
     </div>
     <div>
-      <label for="{{ form.zip_code.id }}">ZIP *</label>
+      <label for="{{ form.zip_code.id }}">ZIP <span class="req">*</span></label>
       {{ form.zip_code() }}
       {% for err in form.zip_code.errors %}<small class="error">{{ err }}</small>{% endfor %}
     </div>

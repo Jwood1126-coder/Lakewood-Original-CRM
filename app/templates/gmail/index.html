@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Gmail sync — {{ business_name }}{% endblock %}
+
+{% block content %}
+<p class="muted" style="margin-bottom:0.2rem">
+  <a href="{{ url_for('settings.index') }}">← Settings</a>
+</p>
+<div class="page-head"><h1>Gmail integration</h1></div>
+<p class="muted">
+  Pull Google Voice SMS &amp; voicemail (which Voice emails to your inbox)
+  plus any business mail forwarded to this Gmail account, into the CRM
+  as <a href="{{ url_for('main.messages') }}">Messages</a>.
+</p>
+
+{% if import_error %}
+<div class="flash flash-error">
+  <strong>Gmail integration is failing to load.</strong>
+  <pre style="white-space:pre-wrap; font-size:0.8rem; margin-top:0.5rem">{{ import_error }}</pre>
+</div>
+{% endif %}
+
+{% if not has_creds %}
+<div class="flash flash-warning">
+  <strong>Gmail OAuth credentials not configured.</strong>
+  Follow the setup checklist below, then set in Railway → Variables:
+  <ul>
+    <li><code>GMAIL_CLIENT_ID</code></li>
+    <li><code>GMAIL_CLIENT_SECRET</code></li>
+  </ul>
+</div>
+{% else %}
+
+<div class="card">
+  <strong>Status:</strong>
+  {% if connected %}
+    <span class="pill pill-paid">✓ Connected</span>
+    {% if connected_email %}
+      <span class="muted">· {{ connected_email }}</span>
+    {% endif %}
+  {% else %}
+    <span class="pill pill-draft">Not connected</span>
+  {% endif %}
+  {% if recent_count is not none %}
+    <div class="muted" style="margin-top:0.4rem">
+      {{ recent_count }} message{{ '' if recent_count == 1 else 's' }} stored in CRM.
+    </div>
+  {% endif %}
+</div>
+
+<div class="card-list" style="margin-top:1rem">
+  {% if not connected %}
+    <form method="post" action="{{ url_for('gmail.connect') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="contrast" style="width:100%; padding:1rem">
+        Connect to Gmail →
+      </button>
+      <small class="muted">
+        Opens Google's consent screen. The CRM only requests <strong>read-only</strong>
+        access. Confirm the redirect URI in your Google Cloud OAuth client matches:<br>
+        <code>{{ url_for('gmail.callback', _external=True) }}</code>
+      </small>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('gmail.sync') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="days_back">Sync messages from the last…</label>
+      <select id="days_back" name="days_back">
+        <option value="3">3 days</option>
+        <option value="7">7 days</option>
+        <option value="14" selected>14 days</option>
+        <option value="30">30 days</option>
+        <option value="60">60 days</option>
+      </select>
+      <button type="submit" class="contrast" style="width:100%; padding:1rem; margin-top:0.6rem"
+              onclick="this.disabled=true; this.textContent='Pulling…'; this.form.submit();">
+        🔄 Sync now
+      </button>
+      <small class="muted">
+        Idempotent — already-imported messages are skipped silently.
+        Phase 1 stores raw From/Subject/snippet; client matching arrives in
+        the next update.
+      </small>
+    </form>
+
+    <hr>
+
+    <form method="post" action="{{ url_for('gmail.reclassify') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline" style="width:100%"
+              onclick="this.disabled=true; this.textContent='Re-classifying…'; this.form.submit();">
+        🔁 Re-classify all stored messages
+      </button>
+      <small class="muted">
+        Re-runs the parser + client matcher across every imported message.
+        Use after adding new clients (so prior unmatched messages can find
+        them) or after the parser is updated.
+      </small>
+    </form>
+
+    <hr>
+
+    <form method="post" action="{{ url_for('gmail.disconnect') }}"
+          data-confirm="Disconnect Gmail? Stored messages stay; reconnect anytime.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="secondary outline">Disconnect</button>
+    </form>
+  {% endif %}
+</div>
+
+<details style="margin-top:1.4rem">
+  <summary>Setup checklist (Google Cloud Console)</summary>
+  <ol>
+    <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">console.cloud.google.com → APIs &amp; Services → Credentials</a></li>
+    <li>If you don't have a project yet, create one (e.g. "Lakewood CRM")</li>
+    <li>Enable the Gmail API: <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" rel="noopener">API Library → Gmail API → Enable</a></li>
+    <li>Configure the OAuth consent screen:
+      <ul>
+        <li>User Type: <strong>External</strong> (unless you're on Google Workspace, then Internal)</li>
+        <li>Add yourself as a Test user (avoids the 100-user verification process while you're the only user)</li>
+        <li>Scopes: add <code>.../auth/gmail.readonly</code> and <code>.../auth/userinfo.email</code></li>
+      </ul>
+    </li>
+    <li>Create credentials → <strong>OAuth client ID</strong> → Application type: <strong>Web application</strong></li>
+    <li>Set <strong>Authorized redirect URIs</strong> to:<br>
+      <code>{{ url_for('gmail.callback', _external=True) }}</code></li>
+    <li>Copy the generated <strong>Client ID</strong> and <strong>Client secret</strong></li>
+    <li>In Railway → Variables, set <code>GMAIL_CLIENT_ID</code> and <code>GMAIL_CLIENT_SECRET</code></li>
+    <li>Wait ~1 min for Railway redeploy, then come back here and click <strong>Connect to Gmail</strong></li>
+  </ol>
+</details>
+
+<details style="margin-top:0.8rem">
+  <summary>Forwarding business mail from Outlook (Microsoft 365) to this Gmail</summary>
+  <ol>
+    <li>Sign in at <a href="https://outlook.office.com" target="_blank" rel="noopener">outlook.office.com</a> with your business account</li>
+    <li>Settings (gear icon) → <strong>View all Outlook settings</strong> → Mail → <strong>Forwarding</strong></li>
+    <li>Enable forwarding, set the destination to your Gmail address</li>
+    <li>Check <strong>Keep a copy of forwarded messages</strong> so business mail still archives in M365</li>
+    <li>Save</li>
+  </ol>
+  <p class="muted" style="font-size:0.85rem">
+    Note: Outlook forwarding rewrites the <code>From</code> header to your business
+    address, hiding the original sender. The Phase 2 parser will dig the original
+    sender out of the forwarded body. If you want cleaner sender preservation
+    today, set up a "redirect" rule via Outlook's mail rules instead of plain
+    forwarding — same destination, but the original <code>From</code> survives.
+  </p>
+</details>
+
+{% endif %}
+{% endblock %}

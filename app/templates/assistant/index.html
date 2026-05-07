@@ -28,7 +28,7 @@
        style="text-decoration:none; color:inherit; display:block">
       <strong>{{ c.title or 'New chat' }}</strong>
       <div class="muted" style="font-size:0.85rem">
-        {{ c.messages|length }} messages · {{ c.updated_at.strftime("%b %d, %I:%M %p") }} UTC
+        {{ c.messages|length }} messages · {{ c.updated_at | local_dt("%b %d, %-I:%M %p") }}
       </div>
     </a>
   {% endfor %}

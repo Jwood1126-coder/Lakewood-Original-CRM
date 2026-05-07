@@ -37,19 +37,26 @@ bp = Blueprint("assistant", __name__, template_folder="../templates/assistant")
 
 
 def _conversation_to_history(conv: Conversation) -> list[dict]:
-    """Build the Anthropic message history for a saved Conversation."""
+    """Build the Anthropic message history for a saved Conversation.
+
+    For assistant turns that involved tool use, `tool_calls_json` stores
+    the *full* sequence of message dicts (asst → user-tool-result → asst).
+    Those are individual messages in the Anthropic format, so we extend
+    history with them rather than nest them as content blocks of a single
+    assistant message (which produced the 400 'content.0.type: Field
+    required' error).
+    """
     history = []
     for m in conv.messages:
         if m.role == "user":
             history.append({"role": "user", "content": m.content})
         elif m.role == "assistant":
-            # Reconstruct content: if tool_calls were captured, include them;
-            # otherwise just the text.
             if m.tool_calls_json:
                 try:
                     blocks = json.loads(m.tool_calls_json)
-                    history.append({"role": "assistant", "content": blocks})
-                    continue
+                    if isinstance(blocks, list) and blocks:
+                        history.extend(blocks)
+                        continue
                 except Exception:
                     pass
             history.append({"role": "assistant", "content": m.content})

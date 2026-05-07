@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Schedule — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Schedule</h1>
+  <div class="actions">
+    <a href="{{ url_for('jobs.calendar', view='month') }}" role="button" class="secondary outline">📅 Calendar</a>
+    <a href="{{ url_for('jobs.list_jobs') }}" role="button" class="secondary outline">All jobs</a>
+    <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ New job</a>
+  </div>
+</div>
+
+<div class="sched-summary">
+  <div>
+    <strong>{{ total_count }}</strong> open job{{ '' if total_count == 1 else 's' }}
+    {% if estimates %}· <strong>{{ estimates|length }}</strong> estimate visit{{ '' if estimates|length == 1 else 's' }}{% endif %}
+    {% if total_hours %}<span class="muted"> · {{ total_hours }} hr est.</span>{% endif %}
+  </div>
+  <div class="muted" style="font-size:0.85rem">As of {{ today.strftime("%a, %b %d, %Y") }}</div>
+</div>
+
+{% if estimates %}
+  <section class="sched-section sched-estimates">
+    <header class="sched-section-head">
+      <h2>📋 Estimate visits <span class="sched-count">{{ estimates|length }}</span></h2>
+    </header>
+    <div class="card-list">
+      {% for q in estimates %}
+        {% set _bucket = 'Today' if q.scheduled_date == today else ('Tomorrow' if q.scheduled_date == tomorrow else (q.scheduled_date.strftime('%a %b %d'))) %}
+        <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card status-estimate">
+          <div class="job-row">
+            <span class="time">
+              {{ _bucket }}{% if q.scheduled_time %} · {{ q.time_display }}{% endif %}
+            </span>
+            <span class="title">{{ q.subject }}</span>
+            <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
+            <span class="pill pill-accepted">estimate</span>
+          </div>
+          <div class="job-row">
+            <span class="client-name">{{ q.client.name }}</span>
+            {% if q.prop %}
+              <span class="muted">·</span>
+              <span class="address">{{ q.prop.address_line1 }}</span>
+            {% endif %}
+            {% if q.client.phone %}
+              <span class="muted">·</span>
+              <span class="address">{{ q.client.display_phone }}</span>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
+{% if total_count == 0 %}
+  <div class="empty">
+    {% if any_jobs_exist %}
+      <div class="empty-icon">✅</div>
+      <p>All caught up — no open jobs right now.</p>
+      <p>
+        <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule the next one</a>
+        <a href="{{ url_for('jobs.list_jobs', status='complete') }}" role="button" class="secondary outline">See completed</a>
+      </p>
+    {% else %}
+      <div class="empty-icon">🗓️</div>
+      <p>No jobs scheduled yet.</p>
+      <p><a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule your first job</a></p>
+    {% endif %}
+  </div>
+{% else %}
+  {% for s in sections %}
+    {% if s.count > 0 %}
+      <section class="sched-section sched-{{ s.key }}">
+        <header class="sched-section-head">
+          <h2>
+            {{ s.label }}
+            <span class="sched-count">{{ s.count }}</span>
+          </h2>
+          {% if s.est_hours %}
+            <span class="muted" style="font-size:0.85rem">{{ s.est_hours }} hr est.</span>
+          {% endif %}
+        </header>
+
+        <div class="card-list">
+          {% for j in s.jobs %}
+            <div class="job-card status-{{ j.status }}">
+              <a href="{{ url_for('jobs.view_job', job_id=j.id) }}" class="job-card-body">
+                <div class="job-row">
+                  <span class="time">
+                    {% if j.scheduled_date %}
+                      {{ j.scheduled_date.strftime("%a %b %d") }}{% if j.scheduled_time %} · {{ j.time_display }}{% else %} · All day{% endif %}
+                    {% else %}
+                      Unscheduled
+                    {% endif %}
+                  </span>
+                  <span class="title">{{ j.title }}</span>
+                  <span class="pill pill-{{ j.status }}">{{ j.status_label }}</span>
+                </div>
+                <div class="job-row">
+                  <span class="client-name">{{ j.client.name }}</span>
+                  {% if j.prop %}
+                    <span class="muted">·</span>
+                    <span class="address">{{ j.prop.address_line1 }}</span>
+                  {% endif %}
+                  {% if j.est_hours %}
+                    <span class="muted">·</span>
+                    <span class="muted">{{ j.est_hours }} hr</span>
+                  {% endif %}
+                </div>
+              </a>
+              <div class="job-card-actions">
+                {% if j.prop %}
+                  <a href="{{ j.prop.maps_url }}" target="_blank" rel="noopener"
+                     class="secondary outline" role="button"
+                     aria-label="Open in Maps" title="Open in Maps">📍</a>
+                {% endif %}
+                {% if j.status == 'scheduled' %}
+                  <form method="post" action="{{ url_for('jobs.start_visit', job_id=j.id) }}" style="margin:0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="contrast" aria-label="Start visit" title="Start visit">▶</button>
+                  </form>
+                {% elif j.status == 'in_progress' %}
+                  {% set has_active = j.visits | selectattr('is_active') | list | length > 0 %}
+                  {% if has_active %}
+                    <form method="post" action="{{ url_for('jobs.end_visit', job_id=j.id) }}" style="margin:0">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="contrast" aria-label="End visit" title="End visit">⏹</button>
+                    </form>
+                  {% endif %}
+                  <form method="post" action="{{ url_for('jobs.change_status', job_id=j.id, new_status='complete') }}"
+                        style="margin:0"
+                        onsubmit="return confirm('Mark this job complete?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="secondary" aria-label="Mark complete" title="Mark complete">✓</button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{# Card list of quotes. Used both inline and as the htmx swap target. #}
+<div id="quote-cards" class="card-list">
+  {% for q in quotes %}
+    <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card">
+      <div class="job-row">
+        <span class="time">Q-{{ q.number }}</span>
+        <span class="title">{{ q.subject }}</span>
+        <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
+        {% if q.is_expired %}<span class="pill pill-overdue">expired</span>{% endif %}
+      </div>
+      <div class="job-row">
+        <span class="client-name">{{ q.client.name }}</span>
+        <span class="muted">·</span>
+        <span class="address">${{ '%.2f'|format(q.total_cents/100) }}</span>
+        {% if q.valid_until %}<span class="muted">· valid until {{ q.valid_until.strftime("%b %d") }}</span>{% endif %}
+      </div>
+    </a>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon">📋</div>
+      {% if request.args.get('q') %}
+        <p>No quotes match "{{ request.args.get('q') }}".</p>
+      {% else %}
+        <p>No quotes{% if status %} with status "{{ status_labels.get(status, status) }}"{% endif %}.</p>
+        <p><a href="{{ url_for('quotes.new_quote') }}" role="button" class="contrast">+ Create your first quote</a></p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>

@@ -15,6 +15,7 @@
       <span class="pill pill-{{ invoice.status }}">{{ invoice.status_label }}</span>
     {% endif %}
     <a href="{{ url_for('invoices.edit_invoice', invoice_id=invoice.id) }}" role="button" class="secondary outline">Edit</a>
+    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print invoice">🖨 Print</button>
   </div>
 </div>
 
@@ -51,25 +52,25 @@
 </div>
 
 <div class="card">
-  <table class="table-rows" style="width:100%">
+  <table class="table-rows table-cards" style="width:100%">
     <thead>
       <tr><th>Item</th><th>Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Total</th><th></th></tr>
     </thead>
     <tbody>
       {% for li in invoice.line_items %}
         <tr>
-          <td>{{ li.description }}</td>
-          <td>{{ '%g'|format(li.quantity) }}</td>
-          <td style="text-align:right">${{ li.unit_price_dollars }}</td>
-          <td style="text-align:right">${{ li.line_total_dollars }}</td>
-          <td>{% if li.taxable %}<small class="muted">tax</small>{% endif %}</td>
+          <td data-label="Item">{{ li.description }}</td>
+          <td data-label="Qty">{{ '%g'|format(li.quantity) }}</td>
+          <td data-label="Unit" style="text-align:right">${{ li.unit_price_dollars }}</td>
+          <td data-label="Total" style="text-align:right">${{ li.line_total_dollars }}</td>
+          <td data-label="Taxable">{% if li.taxable %}<small class="muted">tax</small>{% endif %}</td>
         </tr>
       {% else %}
         <tr><td colspan="5" class="muted">No line items — <a href="{{ url_for('invoices.edit_invoice', invoice_id=invoice.id) }}">add some</a>.</td></tr>
       {% endfor %}
     </tbody>
     {% if invoice.line_items %}
-    <tfoot>
+    <tfoot class="hide-on-mobile">
       <tr><td colspan="3" style="text-align:right" class="muted">Subtotal</td>
           <td style="text-align:right">${{ '%.2f'|format(invoice.subtotal_cents/100) }}</td><td></td></tr>
       <tr><td colspan="3" style="text-align:right" class="muted">Tax ({{ '%.2f%%'|format(invoice.effective_tax_rate*100) }})</td>

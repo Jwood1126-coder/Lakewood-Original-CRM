@@ -44,10 +44,36 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     _init_audit(app)
     _register_blueprints(app)
     _register_context(app)
+    _register_template_filters(app)
     _register_error_handlers(app)
     _start_scheduler(app)
 
     return app
+
+
+def _register_template_filters(app: Flask) -> None:
+    """Jinja filters that depend on app config (operator timezone)."""
+    from app.utils.timezone import utc_to_local
+
+    @app.template_filter("local_dt")
+    def _local_dt(dt, fmt: str = "%b %d, %Y %-I:%M %p"):
+        """UTC-naive datetime → operator-local formatted string.
+
+        Use this for any stored timestamp the operator sees (notifications,
+        payments, audit log, etc.) so the wall clock matches their TZ.
+        Returns '' for None so templates don't have to guard.
+        """
+        if dt is None:
+            return ""
+        try:
+            local = utc_to_local(dt)
+        except Exception:
+            return dt.strftime(fmt)
+        # Windows strftime doesn't support %-I; fall back to manual hour.
+        try:
+            return local.strftime(fmt)
+        except ValueError:
+            return local.strftime(fmt.replace("%-I", "%I").replace("%-d", "%d"))
 
 
 def _init_audit(app: Flask) -> None:
@@ -82,6 +108,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.assistant.routes import bp as assistant_bp
     from app.auth.routes import bp as auth_bp
     from app.clients.routes import bp as clients_bp
+    from app.gmail.routes import bp as gmail_bp
     from app.intake.routes import bp as intake_bp
     from app.invoices.routes import bp as invoices_bp
     from app.jobber.routes import bp as jobber_bp
@@ -104,6 +131,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(settings_bp, url_prefix="/settings")
     app.register_blueprint(intake_bp, url_prefix="/intake")
     app.register_blueprint(jobber_bp, url_prefix="/jobber")
+    app.register_blueprint(gmail_bp, url_prefix="/gmail")
 
 
 def _register_context(app: Flask) -> None:
@@ -114,6 +142,7 @@ def _register_context(app: Flask) -> None:
         # Lazy imports to avoid circulars at module load
         from sqlalchemy import func, select
         from app.extensions import db
+        from app.models.inbox_message import InboxMessage
         from app.models.notification import Notification
         from app.models.setting import get_setting
 
@@ -130,11 +159,16 @@ def _register_context(app: Flask) -> None:
             business_name = app.config["BUSINESS_NAME"]
 
         unread = 0
+        unread_messages = 0
         try:
             if current_user.is_authenticated:
                 unread = db.session.scalar(
                     select(func.count(Notification.id))
                     .where(Notification.read_at.is_(None))
+                ) or 0
+                unread_messages = db.session.scalar(
+                    select(func.count(InboxMessage.id))
+                    .where(InboxMessage.read_at.is_(None))
                 ) or 0
         except Exception:
             pass
@@ -143,6 +177,7 @@ def _register_context(app: Flask) -> None:
             "business_name": business_name,
             "app_theme": theme,
             "unread_count": unread,
+            "unread_messages": unread_messages,
         }
 
 

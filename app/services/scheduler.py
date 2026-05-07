@@ -9,6 +9,7 @@ Scheduled jobs:
 - Sunday 17:00 weekly briefing
 - 1st of month 08:00 monthly report
 - Hourly: check for "job day reminder" notifications to fire
+- Every 4 hours: poll Gmail for new messages (no-op if not connected)
 """
 from __future__ import annotations
 
@@ -62,6 +63,14 @@ def init_scheduler(app):
         _wrap(app, run_backup),
         trigger=CronTrigger(hour=3, minute=0),
         id="nightly_backup", replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+
+    from app.services.gmail_sync import poll_gmail
+    _scheduler.add_job(
+        _wrap(app, poll_gmail),
+        trigger=CronTrigger(hour="*/4", minute=15),
+        id="gmail_poll", replace_existing=True,
         max_instances=1, coalesce=True,
     )
 

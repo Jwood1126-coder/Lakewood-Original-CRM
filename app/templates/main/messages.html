@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Messages — {{ business_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Messages</h1>
+  <div class="actions">
+    {% if gmail_connected %}
+      <form method="post" action="{{ url_for('gmail.sync') }}" style="margin:0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="days_back" value="14">
+        <button type="submit" class="contrast"
+                onclick="this.disabled=true; this.textContent='Pulling…'; this.form.submit();">
+          🔄 Sync Gmail
+        </button>
+      </form>
+    {% else %}
+      <a href="{{ url_for('gmail.index') }}" role="button" class="contrast">+ Connect Gmail</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if messages %}
+  <p class="muted" style="font-size:0.85rem; margin-top:-0.5rem">
+    {{ messages|length }} recent · {{ unread_count }} unread
+  </p>
+  <div class="card-list">
+    {% for m in messages %}
+      <div class="job-card{% if m.is_unread %} status-in_progress{% endif %}">
+        <div class="job-row">
+          <span class="time">{{ m.received_at.strftime("%b %d") }}</span>
+          <span class="title">{{ m.subject or '(no subject)' }}</span>
+          <span class="pill pill-{{ 'sent' if m.kind == 'sms' else ('accepted' if m.kind == 'voicemail' else 'draft') }}">
+            {{ m.kind_label }}
+          </span>
+          {% if m.is_unread %}<span class="pill pill-overdue">unread</span>{% endif %}
+        </div>
+        <div class="job-row">
+          <span class="client-name">
+            {% if m.client %}
+              <a href="{{ url_for('clients.view_client', client_id=m.client.id) }}">{{ m.client.name }}</a>
+            {% else %}
+              {{ m.from_name or m.from_addr or m.from_phone or 'Unknown sender' }}
+            {% endif %}
+          </span>
+          {% if m.from_addr and m.client %}
+            <span class="muted">·</span>
+            <span class="address">{{ m.from_addr }}</span>
+          {% endif %}
+        </div>
+        {% if m.snippet %}
+          <div class="muted" style="font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+            {{ m.snippet }}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    <div class="empty-icon">📬</div>
+    {% if gmail_connected %}
+      <p>No messages yet. Hit <strong>Sync Gmail</strong> above to pull the last 14 days.</p>
+    {% else %}
+      <p>No messages — Gmail isn't connected yet.</p>
+      <p>
+        <a href="{{ url_for('gmail.index') }}" role="button" class="contrast">Connect Gmail →</a>
+      </p>
+      <p class="muted" style="font-size:0.85rem; max-width:30rem; margin:1rem auto 0">
+        Once connected, this page shows Google Voice SMS &amp; voicemail
+        plus any business email forwarded from Outlook to this Gmail.
+        Phase 2 will match each message to the right client automatically.
+      </p>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

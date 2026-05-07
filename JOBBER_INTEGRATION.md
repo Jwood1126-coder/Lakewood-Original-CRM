@@ -236,7 +236,7 @@ them here so future-you knows.
 | `Invoice.property` | Doesn't exist — use `propertyIds` (list of String). An invoice can technically span multiple properties; we take the first. |
 | `LineItem.unitCost` | Doesn't exist — use `unitPrice`. Both Quote and Invoice line items. |
 | Money fields | Returned as **floats in dollars** (e.g. `45.50`), not integer cents. We convert via `Decimal + ROUND_HALF_UP`. |
-| Date fields | ISO 8601 strings (`2025-04-16T12:34:56Z`). We strip the timezone for storage as UTC-naive. |
+| Date fields | ISO 8601 strings (`2025-04-16T12:34:56Z`). For raw timestamps we store UTC-naive (`_parse_iso`). For values that get split into operator-local date+time pairs (Job.scheduled_date / scheduled_time) we **convert to APP_TIMEZONE first** via `_parse_iso_local` — Jobber stores all-day jobs as midnight in the operator's TZ but returns them in UTC, so a naive strip would render them at 4 AM EDT. |
 
 ---
 

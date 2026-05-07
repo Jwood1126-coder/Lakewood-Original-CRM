@@ -14,6 +14,12 @@
           <span class="cal-day-num">{{ d.day }}</span>
         </a>
       </div>
+      {% for q in by_day_estimates[d] %}
+        <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="cal-job status-estimate">
+          {% if q.scheduled_time %}<span class="t">{{ q.time_display }}</span> · {% endif %}📋 {{ q.subject }}<br>
+          <small class="muted">{{ q.client.name }} · estimate</small>
+        </a>
+      {% endfor %}
       {% for j in by_day[d] %}
         <a href="{{ url_for('jobs.view_job', job_id=j.id) }}" class="cal-job status-{{ j.status }}">
           {% if j.scheduled_time %}<span class="t">{{ j.time_display }}</span> · {% endif %}{{ j.title }}<br>

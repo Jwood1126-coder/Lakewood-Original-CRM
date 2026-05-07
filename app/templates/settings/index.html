@@ -45,7 +45,7 @@
     <strong>💾 Backups</strong>
     <div class="muted" style="font-size:0.9rem">
       {% if last_backup %}
-        Last: {{ last_backup.when.strftime("%b %d, %I:%M %p") }} UTC · {{ last_backup.size_kb }} KB · {{ last_backup.count_total }} on file
+        Last: {{ last_backup.when | local_dt("%b %d, %-I:%M %p") }} · {{ last_backup.size_kb }} KB · {{ last_backup.count_total }} on file
       {% else %}
         No backups yet — make one
       {% endif %}
@@ -65,6 +65,11 @@
   <a href="{{ url_for('jobber.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">
     <strong>🔌 Jobber sync (API)</strong>
     <div class="muted" style="font-size:0.9rem">Pull data directly from Jobber via OAuth — when CSV exports aren't working</div>
+  </a>
+
+  <a href="{{ url_for('gmail.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">
+    <strong>📬 Gmail integration</strong>
+    <div class="muted" style="font-size:0.9rem">Pull Voice SMS / voicemail and forwarded business mail into Messages</div>
   </a>
 
 </div>

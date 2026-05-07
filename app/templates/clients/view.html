@@ -12,7 +12,7 @@
     <a href="{{ url_for('clients.edit_client', client_id=client.id) }}" role="button" class="secondary outline">Edit</a>
     <form method="post" action="{{ url_for('clients.delete_client', client_id=client.id) }}"
           style="display:inline; margin:0"
-          onsubmit="return confirm('Delete {{ client.name|e }} and all their properties? This cannot be undone.')">
+          data-confirm="Delete {{ client.name }} and all their properties, jobs, quotes, and invoices? This cannot be undone.">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete</button>
     </form>

@@ -9,7 +9,7 @@
 <form method="post" novalidate style="max-width:32rem">
   {{ form.hidden_tag() }}
 
-  <label for="{{ form.name.id }}">Business name *</label>
+  <label for="{{ form.name.id }}">Business name <span class="req">*</span></label>
   {{ form.name() }}
 
   <label for="{{ form.address.id }}">Address</label>

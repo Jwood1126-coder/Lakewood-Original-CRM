@@ -20,7 +20,7 @@
     <input type="text" name="website" tabindex="-1" autocomplete="off"
            style="position:absolute;left:-9999px" aria-hidden="true">
 
-    <label for="name">Your name *</label>
+    <label for="name">Your name <span class="req">*</span></label>
     <input id="name" name="name" required value="{{ values.name or '' }}">
 
     <div class="grid">
@@ -44,7 +44,7 @@
       {% endfor %}
     </select>
 
-    <label for="description">Project description *</label>
+    <label for="description">Project description <span class="req">*</span></label>
     <textarea id="description" name="description" rows="5" required
               placeholder="What needs doing? Photos help if you can text them after.">{{ values.description or '' }}</textarea>
 

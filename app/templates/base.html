@@ -14,6 +14,7 @@
         href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
+  <script src="{{ url_for('static', filename='js/confirm-modal.js') }}" defer></script>
 </head>
 <body>
   {% if current_user.is_authenticated %}
@@ -24,11 +25,15 @@
       </a>
       <nav class="topbar-nav">
         <a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>Today</a>
+        <a href="{{ url_for('jobs.schedule') }}" {% if request.endpoint == 'jobs.schedule' %}class="active"{% endif %}>Schedule</a>
         <a href="{{ url_for('jobs.calendar') }}" {% if request.endpoint == 'jobs.calendar' %}class="active"{% endif %}>Calendar</a>
         <a href="{{ url_for('jobs.list_jobs') }}" {% if request.endpoint == 'jobs.list_jobs' %}class="active"{% endif %}>Jobs</a>
         <a href="{{ url_for('quotes.list_quotes') }}" {% if request.blueprint == 'quotes' %}class="active"{% endif %}>Quotes</a>
         <a href="{{ url_for('invoices.list_invoices') }}" {% if request.blueprint == 'invoices' %}class="active"{% endif %}>Invoices</a>
         <a href="{{ url_for('clients.list_clients') }}" {% if request.blueprint == 'clients' or request.blueprint == 'properties' %}class="active"{% endif %}>Clients</a>
+        <a href="{{ url_for('main.messages') }}" {% if request.endpoint == 'main.messages' %}class="active"{% endif %}>
+          Messages{% if unread_messages %} <span class="badge">{{ unread_messages }}</span>{% endif %}
+        </a>
         <a href="{{ url_for('reports.index') }}" {% if request.blueprint == 'reports' %}class="active"{% endif %}>Reports</a>
         <a href="{{ url_for('assistant.index') }}" {% if request.blueprint == 'assistant' %}class="active"{% endif %}>Assistant</a>
         <a href="{{ url_for('main.inbox') }}" {% if request.endpoint == 'main.inbox' %}class="active"{% endif %}>
@@ -85,15 +90,41 @@
                     class="secondary outline" style="padding:0.3rem 0.7rem; min-height:auto">Close</button>
           </div>
         </div>
-        <div class="card-list">
-          <a href="{{ url_for('jobs.list_jobs') }}" class="card" style="text-decoration:none; color:inherit; display:block">🧰 Jobs</a>
-          <a href="{{ url_for('quotes.list_quotes') }}" class="card" style="text-decoration:none; color:inherit; display:block">📋 Quotes</a>
-          <a href="{{ url_for('invoices.list_invoices') }}" class="card" style="text-decoration:none; color:inherit; display:block">🧾 Invoices</a>
-          <a href="{{ url_for('reports.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">📊 Reports</a>
-          <a href="{{ url_for('main.inbox') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-            📬 Inbox {% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}
+        <div class="more-sheet-list">
+          {% set _e = request.endpoint or '' %}
+          {% set _bp = request.blueprint or '' %}
+          <a href="{{ url_for('jobs.schedule') }}" class="more-item{% if _e == 'jobs.schedule' %} active{% endif %}">
+            <strong>🗓️ Schedule</strong>
+            <small class="muted">Open jobs grouped by when</small>
           </a>
-          <a href="{{ url_for('settings.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">⚙ Settings</a>
+          <a href="{{ url_for('jobs.list_jobs') }}" class="more-item{% if _e == 'jobs.list_jobs' %} active{% endif %}">
+            <strong>🧰 Jobs</strong>
+            <small class="muted">All work orders, any status</small>
+          </a>
+          <a href="{{ url_for('quotes.list_quotes') }}" class="more-item{% if _bp == 'quotes' %} active{% endif %}">
+            <strong>📋 Quotes</strong>
+            <small class="muted">Estimates sent and pending</small>
+          </a>
+          <a href="{{ url_for('invoices.list_invoices') }}" class="more-item{% if _bp == 'invoices' %} active{% endif %}">
+            <strong>🧾 Invoices</strong>
+            <small class="muted">Billing and payments</small>
+          </a>
+          <a href="{{ url_for('main.messages') }}" class="more-item{% if _e == 'main.messages' %} active{% endif %}">
+            <strong>📬 Messages</strong>
+            <small class="muted">SMS, voicemail, business email in one place</small>
+          </a>
+          <a href="{{ url_for('reports.index') }}" class="more-item{% if _bp == 'reports' %} active{% endif %}">
+            <strong>📊 Reports</strong>
+            <small class="muted">Revenue, A/R aging, sales tax</small>
+          </a>
+          <a href="{{ url_for('main.inbox') }}" class="more-item{% if _e == 'main.inbox' %} active{% endif %}">
+            <strong>📬 Inbox {% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}</strong>
+            <small class="muted">Notifications and reminders</small>
+          </a>
+          <a href="{{ url_for('settings.index') }}" class="more-item{% if _bp == 'settings' %} active{% endif %}">
+            <strong>⚙ Settings</strong>
+            <small class="muted">Profile, business info, backups</small>
+          </a>
         </div>
       </div>
     </div>

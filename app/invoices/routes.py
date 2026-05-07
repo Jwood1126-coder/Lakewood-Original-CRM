@@ -13,7 +13,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required
-from sqlalchemy import select
+from sqlalchemy import String, or_, select
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
@@ -92,6 +92,7 @@ def _save_line_items(invoice: Invoice) -> list[str]:
 @login_required
 def list_invoices():
     status = request.args.get("status")
+    q = (request.args.get("q") or "").strip()
     stmt = (select(Invoice)
             .options(joinedload(Invoice.client), joinedload(Invoice.prop))
             .order_by(Invoice.created_at.desc()))
@@ -102,8 +103,17 @@ def list_invoices():
             Invoice.status.in_(["sent", "partial"]),
             Invoice.due_date < date.today(),
         )
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.join(Invoice.client).where(
+            or_(
+                Invoice.subject.ilike(like),
+                Invoice.number.cast(String).ilike(like),
+                Client.name.ilike(like),
+            )
+        )
     invoices = db.session.scalars(stmt).all()
-    return render_template("invoices/list.html", invoices=invoices, status=status,
+    return render_template("invoices/list.html", invoices=invoices, status=status, q=q,
                            statuses=INVOICE_STATUSES, status_labels=INVOICE_STATUS_LABELS)
 
 

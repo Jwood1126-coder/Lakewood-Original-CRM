@@ -9,7 +9,7 @@
 <form method="post" novalidate>
   {{ form.hidden_tag() }}
 
-  <label for="{{ form.name.id }}">Name *</label>
+  <label for="{{ form.name.id }}">Name <span class="req">*</span></label>
   {{ form.name() }}
   {% for err in form.name.errors %}<small class="error">{{ err }}</small>{% endfor %}
 

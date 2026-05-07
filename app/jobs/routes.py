@@ -14,7 +14,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
@@ -58,6 +58,7 @@ def _populate_form_choices(form: JobForm, preselect_client_id: int | None = None
 @login_required
 def list_jobs():
     status = request.args.get("status")
+    q = (request.args.get("q") or "").strip()
     stmt = (
         select(Job)
         .options(joinedload(Job.client), joinedload(Job.prop))
@@ -65,13 +66,116 @@ def list_jobs():
     )
     if status and status in JOB_STATUSES:
         stmt = stmt.where(Job.status == status)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.join(Job.client).where(
+            or_(
+                Job.title.ilike(like),
+                Job.scope.ilike(like),
+                Client.name.ilike(like),
+            )
+        )
     jobs = db.session.scalars(stmt).all()
     return render_template(
         "jobs/list.html",
         jobs=jobs,
         status=status,
+        q=q,
         statuses=JOB_STATUSES,
         status_labels=JOB_STATUS_LABELS,
+    )
+
+
+@bp.route("/schedule")
+@login_required
+def schedule():
+    """Jobber-style scheduled view: open jobs grouped by when they're due.
+
+    Sections: Overdue / Today / Tomorrow / This week / Next week / Later /
+    Unscheduled. Only open jobs — completed/canceled live in the regular list.
+    """
+    from app.utils.timezone import today_local
+
+    today = today_local()
+    tomorrow = today + timedelta(days=1)
+    end_of_week = today + timedelta(days=(6 - today.weekday()))  # Sunday
+    end_of_next_week = end_of_week + timedelta(days=7)
+
+    open_jobs = db.session.scalars(
+        select(Job)
+        .options(joinedload(Job.client), joinedload(Job.prop))
+        .where(Job.status.in_(("scheduled", "in_progress")))
+        .order_by(
+            Job.scheduled_date.asc().nulls_last(),
+            Job.scheduled_time.asc().nulls_last(),
+        )
+    ).all()
+
+    sections = [
+        {"key": "overdue",     "label": "Overdue",          "jobs": []},
+        {"key": "today",       "label": "Today",            "jobs": []},
+        {"key": "tomorrow",    "label": "Tomorrow",         "jobs": []},
+        {"key": "this_week",   "label": "Later this week",  "jobs": []},
+        {"key": "next_week",   "label": "Next week",        "jobs": []},
+        {"key": "later",       "label": "Later",            "jobs": []},
+        {"key": "unscheduled", "label": "Unscheduled",      "jobs": []},
+    ]
+    by_key = {s["key"]: s for s in sections}
+
+    for j in open_jobs:
+        d = j.scheduled_date
+        if d is None:
+            by_key["unscheduled"]["jobs"].append(j)
+        elif d < today:
+            by_key["overdue"]["jobs"].append(j)
+        elif d == today:
+            by_key["today"]["jobs"].append(j)
+        elif d == tomorrow:
+            by_key["tomorrow"]["jobs"].append(j)
+        elif d <= end_of_week:
+            by_key["this_week"]["jobs"].append(j)
+        elif d <= end_of_next_week:
+            by_key["next_week"]["jobs"].append(j)
+        else:
+            by_key["later"]["jobs"].append(j)
+
+    for s in sections:
+        s["count"] = len(s["jobs"])
+        s["est_hours"] = round(sum((j.est_hours or 0) for j in s["jobs"]), 1) or None
+
+    total_count = sum(s["count"] for s in sections)
+    total_hours = round(sum((s["est_hours"] or 0) for s in sections), 1) or None
+
+    # ---------- Scheduled estimate visits (Quote.scheduled_date) ----------
+    from app.models.quote import Quote
+    estimates = db.session.scalars(
+        select(Quote)
+        .options(joinedload(Quote.client), joinedload(Quote.prop))
+        .where(
+            Quote.scheduled_date.is_not(None),
+            Quote.scheduled_date >= today,
+            Quote.status.in_(("draft", "sent")),
+        )
+        .order_by(
+            Quote.scheduled_date.asc(),
+            Quote.scheduled_time.asc().nulls_last(),
+        )
+    ).all()
+
+    # Distinguish "no jobs ever" from "all caught up" so the empty state is
+    # actionable instead of just blank.
+    any_jobs_exist = db.session.scalar(select(Job.id).limit(1)) is not None
+
+    return render_template(
+        "jobs/schedule.html",
+        sections=sections,
+        estimates=estimates,
+        today=today,
+        tomorrow=tomorrow,
+        end_of_week=end_of_week,
+        total_count=total_count,
+        total_hours=total_hours,
+        any_jobs_exist=any_jobs_exist,
     )
 
 
@@ -310,15 +414,22 @@ def calendar():
     anchor = _parse_anchor(request.args.get("date"))
     today = date.today()
 
+    from app.models.quote import Quote
+
     if view == "day":
         jobs = db.session.scalars(
             select(Job).options(joinedload(Job.client), joinedload(Job.prop))
             .where(Job.scheduled_date == anchor)
             .order_by(Job.scheduled_time.nulls_last())
         ).all()
+        estimates = db.session.scalars(
+            select(Quote).options(joinedload(Quote.client), joinedload(Quote.prop))
+            .where(Quote.scheduled_date == anchor)
+            .order_by(Quote.scheduled_time.nulls_last())
+        ).all()
         return render_template(
             "jobs/calendar_day.html",
-            view=view, anchor=anchor, today=today, jobs=jobs,
+            view=view, anchor=anchor, today=today, jobs=jobs, estimates=estimates,
             label=anchor.strftime("%A, %B %d, %Y"),
             prev_url=url_for("jobs.calendar", view="day",
                              date=(anchor - timedelta(days=1)).isoformat()),
@@ -336,13 +447,23 @@ def calendar():
             .where(Job.scheduled_date >= monday, Job.scheduled_date <= sunday)
             .order_by(Job.scheduled_date, Job.scheduled_time.nulls_last())
         ).all()
+        estimates = db.session.scalars(
+            select(Quote).options(joinedload(Quote.client), joinedload(Quote.prop))
+            .where(Quote.scheduled_date >= monday, Quote.scheduled_date <= sunday)
+            .order_by(Quote.scheduled_date, Quote.scheduled_time.nulls_last())
+        ).all()
         by_day: dict[date, list[Job]] = {d: [] for d in days}
+        by_day_estimates: dict[date, list[Quote]] = {d: [] for d in days}
         for j in jobs:
             if j.scheduled_date in by_day:
                 by_day[j.scheduled_date].append(j)
+        for q in estimates:
+            if q.scheduled_date in by_day_estimates:
+                by_day_estimates[q.scheduled_date].append(q)
         return render_template(
             "jobs/calendar_week.html",
-            view=view, anchor=monday, today=today, days=days, by_day=by_day,
+            view=view, anchor=monday, today=today, days=days,
+            by_day=by_day, by_day_estimates=by_day_estimates,
             label=_fmt_week_label(monday, sunday),
             prev_url=url_for("jobs.calendar", view="week",
                              date=(monday - timedelta(days=7)).isoformat()),
@@ -373,15 +494,24 @@ def calendar():
         .where(Job.scheduled_date >= grid_start, Job.scheduled_date <= grid_end)
         .order_by(Job.scheduled_date, Job.scheduled_time.nulls_last())
     ).all()
+    estimates = db.session.scalars(
+        select(Quote).options(joinedload(Quote.client))
+        .where(Quote.scheduled_date >= grid_start, Quote.scheduled_date <= grid_end)
+        .order_by(Quote.scheduled_date, Quote.scheduled_time.nulls_last())
+    ).all()
     by_day: dict[date, list[Job]] = {d: [] for d in grid_days}
+    by_day_estimates: dict[date, list[Quote]] = {d: [] for d in grid_days}
     for j in jobs:
         if j.scheduled_date in by_day:
             by_day[j.scheduled_date].append(j)
+    for q in estimates:
+        if q.scheduled_date in by_day_estimates:
+            by_day_estimates[q.scheduled_date].append(q)
 
     return render_template(
         "jobs/calendar_month.html",
         view=view, anchor=first, today=today,
-        grid_days=grid_days, by_day=by_day,
+        grid_days=grid_days, by_day=by_day, by_day_estimates=by_day_estimates,
         current_month=first.month,
         label=f"{_MONTH_FULL[first.month - 1]} {first.year}",
         prev_url=url_for("jobs.calendar", view="month", date=prev_month_first.isoformat()),

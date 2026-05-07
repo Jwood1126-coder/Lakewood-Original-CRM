@@ -1,0 +1,33 @@
+{# Card list of jobs. Used both inline and as the htmx swap target. #}
+<div id="job-cards" class="card-list">
+  {% for j in jobs %}
+    <a href="{{ url_for('jobs.view_job', job_id=j.id) }}"
+       class="job-card status-{{ j.status }}">
+      <div class="job-row">
+        {% if j.scheduled_date %}
+          <span class="time">{{ j.scheduled_date.strftime("%b %d") }}{% if j.scheduled_time %} · {{ j.time_display }}{% endif %}</span>
+        {% else %}
+          <span class="time muted">unsched</span>
+        {% endif %}
+        <span class="title">{{ j.title }}</span>
+        <span class="pill pill-{{ j.status }}">{{ j.status_label }}</span>
+        {% if j.needs_invoicing %}<span class="pill pill-overdue" title="Job is complete but has no invoice">⚠ Not invoiced</span>{% endif %}
+      </div>
+      <div class="job-row">
+        <span class="client-name">{{ j.client.name }}</span>
+        {% if j.prop %}<span class="muted">·</span>
+        <span class="address">{{ j.prop.address_line1 }}</span>{% endif %}
+      </div>
+    </a>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon">🧰</div>
+      {% if request.args.get('q') %}
+        <p>No jobs match "{{ request.args.get('q') }}".</p>
+      {% else %}
+        <p>No jobs{% if status %} with status "{{ status_labels.get(status, status) }}"{% endif %}.</p>
+        <p><a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Create your first job</a></p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>

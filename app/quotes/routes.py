@@ -7,6 +7,7 @@ from decimal import Decimal
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     redirect,
     render_template,
@@ -14,17 +15,19 @@ from flask import (
     url_for,
 )
 from flask_login import login_required
-from sqlalchemy import select
+from sqlalchemy import String, or_, select
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
 from app.models.client import Client
 from app.models.job import Job
 from app.models.line_item import LineItem
+from app.models.photo import Photo
 from app.models.property import Property
 from app.models.quote import QUOTE_STATUS_LABELS, QUOTE_STATUSES, Quote
 from app.quotes.forms import QuoteForm
 from app.services.money import dollars_to_cents, parse_qty
+from app.services.photos import delete_photo, save_photo_for_quote
 
 bp = Blueprint("quotes", __name__, template_folder="../templates/quotes")
 
@@ -92,13 +95,23 @@ def _save_line_items(quote: Quote) -> list[str]:
 @login_required
 def list_quotes():
     status = request.args.get("status")
+    q = (request.args.get("q") or "").strip()
     stmt = (select(Quote)
             .options(joinedload(Quote.client), joinedload(Quote.prop))
             .order_by(Quote.created_at.desc()))
     if status and status in QUOTE_STATUSES:
         stmt = stmt.where(Quote.status == status)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.join(Quote.client).where(
+            or_(
+                Quote.subject.ilike(like),
+                Quote.number.cast(String).ilike(like),
+                Client.name.ilike(like),
+            )
+        )
     quotes = db.session.scalars(stmt).all()
-    return render_template("quotes/list.html", quotes=quotes, status=status,
+    return render_template("quotes/list.html", quotes=quotes, status=status, q=q,
                            statuses=QUOTE_STATUSES, status_labels=QUOTE_STATUS_LABELS)
 
 
@@ -129,6 +142,8 @@ def new_quote():
             internal_notes=(form.internal_notes.data or "").strip() or None,
             tax_rate_override=form.tax_rate_override.data,
             valid_until=form.valid_until.data,
+            scheduled_date=form.scheduled_date.data,
+            scheduled_time=form.scheduled_time.data,
             status="draft",
         )
         db.session.add(quote)
@@ -168,6 +183,8 @@ def edit_quote(quote_id: int):
         quote.internal_notes = (form.internal_notes.data or "").strip() or None
         quote.tax_rate_override = form.tax_rate_override.data
         quote.valid_until = form.valid_until.data
+        quote.scheduled_date = form.scheduled_date.data
+        quote.scheduled_time = form.scheduled_time.data
         warnings = _save_line_items(quote)
         db.session.commit()
         for w in warnings:
@@ -260,3 +277,42 @@ def convert_to_job(quote_id: int):
     notify_quote_converted(quote, job)
     flash(f"Created job from quote Q-{quote.number}. Pick a date next.", "success")
     return redirect(url_for("jobs.edit_job", job_id=job.id))
+
+
+# ---------- Photos ----------
+
+@bp.route("/<int:quote_id>/photos", methods=["POST"])
+@login_required
+def upload_photo(quote_id: int):
+    quote = db.session.get(Quote, quote_id) or abort(404)
+    files = request.files.getlist("photos")
+    if not files:
+        flash("No photos selected.", "error")
+        return redirect(url_for("quotes.view_quote", quote_id=quote.id))
+    saved = 0
+    for f in files:
+        if not f.filename:
+            continue
+        try:
+            save_photo_for_quote(quote.id, f)
+            saved += 1
+        except ValueError as e:
+            flash(f"{f.filename}: {e}", "error")
+        except Exception as e:
+            current_app.logger.exception("Quote photo upload failed: %s", e)
+            flash(f"{f.filename}: upload failed", "error")
+    if saved:
+        flash(f"Uploaded {saved} photo{'s' if saved != 1 else ''}.", "success")
+    return redirect(url_for("quotes.view_quote", quote_id=quote.id))
+
+
+@bp.route("/photos/<int:photo_id>/delete", methods=["POST"])
+@login_required
+def delete_photo_route(photo_id: int):
+    photo = db.session.get(Photo, photo_id) or abort(404)
+    parent_quote_id = photo.quote_id
+    if not parent_quote_id:
+        abort(404)
+    delete_photo(photo)
+    flash("Photo deleted.", "info")
+    return redirect(url_for("quotes.view_quote", quote_id=parent_quote_id))

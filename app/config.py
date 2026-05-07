@@ -133,6 +133,14 @@ class Config:
     STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
+    # --- Gmail API (unified inbox: Voice SMS/voicemail + forwarded business mail) ---
+    # Create OAuth client at https://console.cloud.google.com/apis/credentials.
+    # Authorized redirect URI must match GMAIL_REDIRECT_URI (or the default
+    # derived from request.url_root + '/gmail/callback').
+    GMAIL_CLIENT_ID = os.environ.get("GMAIL_CLIENT_ID")
+    GMAIL_CLIENT_SECRET = os.environ.get("GMAIL_CLIENT_SECRET")
+    GMAIL_REDIRECT_URI = os.environ.get("GMAIL_REDIRECT_URI")
+
     # --- Jobber API (one-shot data migration; OAuth flow) ---
     JOBBER_CLIENT_ID = os.environ.get("JOBBER_CLIENT_ID")
     JOBBER_CLIENT_SECRET = os.environ.get("JOBBER_CLIENT_SECRET")

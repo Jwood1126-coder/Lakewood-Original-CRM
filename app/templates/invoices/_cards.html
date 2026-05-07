@@ -1,0 +1,37 @@
+{# Card list of invoices. Rendered both inline (initial page load) and as
+   the htmx swap target (search/filter). Keeps the wrapper id stable so the
+   search box can hx-target it. #}
+<div id="invoice-cards" class="card-list">
+  {% for inv in invoices %}
+    <a href="{{ url_for('invoices.view_invoice', invoice_id=inv.id) }}" class="job-card">
+      <div class="job-row">
+        <span class="time">#{{ inv.number }}</span>
+        <span class="title">{{ inv.subject }}</span>
+        {% if inv.is_overdue %}
+          <span class="pill pill-overdue">{{ inv.days_overdue }}d overdue</span>
+        {% else %}
+          <span class="pill pill-{{ inv.status }}">{{ inv.status_label }}</span>
+        {% endif %}
+      </div>
+      <div class="job-row">
+        <span class="client-name">{{ inv.client.name }}</span>
+        <span class="muted">·</span>
+        <span class="address">${{ '%.2f'|format(inv.total_cents/100) }}</span>
+        {% if inv.balance_cents > 0 and inv.status not in ('draft','void') %}
+          <span class="muted">· ${{ '%.2f'|format(inv.balance_cents/100) }} owed</span>
+        {% endif %}
+        {% if inv.due_date %}<span class="muted">· due {{ inv.due_date.strftime("%b %d") }}</span>{% endif %}
+      </div>
+    </a>
+  {% else %}
+    <div class="empty">
+      <div class="empty-icon">🧾</div>
+      {% if q %}
+        <p>No invoices match "{{ q }}".</p>
+      {% else %}
+        <p>No invoices{% if status %} with status "{{ status_labels.get(status, status) }}"{% endif %}.</p>
+        <p><a href="{{ url_for('invoices.new_invoice') }}" role="button" class="contrast">+ Create your first invoice</a></p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
