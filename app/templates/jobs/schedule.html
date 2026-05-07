@@ -133,25 +133,29 @@
                      class="secondary outline" role="button"
                      aria-label="Open in Maps" title="Open in Maps">📍</a>
                 {% endif %}
-                {% if j.status == 'scheduled' %}
+                {% set has_active = j.visits | selectattr('is_active') | list | length > 0 %}
+                {% if j.status == 'scheduled' and not has_active %}
                   <form method="post" action="{{ url_for('jobs.start_visit', job_id=j.id) }}" style="margin:0">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="return_to" value="{{ url_for('jobs.schedule') }}">
                     <button type="submit" class="contrast" aria-label="Start visit" title="Start visit">▶</button>
                   </form>
                 {% elif j.status == 'in_progress' %}
-                  {% set has_active = j.visits | selectattr('is_active') | list | length > 0 %}
                   {% if has_active %}
                     <form method="post" action="{{ url_for('jobs.end_visit', job_id=j.id) }}" style="margin:0">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="return_to" value="{{ url_for('jobs.schedule') }}">
                       <button type="submit" class="contrast" aria-label="End visit" title="End visit">⏹</button>
                     </form>
+                  {% else %}
+                    <form method="post" action="{{ url_for('jobs.change_status', job_id=j.id, new_status='complete') }}"
+                          style="margin:0"
+                          data-confirm="Mark {{ j.title }} complete?">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="return_to" value="{{ url_for('jobs.schedule') }}">
+                      <button type="submit" class="secondary" aria-label="Mark complete" title="Mark complete">✓</button>
+                    </form>
                   {% endif %}
-                  <form method="post" action="{{ url_for('jobs.change_status', job_id=j.id, new_status='complete') }}"
-                        style="margin:0"
-                        onsubmit="return confirm('Mark this job complete?')">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="secondary" aria-label="Mark complete" title="Mark complete">✓</button>
-                  </form>
                 {% endif %}
               </div>
             </div>

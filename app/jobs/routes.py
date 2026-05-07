@@ -273,6 +273,16 @@ def delete_job(job_id: int):
     return redirect(url_for("jobs.list_jobs"))
 
 
+def _action_redirect(job: Job):
+    """Send the operator back to whatever view they tapped from.
+    Schedule + calendar actions come with return_to set so users stay
+    in their workflow context. Default falls through to job view."""
+    target = request.form.get("return_to") or ""
+    if target.startswith("/"):  # only allow same-origin redirects
+        return redirect(target)
+    return redirect(url_for("jobs.view_job", job_id=job.id))
+
+
 @bp.route("/<int:job_id>/status/<new_status>", methods=["POST"])
 @login_required
 def change_status(job_id: int, new_status: str):
@@ -281,7 +291,7 @@ def change_status(job_id: int, new_status: str):
     job = db.session.get(Job, job_id) or abort(404)
     if not job.can_transition_to(new_status):
         flash(f"Can't go from {job.status_label} to {JOB_STATUS_LABELS.get(new_status, new_status)}.", "error")
-        return redirect(url_for("jobs.view_job", job_id=job.id))
+        return _action_redirect(job)
 
     # Guard: don't let an operator mark complete while a visit is still
     # running (arrived_at set, departed_at null). That'd leave a dangling
@@ -294,7 +304,7 @@ def change_status(job_id: int, new_status: str):
                 "tap '⏹ End visit' first so the time gets logged.",
                 "error",
             )
-            return redirect(url_for("jobs.view_job", job_id=job.id))
+            return _action_redirect(job)
 
     prev = job.status
     job.transition_to(new_status)
@@ -302,7 +312,7 @@ def change_status(job_id: int, new_status: str):
     if new_status == "complete" and prev != "complete":
         notify_job_complete(job)
     flash(f"Job marked {job.status_label}.", "success")
-    return redirect(url_for("jobs.view_job", job_id=job.id))
+    return _action_redirect(job)
 
 
 # ---------- Visits ----------
@@ -317,7 +327,7 @@ def start_visit(job_id: int):
     active = next((v for v in job.visits if v.is_active), None)
     if active:
         flash("Visit already in progress — end it first.", "warning")
-        return redirect(url_for("jobs.view_job", job_id=job.id))
+        return _action_redirect(job)
 
     now = datetime.utcnow()
     visit = Visit(
@@ -330,7 +340,7 @@ def start_visit(job_id: int):
         job.status = "in_progress"
     db.session.commit()
     flash("Visit started — clock running.", "success")
-    return redirect(url_for("jobs.view_job", job_id=job.id))
+    return _action_redirect(job)
 
 
 @bp.route("/<int:job_id>/visits/end", methods=["POST"])
@@ -344,7 +354,7 @@ def end_visit(job_id: int):
         active.departed_at = datetime.utcnow()
         db.session.commit()
         flash(f"Visit ended ({active.duration_display}).", "success")
-    return redirect(url_for("jobs.view_job", job_id=job.id))
+    return _action_redirect(job)
 
 
 @bp.route("/<int:job_id>/visits/log", methods=["POST"])

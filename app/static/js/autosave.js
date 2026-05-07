@@ -147,4 +147,27 @@
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("form.autosave").forEach(attach);
   });
+
+  // Global: prevent double-submit on slow signal. After any form submits,
+  // disable its submit buttons for 8 seconds so a second tap is a no-op.
+  // 8s covers a typical Railway round-trip on slow LTE; if the request takes
+  // longer than that the user can re-enable manually by reloading.
+  document.addEventListener("submit", function (ev) {
+    const form = ev.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    setTimeout(function () {
+      form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (btn) {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.setAttribute("data-was-enabled", "1");
+      });
+      // Re-enable after 8s in case the response never arrives
+      setTimeout(function () {
+        form.querySelectorAll('[data-was-enabled="1"]').forEach(function (btn) {
+          btn.disabled = false;
+          btn.removeAttribute("data-was-enabled");
+        });
+      }, 8000);
+    }, 0);
+  });
 })();
