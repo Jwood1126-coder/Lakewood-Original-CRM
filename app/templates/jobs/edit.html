@@ -6,7 +6,8 @@
   <h1>{{ "Edit job" if job else "New job" }}</h1>
 </div>
 
-<form method="post" novalidate>
+<form method="post" novalidate class="autosave"
+      data-autosave-key="job-form{% if job %}-{{ job.id }}{% else %}-new{% endif %}">
   {{ form.hidden_tag() }}
 
   <label for="{{ form.title.id }}">Job title <span class="req">*</span></label>
@@ -15,7 +16,10 @@
 
   <div class="grid">
     <div>
-      <label for="{{ form.client_id.id }}">Client <span class="req">*</span></label>
+      <label for="{{ form.client_id.id }}">
+        Client <span class="req">*</span>
+        <a href="{{ url_for('clients.new_client', next='job') }}" class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New client</a>
+      </label>
       {{ form.client_id(
           **{"hx-get": url_for('jobs.property_options'),
              "hx-trigger": "change",
@@ -28,6 +32,10 @@
       <label for="{{ form.property_id.id }}">
         Property <span class="req">*</span>
         <span id="property-loading" class="htmx-spinner" aria-hidden="true"></span>
+        {% if form.client_id.data %}
+          <a href="{{ url_for('properties.new_property', client_id=form.client_id.data, next='job') }}"
+             class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New property</a>
+        {% endif %}
       </label>
       {{ form.property_id() }}
     </div>
@@ -60,5 +68,6 @@
     <a href="{{ url_for('jobs.view_job', job_id=job.id) if job else url_for('jobs.list_jobs') }}"
        role="button" class="secondary">Cancel</a>
   </div>
+  <small class="muted autosave-status" aria-live="polite"></small>
 </form>
 {% endblock %}

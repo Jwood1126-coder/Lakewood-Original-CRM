@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Q-{{ quote.number }} {{ quote.subject }} — {{ business_name }}{% endblock %}
+{% block title %}E-{{ quote.number }} {{ quote.subject }} — {{ business_name }}{% endblock %}
 
 {% block content %}
 <p class="muted" style="margin-bottom:0.2rem">
@@ -7,12 +7,12 @@
 </p>
 
 <div class="page-head">
-  <h1>Q-{{ quote.number }} · {{ quote.subject }}</h1>
+  <h1>E-{{ quote.number }} · {{ quote.subject }}</h1>
   <div class="actions">
     <span class="pill pill-{{ quote.status }}">{{ quote.status_label }}</span>
     {% if quote.is_expired %}<span class="pill pill-overdue">expired</span>{% endif %}
     <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}" role="button" class="secondary outline">Edit</a>
-    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print quote">🖨 Print</button>
+    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print estimate">🖨 Print</button>
   </div>
 </div>
 
@@ -166,8 +166,8 @@
 <hr>
 
 <form method="post" action="{{ url_for('quotes.delete_quote', quote_id=quote.id) }}"
-      onsubmit="return confirm('Permanently delete this quote?')">
+      data-confirm="Permanently delete this estimate?">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete quote</button>
+  <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete estimate</button>
 </form>
 {% endblock %}

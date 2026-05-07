@@ -46,6 +46,7 @@ def new_property():
     if not client:
         abort(400, "client_id required")
 
+    next_target = request.args.get("next") or request.form.get("next")
     form = PropertyForm()
     if form.validate_on_submit():
         _autofill(form)
@@ -64,9 +65,20 @@ def new_property():
         db.session.add(prop)
         db.session.commit()
         flash("Property added.", "success")
+        # Bounce-back to the form the operator was filling out
+        if next_target == "quote":
+            return redirect(url_for(
+                "quotes.new_quote", client_id=client.id, property_id=prop.id))
+        if next_target == "job":
+            return redirect(url_for(
+                "jobs.new_job", client_id=client.id, property_id=prop.id))
+        if next_target == "invoice":
+            return redirect(url_for(
+                "invoices.new_invoice", client_id=client.id, property_id=prop.id))
         return redirect(url_for("properties.view_property", property_id=prop.id))
 
-    return render_template("properties/edit.html", form=form, client=client, prop=None)
+    return render_template("properties/edit.html", form=form, client=client, prop=None,
+                           next_target=next_target)
 
 
 @bp.route("/<int:property_id>")

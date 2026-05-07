@@ -25,6 +25,9 @@
       <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Bill to</div>
       <div>{{ invoice.client.name }}</div>
       <div class="muted">{{ invoice.prop.address_one_line }}</div>
+      {% if invoice.prop %}
+        <a href="{{ invoice.prop.maps_url }}" target="_blank" rel="noopener">📍 Open in Maps</a>
+      {% endif %}
       {% if invoice.job %}
       <div class="muted" style="margin-top:0.4rem">
         For job: <a href="{{ url_for('jobs.view_job', job_id=invoice.job.id) }}">{{ invoice.job.title }}</a>

@@ -6,7 +6,8 @@
   <h1>{{ "Edit invoice #" + invoice.number|string if invoice else "New invoice" }}</h1>
 </div>
 
-<form method="post" novalidate class="has-line-items">
+<form method="post" novalidate class="has-line-items autosave"
+      data-autosave-key="invoice-form{% if invoice %}-{{ invoice.id }}{% else %}-new{% endif %}">
   {{ form.hidden_tag() }}
 
   <label for="{{ form.subject.id }}">Subject <span class="req">*</span></label>
@@ -14,11 +15,20 @@
 
   <div class="grid">
     <div>
-      <label for="{{ form.client_id.id }}">Client <span class="req">*</span></label>
+      <label for="{{ form.client_id.id }}">
+        Client <span class="req">*</span>
+        <a href="{{ url_for('clients.new_client', next='invoice') }}" class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New client</a>
+      </label>
       {{ form.client_id() }}
     </div>
     <div>
-      <label for="{{ form.property_id.id }}">Property <span class="req">*</span></label>
+      <label for="{{ form.property_id.id }}">
+        Property <span class="req">*</span>
+        {% if form.client_id.data %}
+          <a href="{{ url_for('properties.new_property', client_id=form.client_id.data, next='invoice') }}"
+             class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New property</a>
+        {% endif %}
+      </label>
       {{ form.property_id() }}
     </div>
   </div>
@@ -50,5 +60,6 @@
     <a href="{{ url_for('invoices.view_invoice', invoice_id=invoice.id) if invoice else url_for('invoices.list_invoices') }}"
        role="button" class="secondary">Cancel</a>
   </div>
+  <small class="muted autosave-status" aria-live="polite"></small>
 </form>
 {% endblock %}

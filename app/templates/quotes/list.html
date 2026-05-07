@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Quotes — {{ business_name }}{% endblock %}
+{% block title %}Estimates — {{ business_name }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
-  <h1>Quotes</h1>
+  <h1>Estimates</h1>
   <div class="actions">
-    <a href="{{ url_for('quotes.new_quote') }}" role="button" class="contrast">+ New quote</a>
+    <a href="{{ url_for('quotes.new_quote') }}" role="button" class="contrast">+ New estimate</a>
   </div>
 </div>
 
@@ -14,8 +14,8 @@
   <input type="search"
          name="q"
          value="{{ q }}"
-         placeholder="Search by subject, Q-#, or client…"
-         aria-label="Search quotes"
+         placeholder="Search by subject, E-#, or client…"
+         aria-label="Search estimates"
          hx-get="{{ url_for('quotes.list_quotes') }}{% if status %}?status={{ status }}{% endif %}"
          hx-trigger="keyup changed delay:300ms, search"
          hx-target="#quote-cards"

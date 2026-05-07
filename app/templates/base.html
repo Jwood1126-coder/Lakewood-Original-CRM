@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
   <script src="{{ url_for('static', filename='js/confirm-modal.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/autosave.js') }}" defer></script>
 </head>
 <body>
   {% if current_user.is_authenticated %}
@@ -28,7 +29,7 @@
         <a href="{{ url_for('jobs.schedule') }}" {% if request.endpoint == 'jobs.schedule' %}class="active"{% endif %}>Schedule</a>
         <a href="{{ url_for('jobs.calendar') }}" {% if request.endpoint == 'jobs.calendar' %}class="active"{% endif %}>Calendar</a>
         <a href="{{ url_for('jobs.list_jobs') }}" {% if request.endpoint == 'jobs.list_jobs' %}class="active"{% endif %}>Jobs</a>
-        <a href="{{ url_for('quotes.list_quotes') }}" {% if request.blueprint == 'quotes' %}class="active"{% endif %}>Quotes</a>
+        <a href="{{ url_for('quotes.list_quotes') }}" {% if request.blueprint == 'quotes' %}class="active"{% endif %}>Estimates</a>
         <a href="{{ url_for('invoices.list_invoices') }}" {% if request.blueprint == 'invoices' %}class="active"{% endif %}>Invoices</a>
         <a href="{{ url_for('clients.list_clients') }}" {% if request.blueprint == 'clients' or request.blueprint == 'properties' %}class="active"{% endif %}>Clients</a>
         <a href="{{ url_for('main.messages') }}" {% if request.endpoint == 'main.messages' %}class="active"{% endif %}>
@@ -102,7 +103,7 @@
             <small class="muted">All work orders, any status</small>
           </a>
           <a href="{{ url_for('quotes.list_quotes') }}" class="more-item{% if _bp == 'quotes' %} active{% endif %}">
-            <strong>📋 Quotes</strong>
+            <strong>📋 Estimates</strong>
             <small class="muted">Estimates sent and pending</small>
           </a>
           <a href="{{ url_for('invoices.list_invoices') }}" class="more-item{% if _bp == 'invoices' %} active{% endif %}">

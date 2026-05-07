@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ "Edit" if quote else "New" }} quote — {{ business_name }}{% endblock %}
+{% block title %}{{ "Edit" if quote else "New" }} estimate — {{ business_name }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
-  <h1>{{ "Edit quote Q-" + quote.number|string if quote else "New quote" }}</h1>
+  <h1>{{ "Edit estimate E-" + quote.number|string if quote else "New estimate" }}</h1>
 </div>
 
-<form method="post" novalidate class="has-line-items">
+<form method="post" novalidate class="has-line-items autosave"
+      data-autosave-key="estimate-form{% if quote %}-{{ quote.id }}{% else %}-new{% endif %}">
   {{ form.hidden_tag() }}
 
   <label for="{{ form.subject.id }}">Subject <span class="req">*</span></label>
@@ -14,11 +15,22 @@
 
   <div class="grid">
     <div>
-      <label for="{{ form.client_id.id }}">Client <span class="req">*</span></label>
+      <label for="{{ form.client_id.id }}">
+        Client <span class="req">*</span>
+        <a href="{{ url_for('clients.new_client', next='quote') }}" class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New client</a>
+      </label>
       {{ form.client_id() }}
     </div>
     <div>
-      <label for="{{ form.property_id.id }}">Property <span class="req">*</span></label>
+      <label for="{{ form.property_id.id }}">
+        Property <span class="req">*</span>
+        {% if form.client_id.data %}
+          <a href="{{ url_for('properties.new_property', client_id=form.client_id.data, next='quote') }}"
+             class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New property</a>
+        {% else %}
+          <small class="muted" style="margin-left:0.4rem">(pick a client first)</small>
+        {% endif %}
+      </label>
       {{ form.property_id() }}
     </div>
   </div>
@@ -26,7 +38,7 @@
   <h3 style="margin-top:1.4rem; font-size:1rem">Estimate visit (optional)</h3>
   <p class="muted" style="font-size:0.85rem; margin-top:-0.4rem">
     Use this for free-estimate appointments. The visit shows on Schedule
-    and Calendar even before the quote has line items.
+    and Calendar even before the estimate has line items.
   </p>
   <div class="grid">
     <div>
@@ -56,7 +68,7 @@
 
   <label for="{{ form.message_to_customer.id }}">Message to customer</label>
   {{ form.message_to_customer() }}
-  <small class="muted">Shown on the quote document.</small>
+  <small class="muted">Shown on the estimate document.</small>
 
   <label for="{{ form.internal_notes.id }}">Internal notes</label>
   {{ form.internal_notes() }}
@@ -66,5 +78,6 @@
     <a href="{{ url_for('quotes.view_quote', quote_id=quote.id) if quote else url_for('quotes.list_quotes') }}"
        role="button" class="secondary">Cancel</a>
   </div>
+  <small class="muted autosave-status" aria-live="polite"></small>
 </form>
 {% endblock %}

@@ -6,7 +6,7 @@
   <h1>Schedule</h1>
   <div class="actions">
     <a href="{{ url_for('jobs.calendar', view='month') }}" role="button" class="secondary outline">📅 Calendar</a>
-    <a href="{{ url_for('jobs.list_jobs') }}" role="button" class="secondary outline">All jobs</a>
+    <a href="{{ url_for('quotes.new_quote') }}" role="button" class="secondary">+ Schedule estimate</a>
     <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ New job</a>
   </div>
 </div>
@@ -28,45 +28,58 @@
     <div class="card-list">
       {% for q in estimates %}
         {% set _bucket = 'Today' if q.scheduled_date == today else ('Tomorrow' if q.scheduled_date == tomorrow else (q.scheduled_date.strftime('%a %b %d'))) %}
-        <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card status-estimate">
-          <div class="job-row">
-            <span class="time">
-              {{ _bucket }}{% if q.scheduled_time %} · {{ q.time_display }}{% endif %}
-            </span>
-            <span class="title">{{ q.subject }}</span>
-            <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
-            <span class="pill pill-accepted">estimate</span>
-          </div>
-          <div class="job-row">
-            <span class="client-name">{{ q.client.name }}</span>
-            {% if q.prop %}
-              <span class="muted">·</span>
-              <span class="address">{{ q.prop.address_line1 }}</span>
-            {% endif %}
+        <div class="job-card status-estimate">
+          <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card-body">
+            <div class="job-row">
+              <span class="time">
+                {{ _bucket }}{% if q.scheduled_time %} · {{ q.time_display }}{% endif %}
+              </span>
+              <span class="title">{{ q.subject }}</span>
+              <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
+              <span class="pill pill-accepted">estimate</span>
+            </div>
+            <div class="job-row">
+              <span class="client-name">{{ q.client.name }}</span>
+              {% if q.prop %}
+                <span class="muted">·</span>
+                <span class="address">{{ q.prop.address_line1 }}</span>
+              {% endif %}
+            </div>
+          </a>
+          <div class="job-card-actions">
             {% if q.client.phone %}
-              <span class="muted">·</span>
-              <span class="address">{{ q.client.display_phone }}</span>
+              <a href="tel:{{ q.client.phone }}" class="secondary outline" role="button"
+                 aria-label="Call {{ q.client.name }}" title="Call {{ q.client.display_phone }}">📞</a>
+            {% endif %}
+            {% if q.prop %}
+              <a href="{{ q.prop.maps_url }}" target="_blank" rel="noopener"
+                 class="secondary outline" role="button"
+                 aria-label="Open in Maps" title="Open in Maps">📍</a>
             {% endif %}
           </div>
-        </a>
+        </div>
       {% endfor %}
     </div>
   </section>
 {% endif %}
 
-{% if total_count == 0 %}
+{% if total_count == 0 and not estimates %}
   <div class="empty">
     {% if any_jobs_exist %}
       <div class="empty-icon">✅</div>
       <p>All caught up — no open jobs right now.</p>
       <p>
-        <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule the next one</a>
+        <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule next job</a>
+        <a href="{{ url_for('quotes.new_quote') }}" role="button" class="secondary">+ Schedule estimate</a>
         <a href="{{ url_for('jobs.list_jobs', status='complete') }}" role="button" class="secondary outline">See completed</a>
       </p>
     {% else %}
       <div class="empty-icon">🗓️</div>
-      <p>No jobs scheduled yet.</p>
-      <p><a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule your first job</a></p>
+      <p>Nothing on the schedule yet.</p>
+      <p>
+        <a href="{{ url_for('jobs.new_job') }}" role="button" class="contrast">+ Schedule your first job</a>
+        <a href="{{ url_for('quotes.new_quote') }}" role="button" class="secondary">+ Schedule estimate</a>
+      </p>
     {% endif %}
   </div>
 {% else %}
@@ -111,6 +124,10 @@
                 </div>
               </a>
               <div class="job-card-actions">
+                {% if j.client.phone %}
+                  <a href="tel:{{ j.client.phone }}" class="secondary outline" role="button"
+                     aria-label="Call {{ j.client.name }}" title="Call {{ j.client.display_phone }}">📞</a>
+                {% endif %}
                 {% if j.prop %}
                   <a href="{{ j.prop.maps_url }}" target="_blank" rel="noopener"
                      class="secondary outline" role="button"

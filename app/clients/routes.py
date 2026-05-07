@@ -36,7 +36,12 @@ def list_clients():
 @bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new_client():
+    """Create a client. Supports a `next` query param ('quote'|'job'|'invoice')
+    so the operator can be returned to whatever form they came from with the
+    new client preselected — important for "phone is ringing, new lead, want
+    to schedule a 6pm estimate without a 3-page detour" workflow."""
     form = ClientForm()
+    next_target = request.args.get("next") or request.form.get("next")
     if form.validate_on_submit():
         client = Client(
             name=form.name.data.strip(),
@@ -47,8 +52,17 @@ def new_client():
         db.session.add(client)
         db.session.commit()
         flash(f"Created client: {client.name}", "success")
-        return redirect(url_for("clients.view_client", client_id=client.id))
-    return render_template("clients/edit.html", form=form, client=None)
+        # Bounce-back patterns
+        if next_target == "quote":
+            return redirect(url_for("quotes.new_quote", client_id=client.id))
+        if next_target == "job":
+            return redirect(url_for("jobs.new_job", client_id=client.id))
+        if next_target == "invoice":
+            return redirect(url_for("invoices.new_invoice", client_id=client.id))
+        # New lead → likely needs a property next
+        return redirect(url_for("properties.new_property", client_id=client.id))
+    return render_template("clients/edit.html", form=form, client=None,
+                           next_target=next_target)
 
 
 @bp.route("/<int:client_id>")

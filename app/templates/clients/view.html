@@ -12,7 +12,7 @@
     <a href="{{ url_for('clients.edit_client', client_id=client.id) }}" role="button" class="secondary outline">Edit</a>
     <form method="post" action="{{ url_for('clients.delete_client', client_id=client.id) }}"
           style="display:inline; margin:0"
-          data-confirm="Delete {{ client.name }} and all their properties, jobs, quotes, and invoices? This cannot be undone.">
+          data-confirm="Delete {{ client.name }} and all their properties, jobs, estimates, and invoices? This cannot be undone.">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete</button>
     </form>
@@ -44,7 +44,7 @@
 
 <div class="btn-row" style="margin-top:1rem">
   <a href="{{ url_for('jobs.new_job', client_id=client.id) }}" role="button" class="contrast">+ Schedule job</a>
-  <a href="{{ url_for('quotes.new_quote', client_id=client.id) }}" role="button" class="secondary">+ Quote</a>
+  <a href="{{ url_for('quotes.new_quote', client_id=client.id) }}" role="button" class="secondary">+ Estimate</a>
   <a href="{{ url_for('invoices.new_invoice', client_id=client.id) }}" role="button" class="secondary">+ Invoice</a>
 </div>
 
@@ -78,9 +78,9 @@
 {% endif %}
 
 <div class="page-head" style="margin-top:1.4rem">
-  <h2 style="margin:0; font-size:1.2rem">Quotes</h2>
+  <h2 style="margin:0; font-size:1.2rem">Estimates</h2>
   <div class="actions">
-    <a href="{{ url_for('quotes.new_quote', client_id=client.id) }}" role="button" class="contrast">+ Quote</a>
+    <a href="{{ url_for('quotes.new_quote', client_id=client.id) }}" role="button" class="contrast">+ Estimate</a>
   </div>
 </div>
 {% if recent_quotes %}
@@ -88,7 +88,7 @@
   {% for q in recent_quotes %}
     <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card">
       <div class="job-row">
-        <span class="time">Q-{{ q.number }}</span>
+        <span class="time">E-{{ q.number }}</span>
         <span class="title">{{ q.subject }}</span>
         <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
       </div>
@@ -100,7 +100,7 @@
   {% endfor %}
 </div>
 {% else %}
-  <p class="muted">No quotes yet.</p>
+  <p class="muted">No estimates yet.</p>
 {% endif %}
 
 <div class="page-head" style="margin-top:1.4rem">

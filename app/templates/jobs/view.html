@@ -89,10 +89,10 @@
 
 {% if job.source_quotes %}
 <div class="card" style="margin-top:0.6rem">
-  <strong>From quote</strong>
+  <strong>From estimate</strong>
   {% for q in job.source_quotes %}
     <div style="margin-top:0.3rem">
-      <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}">Q-{{ q.number }} — {{ q.subject }}</a>
+      <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}">E-{{ q.number }} — {{ q.subject }}</a>
     </div>
   {% endfor %}
 </div>

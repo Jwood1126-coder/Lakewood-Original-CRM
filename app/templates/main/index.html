@@ -79,7 +79,7 @@
         {% for q in website_requests %}
           <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card">
             <div class="job-row">
-              <span class="time">Q-{{ q.number }}</span>
+              <span class="time">E-{{ q.number }}</span>
               <span class="title">{{ q.subject }}</span>
               <span class="pill pill-draft">draft</span>
             </div>
@@ -140,12 +140,12 @@
 
   {% if quotes_accepted_unconverted %}
     <div class="card" style="border-left:3px solid var(--lo-info); margin-top:0.7rem">
-      <strong>Quotes accepted but not scheduled ({{ quotes_accepted_unconverted|length }})</strong>
+      <strong>Estimates accepted but not scheduled ({{ quotes_accepted_unconverted|length }})</strong>
       <div class="card-list" style="margin-top:0.6rem">
         {% for q in quotes_accepted_unconverted %}
           <a href="{{ url_for('quotes.view_quote', quote_id=q.id) }}" class="job-card">
             <div class="job-row">
-              <span class="time">Q-{{ q.number }}</span>
+              <span class="time">E-{{ q.number }}</span>
               <span class="title">{{ q.subject }}</span>
               <span class="pill pill-accepted">accepted</span>
             </div>
@@ -190,11 +190,11 @@
   </div>
   <section class="stat-grid">
     <a href="{{ url_for('quotes.list_quotes', status='draft') }}" class="stat-card" style="text-decoration:none; color:inherit">
-      <div class="label">Quotes — drafts</div>
+      <div class="label">Estimates — drafts</div>
       <div class="number">{{ quotes_draft|length }}</div>
     </a>
     <a href="{{ url_for('quotes.list_quotes', status='sent') }}" class="stat-card" style="text-decoration:none; color:inherit">
-      <div class="label">Quotes — sent (awaiting response)</div>
+      <div class="label">Estimates — sent (awaiting response)</div>
       <div class="number">{{ quotes_sent|length }}</div>
     </a>
     <a href="{{ url_for('invoices.list_invoices', status='sent') }}" class="stat-card" style="text-decoration:none; color:inherit">
