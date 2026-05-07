@@ -7,7 +7,7 @@ State machine:
 from __future__ import annotations
 
 import secrets
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
@@ -17,7 +17,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.extensions import db
 
 if TYPE_CHECKING:
-    from datetime import time as _time
     from app.models.client import Client
     from app.models.job import Job
     from app.models.line_item import LineItem
@@ -66,7 +65,7 @@ class Quote(db.Model):
     # Optional scheduled site visit — used for free-estimate appointments
     # before any line items exist. Surfaces on Schedule + Calendar.
     scheduled_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
-    scheduled_time: Mapped["_time | None"] = mapped_column(Time, nullable=True)
+    scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     converted_to_job_id: Mapped[int | None] = mapped_column(
         ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
