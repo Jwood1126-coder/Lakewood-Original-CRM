@@ -13,7 +13,6 @@
           <span class="time">{{ q.time_display if q.scheduled_time else "All day" }}</span>
           <span class="title">📋 {{ q.subject }}</span>
           <span class="pill pill-{{ q.status }}">{{ q.status_label }}</span>
-          <span class="pill pill-accepted">estimate</span>
         </div>
         <div class="job-row">
           <span class="client-name">{{ q.client.name }}</span>

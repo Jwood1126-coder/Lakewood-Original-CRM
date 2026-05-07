@@ -7,18 +7,18 @@
 </p>
 
 <div class="page-head">
-  <h1>E-{{ quote.number }} · {{ quote.subject }}</h1>
+  <h1 class="entity-title">E-{{ quote.number }} · {{ quote.subject }}</h1>
   <div class="actions">
     <span class="pill pill-{{ quote.status }}">{{ quote.status_label }}</span>
     {% if quote.is_expired %}<span class="pill pill-overdue">expired</span>{% endif %}
     <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}" role="button" class="secondary outline">Edit</a>
-    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print estimate">🖨 Print</button>
+    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print estimate">🖨<span class="hide-on-mobile"> Print</span></button>
   </div>
 </div>
 
 <div class="card">
-  <div style="display:flex; flex-wrap:wrap; gap:1rem">
-    <div>
+  <div class="quote-summary-row">
+    <div class="quote-summary-main">
       <div class="muted" style="font-size:0.78rem; text-transform:uppercase">For</div>
       <div>{{ quote.client.name }}</div>
       <div class="muted">{{ quote.prop.address_one_line }}</div>
@@ -26,9 +26,9 @@
         <a href="{{ quote.prop.maps_url }}" target="_blank" rel="noopener">📍 Open in Maps</a>
       {% endif %}
     </div>
-    <div style="margin-left:auto; text-align:right">
+    <div class="quote-summary-aside">
       <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Total</div>
-      <div style="font-size:1.6rem; font-weight:700">${{ '%.2f'|format(quote.total_cents/100) }}</div>
+      <div class="quote-total">${{ '%.2f'|format(quote.total_cents/100) }}</div>
       <small class="muted">subtotal ${{ '%.2f'|format(quote.subtotal_cents/100) }} + tax ${{ '%.2f'|format(quote.tax_cents/100) }}</small>
     </div>
   </div>

@@ -318,6 +318,57 @@ input:required, select:required, textarea:required {
 }
 .page-head h1 { margin: 0; font-size: 1.6rem; line-height: 1.1; }
 .page-head .actions { margin-left: auto; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+/* Long entity titles ("E-1 · Fence repair estimate at Bob's house...") need
+   to ellipsize on mobile so the page-head doesn't grow to 4 lines tall. */
+.entity-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ===== Estimate / Invoice summary card (For + Total layout) =====
+   On wide screens: For block on the left, Total block right-aligned to
+   the card edge. On phones (≤540px) they stack with both left-aligned
+   and the total amount becomes a normal heading size. The previous
+   inline-style version put Total in the wrong place when wrapped. */
+.quote-summary-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.quote-summary-main { flex: 1 1 60%; min-width: 0; }
+.quote-summary-aside {
+  flex: 0 1 auto;
+  margin-left: auto;
+  text-align: right;
+}
+.quote-total { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+@media (max-width: 540px) {
+  .quote-summary-aside {
+    flex: 1 1 100%;
+    margin-left: 0;
+    text-align: left;
+    padding-top: 0.6rem;
+    border-top: 1px dashed var(--pico-card-border-color);
+  }
+  .quote-total { font-size: 1.3rem; }
+  /* Compact h1 on phones so long titles don't push everything down */
+  .page-head h1, .entity-title { font-size: 1.2rem; }
+  /* Pills + buttons in page-head stay compact */
+  .page-head .actions .pill { font-size: 0.7rem; padding: 0.15rem 0.5rem; }
+  .page-head .actions a[role="button"],
+  .page-head .actions button {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.7rem;
+    min-height: 2.2rem;
+  }
+}
 .page-head + .page-sub {
   color: var(--pico-muted-color);
   margin-top: -0.6rem;

@@ -7,7 +7,7 @@
 </p>
 
 <div class="page-head">
-  <h1>#{{ invoice.number }} · {{ invoice.subject }}</h1>
+  <h1 class="entity-title">#{{ invoice.number }} · {{ invoice.subject }}</h1>
   <div class="actions">
     {% if invoice.is_overdue %}
       <span class="pill pill-overdue">{{ invoice.days_overdue }}d overdue</span>
@@ -15,13 +15,13 @@
       <span class="pill pill-{{ invoice.status }}">{{ invoice.status_label }}</span>
     {% endif %}
     <a href="{{ url_for('invoices.edit_invoice', invoice_id=invoice.id) }}" role="button" class="secondary outline">Edit</a>
-    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print invoice">🖨 Print</button>
+    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print invoice">🖨<span class="hide-on-mobile"> Print</span></button>
   </div>
 </div>
 
 <div class="card">
-  <div style="display:flex; flex-wrap:wrap; gap:1rem">
-    <div>
+  <div class="quote-summary-row">
+    <div class="quote-summary-main">
       <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Bill to</div>
       <div>{{ invoice.client.name }}</div>
       <div class="muted">{{ invoice.prop.address_one_line }}</div>
@@ -34,9 +34,9 @@
       </div>
       {% endif %}
     </div>
-    <div style="margin-left:auto; text-align:right">
+    <div class="quote-summary-aside">
       <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Total</div>
-      <div style="font-size:1.6rem; font-weight:700">${{ '%.2f'|format(invoice.total_cents/100) }}</div>
+      <div class="quote-total">${{ '%.2f'|format(invoice.total_cents/100) }}</div>
       {% if invoice.balance_cents > 0 and invoice.status != 'draft' %}
       <div class="muted" style="font-size:0.85rem">
         ${{ '%.2f'|format(invoice.paid_cents/100) }} paid
