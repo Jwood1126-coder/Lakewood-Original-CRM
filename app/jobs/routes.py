@@ -281,13 +281,27 @@ def change_status(job_id: int, new_status: str):
     job = db.session.get(Job, job_id) or abort(404)
     if not job.can_transition_to(new_status):
         flash(f"Can't go from {job.status_label} to {JOB_STATUS_LABELS.get(new_status, new_status)}.", "error")
-    else:
-        prev = job.status
-        job.transition_to(new_status)
-        db.session.commit()
-        if new_status == "complete" and prev != "complete":
-            notify_job_complete(job)
-        flash(f"Job marked {job.status_label}.", "success")
+        return redirect(url_for("jobs.view_job", job_id=job.id))
+
+    # Guard: don't let an operator mark complete while a visit is still
+    # running (arrived_at set, departed_at null). That'd leave a dangling
+    # active visit and break time tracking. End the visit first.
+    if new_status == "complete":
+        active = next((v for v in job.visits if v.is_active), None)
+        if active:
+            flash(
+                "End your active visit before marking the job complete — "
+                "tap '⏹ End visit' first so the time gets logged.",
+                "error",
+            )
+            return redirect(url_for("jobs.view_job", job_id=job.id))
+
+    prev = job.status
+    job.transition_to(new_status)
+    db.session.commit()
+    if new_status == "complete" and prev != "complete":
+        notify_job_complete(job)
+    flash(f"Job marked {job.status_label}.", "success")
     return redirect(url_for("jobs.view_job", job_id=job.id))
 
 
