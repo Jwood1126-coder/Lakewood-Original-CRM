@@ -39,6 +39,15 @@
         {% if total_items > 3 %}
           <div class="cal-more">+{{ total_items - 3 }} more</div>
         {% endif %}
+        {# Mobile dot density: 1, 2, or 3 dots based on item count.
+           Hidden by CSS on desktop where chips render directly. #}
+        {% if total_items > 0 %}
+          <div class="cal-dots" aria-hidden="true">
+            <span class="cal-dot"></span>
+            {% if total_items >= 2 %}<span class="cal-dot"></span>{% endif %}
+            {% if total_items >= 4 %}<span class="cal-dot"></span>{% endif %}
+          </div>
+        {% endif %}
       </a>
     {% endfor %}
   </div>

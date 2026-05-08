@@ -21,35 +21,36 @@
     {% endif %}
     {% for r in rows %}
       <tr class="li-row">
-        <td>
+        <td data-label="Description">
           <input type="text" name="li_description[]"
                  value="{{ r.description if r.description is not none else (r.description or '') }}"
                  placeholder="Service or material">
         </td>
-        <td>
+        <td data-label="Qty">
           <input type="text" name="li_qty[]" inputmode="decimal"
                  value="{{ '%g'|format(r.quantity) if r.quantity is defined and r.quantity is not none else '1' }}">
         </td>
-        <td>
+        <td data-label="Unit price">
           <input type="text" name="li_price[]" inputmode="decimal"
                  placeholder="0.00"
                  value="{% if r.unit_price_cents is defined %}{{ '%.2f'|format(r.unit_price_cents/100) }}{% elif r.unit_price_dollars is defined %}{{ r.unit_price_dollars }}{% endif %}">
         </td>
-        <td style="text-align:center">
-          {# This nested form approach uses paired hidden index input on submit #}
-          <input type="checkbox" class="li-taxable" data-idx="{{ loop.index0 }}"
-                 {% if r.taxable %}checked{% endif %}>
+        <td data-label="Taxable" class="li-tax-cell">
+          <label class="checkbox-row">
+            <input type="checkbox" class="li-taxable" data-idx="{{ loop.index0 }}"
+                   {% if r.taxable %}checked{% endif %}>
+            <span class="li-tax-mobile-label">Tax</span>
+          </label>
         </td>
-        <td>
-          <button type="button" class="li-del secondary outline"
-                  style="padding:0.2rem 0.5rem; min-height:auto">×</button>
+        <td data-label="" class="li-del-cell">
+          <button type="button" class="li-del secondary outline btn-sm"
+                  aria-label="Remove line item">×</button>
         </td>
       </tr>
     {% endfor %}
   </tbody>
 </table>
-<button type="button" id="li-add-btn" class="secondary outline"
-        style="margin-top:0.4rem">+ Add line item</button>
+<button type="button" id="li-add-btn" class="secondary outline mt-1">+ Add line item</button>
 
 {# Hidden field that records which row indexes have the taxable checkbox checked.
    Updated on submit by the inline script. #}
@@ -120,11 +121,53 @@
 
 <style>
 .line-items-editor { width: 100%; margin: 0.5rem 0; }
-.line-items-editor th { font-size: 0.75rem; color: var(--pico-muted-color); }
+.line-items-editor th { font-size: 0.75rem; color: var(--text-secondary); }
 .line-items-editor input { margin: 0; font-size: 16px; }
 .line-items-editor td { padding: 0.3rem 0.2rem; vertical-align: middle; }
+.li-tax-mobile-label { display: none; }
+
 @media (max-width: 720px) {
-  .line-items-editor th:nth-child(4) { display: none; }
-  .line-items-editor td:nth-child(4) { padding-left: 0.3rem; }
+  /* Stack each row as a card with all 5 controls visible (taxable too).
+     This is the bug-fix: the desktop hides column 4 on mobile, which
+     made the tax toggle invisible and unusable on phones. */
+  .line-items-editor thead { display: none; }
+  .line-items-editor tr.li-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "desc desc"
+      "qty price"
+      "tax del";
+    gap: 0.4rem;
+    background: var(--surface-1);
+    border: var(--hairline);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.7rem;
+    margin-bottom: 0.55rem;
+    box-shadow: var(--edge-highlight);
+  }
+  .line-items-editor td {
+    border: none;
+    padding: 0;
+    display: block;
+  }
+  .line-items-editor td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.15rem;
+    font-weight: 600;
+  }
+  .line-items-editor td:nth-child(1) { grid-area: desc; }
+  .line-items-editor td:nth-child(2) { grid-area: qty; }
+  .line-items-editor td:nth-child(3) { grid-area: price; }
+  .line-items-editor td:nth-child(4) { grid-area: tax; }
+  .line-items-editor td:nth-child(5) { grid-area: del; align-self: end; }
+  .line-items-editor td:nth-child(5)::before { content: ""; margin: 0; }
+  .li-tax-cell::before { display: none !important; }
+  .li-tax-mobile-label { display: inline; font-weight: 600; }
 }
 </style>

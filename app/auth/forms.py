@@ -10,7 +10,15 @@ class LoginForm(FlaskForm):
     email = StringField(
         "Email",
         validators=[DataRequired(), Email(), Length(max=255)],
-        render_kw={"autocomplete": "username", "autofocus": True},
+        render_kw={
+            "type": "email",
+            "inputmode": "email",
+            "autocomplete": "username",
+            "autocapitalize": "off",
+            "autocorrect": "off",
+            "spellcheck": "false",
+            "autofocus": True,
+        },
     )
     password = PasswordField(
         "Password",
@@ -23,12 +31,15 @@ class LoginForm(FlaskForm):
 
 class ChangePasswordForm(FlaskForm):
     current_password = PasswordField(
-        "Current password", validators=[DataRequired(), Length(max=200)]
+        "Current password", validators=[DataRequired(), Length(max=200)],
+        render_kw={"autocomplete": "current-password"},
     )
     new_password = PasswordField(
-        "New password", validators=[DataRequired(), Length(min=10, max=200)]
+        "New password", validators=[DataRequired(), Length(min=10, max=200)],
+        render_kw={"autocomplete": "new-password"},
     )
     confirm_password = PasswordField(
-        "Confirm new password", validators=[DataRequired(), Length(max=200)]
+        "Confirm new password", validators=[DataRequired(), Length(max=200)],
+        render_kw={"autocomplete": "new-password"},
     )
     submit = SubmitField("Change password")
