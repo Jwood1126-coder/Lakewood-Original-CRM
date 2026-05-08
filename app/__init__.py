@@ -52,8 +52,12 @@ def create_app(config_class: type[Config] = Config) -> Flask:
 
 
 def _register_template_filters(app: Flask) -> None:
-    """Jinja filters that depend on app config (operator timezone)."""
+    """Jinja filters + globals (operator timezone, icon renderer, etc.)."""
+    from app.icons import render_icon
     from app.utils.timezone import utc_to_local
+
+    # Make {{ icon("name") }} available in every template without import.
+    app.jinja_env.globals["icon"] = render_icon
 
     @app.template_filter("local_dt")
     def _local_dt(dt, fmt: str = "%b %d, %Y %-I:%M %p"):

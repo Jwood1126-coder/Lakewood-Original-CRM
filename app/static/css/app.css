@@ -358,7 +358,8 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
   border-right: 0;
   /* glass class supplies the rest */
 }
-.bottombar a {
+.bottombar a,
+.bottombar button.more-trigger {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -371,6 +372,11 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
   font-size: 0.7rem;
   min-height: var(--tap);
   transition: color var(--motion);
+  background: transparent;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  position: relative;
 }
 .bottombar a.active { color: var(--accent); }
 .bottombar a.active .ic { filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.7)); }
@@ -1283,8 +1289,20 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   color: inherit;
   transition: border-color var(--motion), background var(--motion);
 }
-.more-item strong { font-size: 1rem; font-weight: 600; }
+.more-item strong,
+.card-link > strong:first-child {
+  font-size: 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.more-item strong .ic-svg,
+.card-link > strong:first-child .ic-svg { color: var(--accent); flex: 0 0 auto; }
 .more-item small { font-size: 0.82rem; color: var(--text-secondary); }
+
+/* Inline icon-aligned label — for buttons, links, headers etc. */
+.ic-svg { vertical-align: -0.18em; }
 .more-item:hover { border-color: var(--hairline-strong); }
 .more-item.active {
   border-left-color: var(--accent);

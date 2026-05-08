@@ -9,17 +9,17 @@
 <div class="card-list">
 
   <a href="{{ url_for('settings.profile') }}" class="card-link">
-    <strong>Profile</strong>
+    <strong>{{ icon("users") }} Profile</strong>
     <div class="muted-sm">{{ current_user.email }}{% if current_user.display_name %} · {{ current_user.display_name }}{% endif %}</div>
   </a>
 
   <a href="{{ url_for('settings.theme') }}" class="card-link">
-    <strong>Theme</strong>
+    <strong>{{ icon("sparkles") }} Theme</strong>
     <div class="muted-sm">Currently: {{ current_user.theme|capitalize }}{% if current_user.accent %} · {{ current_user.accent|capitalize }} accent{% endif %}</div>
   </a>
 
   <a href="{{ url_for('settings.business') }}" class="card-link">
-    <strong>Business info</strong>
+    <strong>{{ icon("briefcase") }} Business info</strong>
     <div class="muted-sm">
       {{ business.name or 'Not set' }}
       {% if business.address %} · {{ business.address }}{% endif %}
@@ -27,22 +27,22 @@
   </a>
 
   <a href="{{ url_for('settings.assistant') }}" class="card-link">
-    <strong>Assistant</strong>
+    <strong>{{ icon("sparkles") }} Assistant</strong>
     <div class="muted-sm">Configure Claude — model, system prompt, on/off</div>
   </a>
 
   <a href="{{ url_for('settings.notifications') }}" class="card-link">
-    <strong>Notifications</strong>
+    <strong>{{ icon("bell") }} Notifications</strong>
     <div class="muted-sm">Daily briefings, reminders, email channel</div>
   </a>
 
   <a href="{{ url_for('settings.password') }}" class="card-link">
-    <strong>Password</strong>
+    <strong>{{ icon("log-out") }} Password</strong>
     <div class="muted-sm">Change your sign-in password</div>
   </a>
 
   <a href="{{ url_for('settings.backup') }}" class="card-link">
-    <strong>Backups</strong>
+    <strong>{{ icon("settings") }} Backups</strong>
     <div class="muted-sm">
       {% if last_backup %}
         Last: {{ last_backup.when | local_dt("%b %d, %-I:%M %p") }} · {{ last_backup.size_kb }} KB · {{ last_backup.count_total }} on file
@@ -53,22 +53,22 @@
   </a>
 
   <a href="{{ url_for('settings.audit_log') }}" class="card-link">
-    <strong>Audit log</strong>
+    <strong>{{ icon("file-text") }} Audit log</strong>
     <div class="muted-sm">Every change to your data — inserts, updates, deletes</div>
   </a>
 
   <a href="{{ url_for('settings.import_jobber_clients') }}" class="card-link">
-    <strong>Import Jobber clients (CSV)</strong>
+    <strong>{{ icon("paperclip") }} Import Jobber clients (CSV)</strong>
     <div class="muted-sm">Upload your Jobber Clients CSV (one-time)</div>
   </a>
 
   <a href="{{ url_for('jobber.index') }}" class="card-link">
-    <strong>Jobber sync (API)</strong>
+    <strong>{{ icon("rotate-ccw") }} Jobber sync (API)</strong>
     <div class="muted-sm">Pull data directly from Jobber via OAuth — when CSV exports aren't working</div>
   </a>
 
   <a href="{{ url_for('gmail.index') }}" class="card-link">
-    <strong>Gmail integration</strong>
+    <strong>{{ icon("mail") }} Gmail integration</strong>
     <div class="muted-sm">Pull Voice SMS / voicemail and forwarded business mail into Messages</div>
   </a>
 
