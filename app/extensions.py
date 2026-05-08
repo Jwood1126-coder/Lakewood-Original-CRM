@@ -31,16 +31,15 @@ limiter = Limiter(
 # This is the canonical way to set per-connection settings in SQLAlchemy.
 @event.listens_for(Engine, "connect")
 def _set_sqlite_pragmas(dbapi_connection, connection_record):  # noqa: D401
-    # Only act on SQLite. Postgres connections won't have this method.
-    try:
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.close()
-    except Exception:
-        # Non-SQLite drivers raise here; ignore.
-        pass
+    # Postgres parses PRAGMA as bad SQL and poisons the transaction, so the
+    # bare try/except below isn't enough — gate by driver module first.
+    if type(dbapi_connection).__module__.split(".", 1)[0] != "sqlite3":
+        return
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 
 
 def init_login_manager(app) -> None:
