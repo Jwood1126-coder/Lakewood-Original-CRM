@@ -163,6 +163,8 @@
 </div>
 {% endif %}
 
+{% with cfs = invoice.custom_fields %}{% include "_custom_fields.html" %}{% endwith %}
+
 <hr>
 <form method="post" action="{{ url_for('invoices.delete_invoice', invoice_id=invoice.id) }}"
       data-confirm="Permanently delete this invoice and all its payments?">

@@ -42,6 +42,8 @@
   {% endif %}
 </div>
 
+{% with cfs = client.custom_fields %}{% include "_custom_fields.html" %}{% endwith %}
+
 <div class="btn-row mt-2">
   <a href="{{ url_for('jobs.new_job', client_id=client.id) }}" role="button" class="contrast">+ Schedule job</a>
   <a href="{{ url_for('quotes.new_quote', client_id=client.id) }}" role="button" class="secondary">+ Estimate</a>

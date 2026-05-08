@@ -131,6 +131,7 @@ def sync_clients():
             lead_source=row["lead_source"],
             referred_by=row["referred_by"],
             created_at=row["created_at"],
+            custom_fields=row.get("custom_fields") or {},
         )
         for p in row["properties"]:
             ci.properties.append(PropertyImport(
@@ -143,15 +144,19 @@ def sync_clients():
                 county=p["county"],
                 tax_rate=p["tax_rate"],
                 jobber_property_id=p.get("jobber_property_id"),
+                custom_fields=p.get("custom_fields") or {},
             ))
         parsed.append(ci)
 
     result = write_clients(parsed, commit=True)
+    s = result["stats"]
     flash(
         f"Synced from Jobber: {len(parsed)} clients seen. "
-        f"Created {result['stats']['clients_created']} new, "
-        f"skipped {result['stats']['clients_skipped_existing']} already imported. "
-        f"Created {result['stats']['properties_created']} properties.",
+        f"Created {s['clients_created']} new, "
+        f"backfilled custom fields on {s.get('clients_updated', 0)} client(s) "
+        f"and {s.get('properties_updated', 0)} property(ies). "
+        f"Skipped {s['clients_skipped_existing']} already imported. "
+        f"Created {s['properties_created']} properties.",
         "success",
     )
     return redirect(url_for("jobber.index"))
@@ -168,6 +173,7 @@ def sync_jobs_route():
         flash(f"Job sync failed: {e}", "error")
         return redirect(url_for("jobber.index"))
     msg = (f"Jobs: {s['seen']} seen → {s['created']} created, "
+           f"{s.get('updated', 0)} backfilled, "
            f"{s['skipped_existing']} already imported, "
            f"{s['skipped_no_client']} skipped (no matching client/property).")
     if s['errors']:
@@ -187,6 +193,7 @@ def sync_quotes_route():
         flash(f"Quote sync failed: {e}", "error")
         return redirect(url_for("jobber.index"))
     msg = (f"Quotes: {s['seen']} seen → {s['created']} created, "
+           f"{s.get('updated', 0)} backfilled, "
            f"{s['skipped_existing']} already imported, "
            f"{s['skipped_no_client']} skipped (no matching client/property).")
     if s['errors']:
@@ -206,6 +213,7 @@ def sync_invoices_route():
         flash(f"Invoice sync failed: {e}", "error")
         return redirect(url_for("jobber.index"))
     msg = (f"Invoices: {s['seen']} seen → {s['created']} created, "
+           f"{s.get('updated', 0)} backfilled, "
            f"{s['skipped_existing']} already imported, "
            f"{s['skipped_no_client']} skipped (no matching client/property). "
            f"Payments: {s['payments_created']} created.")
@@ -239,6 +247,7 @@ def sync_all_route():
                 contact_first=row["contact_first"], contact_last=row["contact_last"],
                 lead_source=row["lead_source"], referred_by=row["referred_by"],
                 created_at=row["created_at"],
+                custom_fields=row.get("custom_fields") or {},
             )
             for p in row["properties"]:
                 ci.properties.append(PropertyImport(
@@ -247,12 +256,16 @@ def sync_all_route():
                     state=p["state"], zip_code=p["zip_code"],
                     county=p["county"], tax_rate=p["tax_rate"],
                     jobber_property_id=p.get("jobber_property_id"),
+                    custom_fields=p.get("custom_fields") or {},
                 ))
             parsed.append(ci)
         r = write_clients(parsed, commit=True)
-        results.append(f"Clients +{r['stats']['clients_created']} "
-                       f"(skipped {r['stats']['clients_skipped_existing']}); "
-                       f"properties +{r['stats']['properties_created']}")
+        s = r["stats"]
+        results.append(
+            f"Clients +{s['clients_created']} (skipped {s['clients_skipped_existing']}, "
+            f"backfilled {s.get('clients_updated', 0)} client + {s.get('properties_updated', 0)} property custom fields); "
+            f"properties +{s['properties_created']}"
+        )
     except Exception as e:
         current_app.logger.exception("All-sync clients step failed")
         results.append(f"Clients FAILED: {e}")

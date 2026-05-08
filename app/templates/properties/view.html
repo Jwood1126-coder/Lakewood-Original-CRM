@@ -29,10 +29,12 @@
     <span class="muted">{{ prop.tax_rate_percent }} tax</span>
   </div>
   {% if prop.notes %}
-    <hr style="margin:0.8rem 0">
-    <div style="white-space:pre-wrap">{{ prop.notes }}</div>
+    <hr>
+    <div class="prewrap">{{ prop.notes }}</div>
   {% endif %}
 </div>
+
+{% with cfs = prop.custom_fields %}{% include "_custom_fields.html" %}{% endwith %}
 
 <div class="page-head mt-3">
   <h2 class="section-head-h2">Photos</h2>

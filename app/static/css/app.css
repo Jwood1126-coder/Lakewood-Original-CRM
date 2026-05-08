@@ -1338,6 +1338,30 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   background: rgb(255 255 255 / 0.04);
 }
 .password-field .password-toggle.is-revealed { color: var(--accent); }
+
+/* Custom-fields list (Jobber-imported metadata on entities) */
+.cf-list {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0.4rem 0 0;
+}
+.cf-list dt {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
+.cf-list dd {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  margin: 0;
+  word-break: break-word;
+}
+@media (max-width: 540px) {
+  .cf-list { grid-template-columns: 1fr; gap: 0.1rem 0; }
+  .cf-list dt { margin-top: 0.5rem; }
+}
 .more-item:hover { border-color: var(--hairline-strong); }
 .more-item.active {
   border-left-color: var(--accent);

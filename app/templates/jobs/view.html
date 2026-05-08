@@ -44,6 +44,8 @@
 </div>
 {% endif %}
 
+{% with cfs = job.custom_fields %}{% include "_custom_fields.html" %}{% endwith %}
+
 {# ----- Status quick-actions ----- #}
 {% set has_active = job.visits | selectattr('is_active') | list | length > 0 %}
 <div class="sticky-cta glass">

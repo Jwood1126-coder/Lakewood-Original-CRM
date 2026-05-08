@@ -122,6 +122,8 @@
 </div>
 {% endif %}
 
+{% with cfs = quote.custom_fields %}{% include "_custom_fields.html" %}{% endwith %}
+
 {# ----- Photos ----- #}
 <div class="section-head mt-3">
   <h2>

@@ -204,6 +204,58 @@ def _decimal_qty(q: float | int | str | None) -> Decimal:
         return Decimal("1")
 
 
+# ---------- Custom fields ----------
+
+# GraphQL fragment used on every entity that supports customFields.
+# Jobber's customFields is a union of typed subtypes — we ask for each
+# subtype's value field via inline fragments, then collapse to a flat
+# {label: {"type": ..., "value": ...}} dict locally.
+CUSTOM_FIELDS_FRAGMENT = """
+customFields {
+  __typename
+  ... on CustomFieldText      { label valueText }
+  ... on CustomFieldArea      { label valueText }
+  ... on CustomFieldNumeric   { label valueNumeric }
+  ... on CustomFieldDate      { label valueDate }
+  ... on CustomFieldDropdown  { label valueText }
+  ... on CustomFieldTrueFalse { label valueBoolean }
+  ... on CustomFieldLink      { label valueText }
+}
+"""
+
+
+def _flatten_custom_fields(nodes: list[dict] | None) -> dict:
+    """Collapse Jobber's union-typed customFields into a plain dict.
+
+    Returns: {label: {"type": "text"|"area"|"numeric"|..., "value": ...}}
+    Skips entries with empty labels or all-None values. Defensive against
+    schema drift — if Jobber adds a new subtype, we silently ignore it
+    rather than breaking the sync.
+    """
+    out: dict = {}
+    for cf in (nodes or []):
+        label = (cf.get("label") or "").strip()
+        if not label:
+            continue
+        typename = cf.get("__typename") or ""
+        # "CustomFieldText" -> "text", "CustomFieldTrueFalse" -> "truefalse"
+        kind = typename.replace("CustomField", "").lower() or "text"
+        # The field name varies by subtype; try them in priority order.
+        # Boolean comes first because False is a meaningful value (not None).
+        if "valueBoolean" in cf and cf["valueBoolean"] is not None:
+            value = cf["valueBoolean"]
+        elif cf.get("valueNumeric") is not None:
+            value = cf["valueNumeric"]
+        elif cf.get("valueDate"):
+            value = cf["valueDate"]
+        elif cf.get("valueText"):
+            value = cf["valueText"]
+        else:
+            continue  # all values empty; skip the entry entirely
+        out[label] = {"type": kind, "value": value}
+    return out
+
+
 def _paginated(query: str, root_field: str, page_size: int = 25,
                 extra_vars: dict | None = None) -> list[dict]:
     """Page through a Relay-style connection. Returns flat list of node dicts.
@@ -265,6 +317,7 @@ query Jobs($first: Int!, $after: String) {
         createdAt
         client { id }
         property { id }
+        """ + CUSTOM_FIELDS_FRAGMENT + """
       }
     }
   }
@@ -272,18 +325,43 @@ query Jobs($first: Int!, $after: String) {
 """
 
 
-def sync_jobs() -> dict:
+def sync_jobs(update_existing: bool = True) -> dict:
+    """Pull jobs from Jobber.
+
+    update_existing=True: backfill custom_fields, ended_at, and other
+    Jobber-only fields onto rows that already exist locally. Doesn't
+    overwrite user-edited fields (status, title, scope, scheduled_date)
+    once they exist.
+    """
     raw = _paginated(JOBS_QUERY, "jobs")
     stats = {"seen": len(raw), "created": 0, "skipped_existing": 0,
-             "skipped_no_client": 0, "errors": []}
+             "skipped_no_client": 0, "updated": 0, "errors": []}
 
     for n in raw:
         try:
             jid = n.get("id")
             if not jid:
                 continue
-            if _get_existing_id_by_tag(Job, "job", jid):
-                stats["skipped_existing"] += 1
+
+            cfs = _flatten_custom_fields(n.get("customFields"))
+            ended_at = _parse_iso(n.get("endAt"))
+
+            existing = _get_existing_id_by_tag(Job, "job", jid)
+            if existing:
+                if update_existing:
+                    changed = False
+                    if cfs and existing.custom_fields != cfs:
+                        existing.custom_fields = cfs
+                        changed = True
+                    if ended_at and existing.ended_at != ended_at:
+                        existing.ended_at = ended_at
+                        changed = True
+                    if changed:
+                        stats["updated"] += 1
+                    else:
+                        stats["skipped_existing"] += 1
+                else:
+                    stats["skipped_existing"] += 1
                 continue
 
             client_ref = (n.get("client") or {}).get("id")
@@ -311,6 +389,8 @@ def sync_jobs() -> dict:
                 status=status,
                 scheduled_date=start.date() if start else None,
                 scheduled_time=sched_time,
+                ended_at=ended_at,
+                custom_fields=cfs,
                 notes=f"[Jobber job #{jid}] (Jobber #{n.get('jobNumber') or '?'})",
             )
             db.session.add(job)
@@ -337,6 +417,7 @@ query Quotes($first: Int!, $after: String) {
         quoteStatus
         client { id }
         property { id }
+        """ + CUSTOM_FIELDS_FRAGMENT + """
         lineItems {
           nodes { name description quantity unitPrice taxable }
         }
@@ -347,20 +428,28 @@ query Quotes($first: Int!, $after: String) {
 """
 
 
-def sync_quotes() -> dict:
+def sync_quotes(update_existing: bool = True) -> dict:
     # page_size=10: same reasoning as invoices — nested lineItems push
     # the per-call point cost up, smaller pages = fewer THROTTLED retries.
     raw = _paginated(QUOTES_QUERY, "quotes", page_size=10)
     stats = {"seen": len(raw), "created": 0, "skipped_existing": 0,
-             "skipped_no_client": 0, "errors": []}
+             "skipped_no_client": 0, "updated": 0, "errors": []}
 
     for n in raw:
         try:
             jid = n.get("id")
             if not jid:
                 continue
-            if _get_existing_id_by_tag(Quote, "quote", jid):
-                stats["skipped_existing"] += 1
+
+            cfs = _flatten_custom_fields(n.get("customFields"))
+
+            existing = _get_existing_id_by_tag(Quote, "quote", jid)
+            if existing:
+                if update_existing and cfs and existing.custom_fields != cfs:
+                    existing.custom_fields = cfs
+                    stats["updated"] += 1
+                else:
+                    stats["skipped_existing"] += 1
                 continue
 
             client_ref = (n.get("client") or {}).get("id")
@@ -383,6 +472,7 @@ def sync_quotes() -> dict:
                 message_to_customer=(n.get("message") or "").strip() or None,
                 internal_notes=_jobber_tag("quote", jid).strip(),
                 status=status,
+                custom_fields=cfs,
             )
             db.session.add(q)
             db.session.flush()
@@ -426,6 +516,7 @@ query Invoices($first: Int!, $after: String) {
         client { id }
         propertyIds
         amounts { subtotal total taxAmount }
+        """ + CUSTOM_FIELDS_FRAGMENT + """
         lineItems {
           nodes { name description quantity unitPrice taxable }
         }
@@ -439,21 +530,30 @@ query Invoices($first: Int!, $after: String) {
 """
 
 
-def sync_invoices() -> dict:
+def sync_invoices(update_existing: bool = True) -> dict:
     # Use page_size=10 for invoices — they have nested lineItems AND
     # paymentRecords, so the per-call point cost on Jobber's rate-limit
     # accounting is high. Smaller pages = fewer THROTTLED retries.
     raw = _paginated(INVOICES_QUERY, "invoices", page_size=10)
     stats = {"seen": len(raw), "created": 0, "skipped_existing": 0,
-             "skipped_no_client": 0, "payments_created": 0, "errors": []}
+             "skipped_no_client": 0, "payments_created": 0, "updated": 0,
+             "errors": []}
 
     for n in raw:
         try:
             jid = n.get("id")
             if not jid:
                 continue
-            if _get_existing_id_by_tag(Invoice, "invoice", jid):
-                stats["skipped_existing"] += 1
+
+            cfs = _flatten_custom_fields(n.get("customFields"))
+
+            existing = _get_existing_id_by_tag(Invoice, "invoice", jid)
+            if existing:
+                if update_existing and cfs and existing.custom_fields != cfs:
+                    existing.custom_fields = cfs
+                    stats["updated"] += 1
+                else:
+                    stats["skipped_existing"] += 1
                 continue
 
             client_ref = (n.get("client") or {}).get("id")
@@ -481,6 +581,7 @@ def sync_invoices() -> dict:
                 status=status,
                 due_date=_parse_iso_date(n.get("dueDate")),
                 sent_at=_parse_iso(n.get("issuedDate")),
+                custom_fields=cfs,
             )
             db.session.add(inv)
             db.session.flush()

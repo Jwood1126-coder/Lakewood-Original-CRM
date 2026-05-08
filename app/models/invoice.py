@@ -13,7 +13,7 @@ from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import db
@@ -74,6 +74,11 @@ class Invoice(db.Model):
     )
     tax_rate_override: Mapped[Decimal | None] = mapped_column(Numeric(6, 4), nullable=True)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    # Jobber custom fields preserved as-is.
+    custom_fields: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False

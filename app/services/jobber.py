@@ -230,6 +230,7 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
         }
     """
     from decimal import Decimal
+    from app.services.jobber_sync import _flatten_custom_fields
     from app.utils.ohio_tax import lookup_county, lookup_rate
     from app.utils.phone import normalize_phone
 
@@ -249,6 +250,16 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
             createdAt
             phones { number primary }
             emails { address primary }
+            customFields {
+              __typename
+              ... on CustomFieldText      { label valueText }
+              ... on CustomFieldArea      { label valueText }
+              ... on CustomFieldNumeric   { label valueNumeric }
+              ... on CustomFieldDate      { label valueDate }
+              ... on CustomFieldDropdown  { label valueText }
+              ... on CustomFieldTrueFalse { label valueBoolean }
+              ... on CustomFieldLink      { label valueText }
+            }
             properties {
               id
               address {
@@ -258,6 +269,16 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
                 province
                 postalCode
                 country
+              }
+              customFields {
+                __typename
+                ... on CustomFieldText      { label valueText }
+                ... on CustomFieldArea      { label valueText }
+                ... on CustomFieldNumeric   { label valueNumeric }
+                ... on CustomFieldDate      { label valueDate }
+                ... on CustomFieldDropdown  { label valueText }
+                ... on CustomFieldTrueFalse { label valueBoolean }
+                ... on CustomFieldLink      { label valueText }
               }
             }
           }
@@ -312,6 +333,9 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
                     "zip_code": zip_code or "00000",
                     "county": county,
                     "tax_rate": Decimal(str(lookup_rate(county))),
+                    "custom_fields": _flatten_custom_fields(
+                        prop_node.get("customFields")
+                    ),
                 })
 
             created_raw = node.get("createdAt")
@@ -336,6 +360,7 @@ def fetch_all_clients(page_size: int = 50) -> list[dict]:
                 "lead_source": "",
                 "referred_by": "",
                 "created_at": created_at,
+                "custom_fields": _flatten_custom_fields(node.get("customFields")),
                 "properties": props,
             })
 

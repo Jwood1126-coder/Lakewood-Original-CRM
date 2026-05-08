@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, Time
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import db
@@ -61,6 +61,13 @@ class Job(db.Model):
     est_hours: Mapped[float | None] = mapped_column(nullable=True)
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Jobber's actual end timestamp for the job (separate from scheduled_time
+    # which is the start). Useful for revenue-by-day reports.
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Jobber custom fields (special instructions, customer-supplied details, etc.)
+    custom_fields: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False

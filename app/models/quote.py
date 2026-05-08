@@ -11,7 +11,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Time
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import db
@@ -69,6 +69,11 @@ class Quote(db.Model):
 
     converted_to_job_id: Mapped[int | None] = mapped_column(
         ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+    )
+
+    # Jobber custom fields preserved as-is.
+    custom_fields: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
     )
 
     created_at: Mapped[datetime] = mapped_column(

@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import db
@@ -25,6 +25,11 @@ class Client(db.Model):
     phone: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Per-entity custom fields pulled from Jobber. Shape:
+    #   {label: {"type": "text"|"numeric"|"date"|..., "value": str|float|...}}
+    custom_fields: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False

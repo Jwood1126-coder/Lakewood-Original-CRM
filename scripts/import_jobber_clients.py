@@ -108,6 +108,7 @@ class PropertyImport:
     county: str | None = None
     tax_rate: Decimal | None = None
     jobber_property_id: str | None = None  # so other entities can match by it
+    custom_fields: dict = field(default_factory=dict)
 
     def address_key(self) -> str:
         """Dedup key within a client: normalized street + city + zip."""
@@ -132,6 +133,7 @@ class ClientImport:
     referred_by: str
     created_at: datetime | None
     properties: list[PropertyImport] = field(default_factory=list)
+    custom_fields: dict = field(default_factory=dict)
 
     def build_notes(self) -> str:
         """Synthesize the notes field from extras Jobber gave us."""
@@ -311,13 +313,22 @@ def write_clients(
     parsed: list[ClientImport],
     commit: bool,
     skip_jobber_ids: set[str] | None = None,
+    update_existing: bool = True,
 ) -> dict:
+    """Write clients + properties from parsed Jobber data.
+
+    update_existing: backfill custom_fields onto rows that were already
+    imported. Set False for the original CSV import path where Jobber
+    custom fields weren't captured (no-op, slightly faster).
+    """
     skip_jobber_ids = skip_jobber_ids or set()
     stats = {
         "clients_created": 0,
         "clients_skipped_existing": 0,
+        "clients_updated": 0,
         "clients_skipped_user_request": 0,
         "properties_created": 0,
+        "properties_updated": 0,
         "properties_skipped_dup": 0,
     }
     warnings: list[str] = []
@@ -328,7 +339,17 @@ def write_clients(
             continue
         existing = _existing_client_for(ci.jobber_client_id)
         if existing is not None:
-            stats["clients_skipped_existing"] += 1
+            # Backfill custom_fields onto the existing client so users
+            # who imported via CSV (which didn't capture them) get them
+            # populated on a re-sync via the API.
+            if update_existing and ci.custom_fields and existing.custom_fields != ci.custom_fields:
+                existing.custom_fields = ci.custom_fields
+                stats["clients_updated"] += 1
+            else:
+                stats["clients_skipped_existing"] += 1
+            # Also walk properties and backfill where we can match.
+            if update_existing:
+                _backfill_property_custom_fields(existing, ci.properties, stats)
             continue
 
         client = Client(
@@ -336,6 +357,7 @@ def write_clients(
             phone=ci.phone,
             email=ci.email,
             notes=ci.build_notes(),
+            custom_fields=ci.custom_fields or {},
             created_at=ci.created_at or datetime.utcnow(),
         )
         db.session.add(client)
@@ -358,6 +380,7 @@ def write_clients(
                 county=p.county,
                 tax_rate=p.tax_rate or Decimal("0.0575"),
                 notes=notes,
+                custom_fields=p.custom_fields or {},
             )
             db.session.add(prop)
             stats["properties_created"] += 1
@@ -368,6 +391,31 @@ def write_clients(
         db.session.rollback()
 
     return {"stats": stats, "warnings": warnings}
+
+
+def _backfill_property_custom_fields(
+    client: Client, prop_imports: list[PropertyImport], stats: dict
+) -> None:
+    """Match incoming Jobber property data to existing Property rows by
+    Jobber-id stamp (in notes) and update custom_fields where empty/changed.
+    """
+    if not prop_imports:
+        return
+    by_jobber_id: dict[str, PropertyImport] = {}
+    for p in prop_imports:
+        if p.jobber_property_id:
+            by_jobber_id[p.jobber_property_id] = p
+    if not by_jobber_id:
+        return
+    for prop in (client.properties or []):
+        if not prop.notes:
+            continue
+        for jpid, p_import in by_jobber_id.items():
+            if f"[Jobber property #{jpid}]" in prop.notes:
+                if p_import.custom_fields and prop.custom_fields != p_import.custom_fields:
+                    prop.custom_fields = p_import.custom_fields
+                    stats["properties_updated"] += 1
+                break
 
 
 # ---------- CLI ----------

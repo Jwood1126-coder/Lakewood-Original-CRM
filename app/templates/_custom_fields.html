@@ -1,0 +1,20 @@
+{# Render an entity's Jobber custom fields. Pass `cfs` (a dict) and an
+   optional `title` (defaults to "Custom fields"). Renders nothing if
+   the dict is empty. #}
+{% if cfs %}
+<div class="card mt-2">
+  <div class="meta-label">{{ title or "Custom fields (from Jobber)" }}</div>
+  <dl class="cf-list">
+    {% for label, entry in cfs.items() %}
+      <dt>{{ label }}</dt>
+      <dd>
+        {% set v = entry.value if entry is mapping else entry %}
+        {% if v is sameas true %}Yes
+        {% elif v is sameas false %}No
+        {% elif entry is mapping and entry.type == 'link' and v %}<a href="{{ v }}" target="_blank" rel="noopener">{{ v }}</a>
+        {% else %}{{ v }}{% endif %}
+      </dd>
+    {% endfor %}
+  </dl>
+</div>
+{% endif %}

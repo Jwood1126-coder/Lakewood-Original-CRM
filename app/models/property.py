@@ -10,7 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import db
@@ -47,6 +47,10 @@ class Property(db.Model):
     )
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Jobber custom fields (gate codes, sq ft, access notes, etc.)
+    custom_fields: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
