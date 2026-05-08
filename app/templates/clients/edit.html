@@ -28,7 +28,7 @@
   <label for="{{ form.notes.id }}">Notes</label>
   {{ form.notes() }}
 
-  <div class="btn-row" style="margin-top:1rem">
+  <div class="btn-row mt-2">
     {{ form.submit(class_="contrast") }}
     <a href="{{ url_for('clients.view_client', client_id=client.id) if client else url_for('clients.list_clients') }}"
        role="button" class="secondary">Cancel</a>

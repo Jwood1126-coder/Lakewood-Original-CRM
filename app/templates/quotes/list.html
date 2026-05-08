@@ -9,7 +9,7 @@
   </div>
 </div>
 
-<form method="get" style="margin-bottom:0.8rem; position:relative">
+<form method="get" class="search-row mb-2">
   {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
   <input type="search"
          name="q"
@@ -23,10 +23,10 @@
          hx-swap="outerHTML"
          hx-indicator="closest form">
   <span class="htmx-spinner" aria-hidden="true"
-        style="position:absolute; right:0.9rem; top:50%; transform:translateY(-50%); margin:0"></span>
+        class="htmx-spinner-anchor"></span>
 </form>
 
-<div class="btn-row" style="margin-bottom:1rem">
+<div class="btn-row mb-2">
   <a href="{{ url_for('quotes.list_quotes') }}" role="button"
      class="{{ 'contrast' if not status else 'secondary outline' }}">All</a>
   {% for s in statuses %}

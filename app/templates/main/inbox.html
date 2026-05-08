@@ -5,7 +5,7 @@
 <div class="page-head">
   <h1>Inbox</h1>
   <div class="actions">
-    <form method="post" action="{{ url_for('main.inbox_mark_all_read') }}" style="margin:0">
+    <form method="post" action="{{ url_for('main.inbox_mark_all_read') }}" class="form-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="secondary outline">Mark all read</button>
     </form>

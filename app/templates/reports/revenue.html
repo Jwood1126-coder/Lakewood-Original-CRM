@@ -2,7 +2,7 @@
 {% block title %}Revenue — Reports{% endblock %}
 
 {% block content %}
-<p class="muted" style="margin-bottom:0.2rem"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
+<p class="muted mb-1"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
 <div class="page-head">
   <h1>Revenue</h1>
   <div class="actions">
@@ -14,7 +14,7 @@
 
 {% include "reports/_range_picker.html" %}
 
-<div class="stat-grid" style="margin-bottom:1rem">
+<div class="stat-grid mb-2">
   <div class="stat-card">
     <div class="label">Cash received</div>
     <div class="number" style="color:var(--lo-success)">${{ '%.2f'|format(grand.received_cents/100) }}</div>
@@ -27,7 +27,7 @@
   </div>
 </div>
 
-<h2 style="font-size:1.1rem">By month</h2>
+<h2 class="section-head-h2">By month</h2>
 <table class="table-rows table-cards">
   <thead>
     <tr><th>Month</th><th>Billed</th><th>Received</th><th>Payments</th></tr>
@@ -47,7 +47,7 @@
 </table>
 
 {% if top_clients %}
-<h2 style="font-size:1.1rem; margin-top:1.5rem">Top clients (by cash received)</h2>
+<h2 class="section-head-h2 mt-3">Top clients (by cash received)</h2>
 <table class="table-rows table-cards">
   <thead>
     <tr><th>Client</th><th>Received</th></tr>

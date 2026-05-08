@@ -2,11 +2,11 @@
 {% block title %}A/R aging — Reports{% endblock %}
 
 {% block content %}
-<p class="muted" style="margin-bottom:0.2rem"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
+<p class="muted mb-1"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
 <div class="page-head"><h1>A/R aging</h1></div>
 <p class="muted">As of {{ today.strftime("%b %d, %Y") }}. Open invoice balances bucketed by days past due.</p>
 
-<div class="stat-grid" style="margin-bottom:1rem">
+<div class="stat-grid mb-2">
   {% for key, b in buckets.items() %}
     <div class="stat-card">
       <div class="label">{{ b.label }}</div>
@@ -20,7 +20,7 @@
   <strong>Total open A/R: ${{ '%.2f'|format(grand_total/100) }}</strong>
 </div>
 
-<h2 style="font-size:1.1rem; margin-top:1.5rem">By client</h2>
+<h2 class="section-head-h2 mt-3">By client</h2>
 <table class="table-rows table-cards">
   <thead>
     <tr><th>Client</th><th>Current</th><th>1–30</th><th>31–60</th><th>61–90</th><th>90+</th><th>Total</th></tr>
@@ -42,7 +42,7 @@
   </tbody>
 </table>
 
-<h2 style="font-size:1.1rem; margin-top:1.5rem">Detail</h2>
+<h2 class="section-head-h2 mt-3">Detail</h2>
 {% for key, b in buckets.items() %}
   {% if b.invoices %}
     <h3 style="font-size:1rem">{{ b.label }} — ${{ '%.2f'|format(b.cents/100) }}</h3>

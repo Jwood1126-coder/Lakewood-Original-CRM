@@ -1420,7 +1420,117 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 .swatch[data-accent="lime"]    { --swatch-color: #84cc16; }
 .swatch[data-accent="gold"]    { --swatch-color: #facc15; }
 
-/* ===== Misc ===== */
+/* ===== Utilities ===== */
 .muted { color: var(--text-secondary); }
+.text-danger { color: var(--lo-danger); }
+.text-warning { color: var(--lo-warning); }
+.text-success { color: var(--lo-success); }
+.text-accent { color: var(--accent); }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+/* Inline form — for the many <form style="margin:0"> wrappers around a
+   single action button (start visit, end visit, delete, etc.). */
+.form-inline { margin: 0; display: inline; }
+.form-block { margin: 0; }
+
+/* Attention cards — left-edge accent indicating priority. */
+.card-attention {
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--edge-highlight);
+}
+.card-attention.is-info     { border-left-color: var(--lo-info); }
+.card-attention.is-warning  { border-left-color: var(--lo-warning); }
+.card-attention.is-danger   { border-left-color: var(--lo-danger);
+                              box-shadow: var(--edge-highlight),
+                                          0 0 22px -10px rgb(var(--status-danger-rgb) / 0.55); }
+.card-attention.is-success  { border-left-color: var(--lo-success); }
+.card-attention .card-attention-title {
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.card-attention.is-danger  .card-attention-title { color: var(--lo-danger); }
+.card-attention.is-warning .card-attention-title { color: var(--lo-warning); }
+
+/* Auxiliary spacing — keep one spacer utility, not freeform margins. */
+.mt-1 { margin-top: 0.4rem; }
+.mt-2 { margin-top: 0.8rem; }
+.mt-3 { margin-top: 1.2rem; }
+.mb-1 { margin-bottom: 0.4rem; }
+.mb-2 { margin-bottom: 0.8rem; }
+.mb-3 { margin-bottom: 1.2rem; }
+
+/* "Meta line" — a small, muted, uppercase mini-label above a value. */
+.meta-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+/* Two-up grid for "When / Where" pairs in entity views. */
+.two-up {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.two-up > * { flex: 1 1 200px; min-width: 0; }
+.two-up > .right { margin-left: auto; text-align: right; }
+
+/* Pre-wrap text block (notes, scopes, etc.) */
+.prewrap { white-space: pre-wrap; }
+
+/* Nowrap for table rows where line-wrapping would break alignment */
+.nowrap { white-space: nowrap; }
+
+/* Wide buttons (full-width on phones, content-width on desktop) */
+.w-full { width: 100%; }
+
+/* Sized muted text for labels, sub-rows, etc. */
+.muted-sm { color: var(--text-secondary); font-size: 0.9rem; }
+.muted-xs { color: var(--text-secondary); font-size: 0.85rem; }
+
+/* Narrow form column for settings pages */
+.form-narrow { max-width: 32rem; }
+.form-wide   { max-width: 42rem; }
+
+/* Search input wrapper — relative positioning so the spinner can absolute-position */
+.search-row { position: relative; }
+.search-row .htmx-spinner-anchor {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+}
+
+/* First heading inside a card — kill the default top margin */
+.card > h3:first-child,
+.card > h2:first-child { margin-top: 0; font-size: 1.05rem; }
+.card > h3:first-of-type + p.muted,
+.card > h2:first-of-type + p.muted { margin-top: 0; }
+
+/* Indented sub-row (used for "if checked → these settings appear" patterns) */
+.indent-row { margin-left: 1.7rem; margin-top: 0.4rem; }
+
+/* Constrained input widths */
+.w-9rem { max-width: 9rem; }
+.w-12rem { max-width: 12rem; }
+
+/* Standalone h2 sub-heading (smaller than .page-head h1, no flex wrapper) */
+h2.section-head-h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.6rem;
+}
+
 hr { border: none; border-top: var(--hairline); margin: 1.2rem 0; }
 .spacer { height: 1rem; }

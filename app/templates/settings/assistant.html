@@ -17,7 +17,7 @@
   {{ form.hidden_tag() }}
 
   <div class="card" style="margin-bottom:1rem">
-    <label style="display:flex; align-items:center; gap:0.6rem">
+    <label class="checkbox-row">
       {{ form.enabled() }}
       <strong>Enable assistant</strong>
     </label>
@@ -35,7 +35,7 @@
     Stored on the persistent volume; survives deploys.
   </small>
 
-  <div class="btn-row" style="margin-top:1rem">
+  <div class="btn-row mt-2">
     {{ form.submit(class_="contrast") }}
     <a href="{{ url_for('assistant.index') }}" role="button" class="secondary">Open chat</a>
   </div>

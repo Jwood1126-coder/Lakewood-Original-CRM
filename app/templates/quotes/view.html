@@ -2,7 +2,7 @@
 {% block title %}E-{{ quote.number }} {{ quote.subject }} — {{ business_name }}{% endblock %}
 
 {% block content %}
-<p class="muted" style="margin-bottom:0.2rem">
+<p class="muted mb-1">
   <a href="{{ url_for('clients.view_client', client_id=quote.client.id) }}">← {{ quote.client.name }}</a>
 </p>
 
@@ -12,22 +12,22 @@
     <span class="pill pill-{{ quote.status }}">{{ quote.status_label }}</span>
     {% if quote.is_expired %}<span class="pill pill-overdue">expired</span>{% endif %}
     <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}" role="button" class="secondary outline">Edit</a>
-    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print estimate">🖨<span class="hide-on-mobile"> Print</span></button>
+    <button type="button" class="secondary outline" onclick="window.print()" aria-label="Print estimate">Print</button>
   </div>
 </div>
 
-<div class="card">
+<div class="surface-elevated card">
   <div class="quote-summary-row">
     <div class="quote-summary-main">
-      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">For</div>
+      <div class="meta-label">For</div>
       <div>{{ quote.client.name }}</div>
       <div class="muted">{{ quote.prop.address_one_line }}</div>
       {% if quote.prop %}
-        <a href="{{ quote.prop.maps_url }}" target="_blank" rel="noopener">📍 Open in Maps</a>
+        <a href="{{ quote.prop.maps_url }}" target="_blank" rel="noopener">Open in Maps ↗</a>
       {% endif %}
     </div>
     <div class="quote-summary-aside">
-      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Total</div>
+      <div class="meta-label">Total</div>
       <div class="quote-total">${{ '%.2f'|format(quote.total_cents/100) }}</div>
       <small class="muted">subtotal ${{ '%.2f'|format(quote.subtotal_cents/100) }} + tax ${{ '%.2f'|format(quote.tax_cents/100) }}</small>
     </div>
@@ -35,10 +35,10 @@
 </div>
 
 {% if quote.scheduled_date %}
-<div class="card" style="border-left:3px solid var(--lo-accent)">
-  <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center">
+<div class="card-attention">
+  <div class="action-row">
     <div>
-      <div class="muted" style="font-size:0.78rem; text-transform:uppercase">📅 Estimate visit</div>
+      <div class="meta-label">Estimate visit</div>
       <div style="font-weight:600">
         {{ quote.scheduled_date.strftime("%A, %b %d, %Y") }}{% if quote.scheduled_time %} · {{ quote.time_display }}{% endif %}
       </div>
@@ -48,17 +48,17 @@
 {% endif %}
 
 <div class="card">
-  <table class="table-rows table-cards" style="width:100%">
+  <table class="table-rows table-cards w-full">
     <thead>
-      <tr><th>Item</th><th>Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Total</th><th></th></tr>
+      <tr><th>Item</th><th>Qty</th><th class="text-right">Unit</th><th class="text-right">Total</th><th></th></tr>
     </thead>
     <tbody>
       {% for li in quote.line_items %}
         <tr>
           <td data-label="Item">{{ li.description }}</td>
           <td data-label="Qty">{{ '%g'|format(li.quantity) }}</td>
-          <td data-label="Unit" style="text-align:right">${{ li.unit_price_dollars }}</td>
-          <td data-label="Total" style="text-align:right">${{ li.line_total_dollars }}</td>
+          <td data-label="Unit" class="text-right">${{ li.unit_price_dollars }}</td>
+          <td data-label="Total" class="text-right">${{ li.line_total_dollars }}</td>
           <td data-label="Taxable">{% if li.taxable %}<small class="muted">tax</small>{% endif %}</td>
         </tr>
       {% else %}
@@ -67,12 +67,12 @@
     </tbody>
     {% if quote.line_items %}
     <tfoot class="hide-on-mobile">
-      <tr><td colspan="3" style="text-align:right" class="muted">Subtotal</td>
-          <td style="text-align:right">${{ '%.2f'|format(quote.subtotal_cents/100) }}</td><td></td></tr>
-      <tr><td colspan="3" style="text-align:right" class="muted">Tax ({{ '%.2f%%'|format(quote.effective_tax_rate*100) }})</td>
-          <td style="text-align:right">${{ '%.2f'|format(quote.tax_cents/100) }}</td><td></td></tr>
-      <tr><td colspan="3" style="text-align:right"><strong>Total</strong></td>
-          <td style="text-align:right"><strong>${{ '%.2f'|format(quote.total_cents/100) }}</strong></td><td></td></tr>
+      <tr><td colspan="3" class="text-right muted">Subtotal</td>
+          <td class="text-right">${{ '%.2f'|format(quote.subtotal_cents/100) }}</td><td></td></tr>
+      <tr><td colspan="3" class="text-right muted">Tax ({{ '%.2f%%'|format(quote.effective_tax_rate*100) }})</td>
+          <td class="text-right">${{ '%.2f'|format(quote.tax_cents/100) }}</td><td></td></tr>
+      <tr><td colspan="3" class="text-right"><strong>Total</strong></td>
+          <td class="text-right"><strong>${{ '%.2f'|format(quote.total_cents/100) }}</strong></td><td></td></tr>
     </tfoot>
     {% endif %}
   </table>
@@ -80,31 +80,31 @@
 
 {% if quote.message_to_customer %}
 <div class="card">
-  <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Message to customer</div>
-  <div style="white-space:pre-wrap; margin-top:0.4rem">{{ quote.message_to_customer }}</div>
+  <div class="meta-label">Message to customer</div>
+  <div class="prewrap mt-1">{{ quote.message_to_customer }}</div>
 </div>
 {% endif %}
 
 {# ----- Status quick-actions ----- #}
-<div class="sticky-cta">
+<div class="sticky-cta glass">
   {% if quote.status == 'draft' %}
-    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='sent') }}" style="margin:0">
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='sent') }}" class="form-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="contrast">Mark sent</button>
     </form>
   {% endif %}
   {% if quote.status == 'sent' %}
-    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='accepted') }}" style="margin:0">
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='accepted') }}" class="form-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="contrast">✓ Accepted</button>
     </form>
-    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='declined') }}" style="margin:0">
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id, new_status='declined') }}" class="form-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="secondary outline">✗ Declined</button>
     </form>
   {% endif %}
   {% if quote.status in ('accepted',) and not quote.converted_to_job_id %}
-    <form method="post" action="{{ url_for('quotes.convert_to_job', quote_id=quote.id) }}" style="margin:0">
+    <form method="post" action="{{ url_for('quotes.convert_to_job', quote_id=quote.id) }}" class="form-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="contrast">→ Convert to job</button>
     </form>
@@ -117,26 +117,26 @@
 
 {% if quote.internal_notes %}
 <div class="card">
-  <div class="muted" style="font-size:0.78rem; text-transform:uppercase">Internal notes</div>
-  <div style="white-space:pre-wrap">{{ quote.internal_notes }}</div>
+  <div class="meta-label">Internal notes</div>
+  <div class="prewrap">{{ quote.internal_notes }}</div>
 </div>
 {% endif %}
 
 {# ----- Photos ----- #}
-<div class="page-head" style="margin-top:1.4rem">
-  <h2 style="margin:0; font-size:1.2rem">
+<div class="section-head mt-3">
+  <h2>
     Site photos
     {% if quote.photos %}<span class="muted" style="font-size:0.9rem; font-weight:400">({{ quote.photos|length }})</span>{% endif %}
   </h2>
 </div>
 
 <form method="post" action="{{ url_for('quotes.upload_photo', quote_id=quote.id) }}"
-      enctype="multipart/form-data" style="margin-bottom:1rem">
+      enctype="multipart/form-data" class="mb-2">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div style="display:flex; gap:0.5rem; flex-wrap:wrap">
+  <div class="action-row">
     <input type="file" name="photos" accept="image/*" capture="environment" multiple
            style="flex:1; min-width:0">
-    <button type="submit" class="contrast">📸 Add photos</button>
+    <button type="submit" class="contrast">Add photos</button>
   </div>
   <small class="muted">
     Tap to use your camera. Multiple at once is fine. Photos auto-resize so
@@ -168,6 +168,6 @@
 <form method="post" action="{{ url_for('quotes.delete_quote', quote_id=quote.id) }}"
       data-confirm="Permanently delete this estimate?">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <button type="submit" class="secondary outline" style="color:var(--lo-danger); border-color:var(--lo-danger)">Delete estimate</button>
+  <button type="submit" class="secondary outline btn-danger">Delete estimate</button>
 </form>
 {% endblock %}

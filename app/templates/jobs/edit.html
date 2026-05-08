@@ -18,7 +18,7 @@
     <div>
       <label for="{{ form.client_id.id }}">
         Client <span class="req">*</span>
-        <a href="{{ url_for('clients.new_client', next='job') }}" class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New client</a>
+        <a href="{{ url_for('clients.new_client', next='job') }}" class="muted-xs" style="margin-left:0.4rem">+ New client</a>
       </label>
       {{ form.client_id(
           **{"hx-get": url_for('jobs.property_options'),
@@ -34,7 +34,7 @@
         <span id="property-loading" class="htmx-spinner" aria-hidden="true"></span>
         {% if form.client_id.data %}
           <a href="{{ url_for('properties.new_property', client_id=form.client_id.data, next='job') }}"
-             class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New property</a>
+             class="muted-xs" style="margin-left:0.4rem">+ New property</a>
         {% endif %}
       </label>
       {{ form.property_id() }}
@@ -63,7 +63,7 @@
   {{ form.notes() }}
   <small class="muted">Only you see these.</small>
 
-  <div class="btn-row" style="margin-top:1rem">
+  <div class="btn-row mt-2">
     {{ form.submit(class_="contrast") }}
     <a href="{{ url_for('jobs.view_job', job_id=job.id) if job else url_for('jobs.list_jobs') }}"
        role="button" class="secondary">Cancel</a>

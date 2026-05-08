@@ -5,7 +5,7 @@
 {% include "settings/_back.html" %}
 <div class="page-head"><h1>Profile</h1></div>
 
-<form method="post" novalidate style="max-width:32rem">
+<form method="post" novalidate class="form-narrow">
   {{ form.hidden_tag() }}
 
   <label for="{{ form.display_name.id }}">Display name</label>
@@ -16,6 +16,6 @@
   {{ form.email() }}
   <small class="muted">Used to sign in.</small>
 
-  {{ form.submit(class_="contrast", style="margin-top:1rem") }}
+  {{ form.submit(class_="contrast mt-2") }}
 </form>
 {% endblock %}

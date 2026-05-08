@@ -11,7 +11,7 @@
   truly lost. Showing the last 200 events.
 </p>
 
-<form method="get" class="card" style="margin-bottom:1rem">
+<form method="get" class="card mb-2">
   <div class="grid">
     <div>
       <label for="entity_type">Entity</label>
@@ -36,7 +36,7 @@
       </select>
     </div>
   </div>
-  <div class="btn-row" style="margin-top:0.6rem">
+  <div class="btn-row mt-1">
     <button type="submit" class="contrast">Filter</button>
     <a href="{{ url_for('settings.audit_log') }}" role="button" class="secondary">Clear</a>
   </div>

@@ -2,11 +2,11 @@
 {% block title %}Year-end packet — Reports{% endblock %}
 
 {% block content %}
-<p class="muted" style="margin-bottom:0.2rem"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
+<p class="muted mb-1"><a href="{{ url_for('reports.index') }}">← Reports</a></p>
 <div class="page-head"><h1>Year-end packet</h1></div>
 <p class="muted">Quick-links for handing the year's data to your CPA at tax time.</p>
 
-<h2 style="font-size:1.1rem">{{ current_year }} (current year, year-to-date)</h2>
+<h2 class="section-head-h2">{{ current_year }} (current year, year-to-date)</h2>
 <div class="card-list">
   <a href="{{ url_for('reports.sales_tax', **{'from': current_year|string + '-01-01', 'to': current_year|string + '-12-31'}) }}" class="card" style="text-decoration:none; color:inherit; display:block">
     <strong>Sales tax — {{ current_year }} YTD</strong>
@@ -22,7 +22,7 @@
   </a>
 </div>
 
-<h2 style="font-size:1.1rem; margin-top:1.5rem">{{ previous_year }} (last full year)</h2>
+<h2 class="section-head-h2 mt-3">{{ previous_year }} (last full year)</h2>
 <div class="card-list">
   <a href="{{ url_for('reports.sales_tax', **{'from': previous_year|string + '-01-01', 'to': previous_year|string + '-12-31'}) }}" class="card" style="text-decoration:none; color:inherit; display:block">
     <strong>Sales tax — {{ previous_year }}</strong>

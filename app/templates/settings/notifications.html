@@ -29,54 +29,54 @@
   {{ form.hidden_tag() }}
 
   <div class="card">
-    <h3 style="margin-top:0; font-size:1rem">Schedule</h3>
-    <label style="display:flex; align-items:center; gap:0.6rem">
+    <h3>Schedule</h3>
+    <label class="checkbox-row">
       {{ form.daily_briefing() }} Daily morning briefing
     </label>
-    <div style="margin-left:1.7rem; margin-top:0.4rem">
+    <div class="indent-row">
       <label for="{{ form.daily_time.id }}">Time</label>
-      {{ form.daily_time(style="max-width:9rem") }}
+      {{ form.daily_time(class_="w-9rem") }}
       <small class="muted">24-hour, your local timezone (set in <code>APP_TIMEZONE</code> env var)</small>
     </div>
     <hr>
-    <label style="display:flex; align-items:center; gap:0.6rem">
+    <label class="checkbox-row">
       {{ form.weekly_briefing() }} Weekly look-ahead — Sundays at 5pm
     </label>
     <hr>
-    <label style="display:flex; align-items:center; gap:0.6rem">
+    <label class="checkbox-row">
       {{ form.monthly_report() }} Monthly report — 1st of each month at 8am
     </label>
     <hr>
-    <label style="display:flex; align-items:center; gap:0.6rem">
+    <label class="checkbox-row">
       {{ form.job_day_reminder() }} Reminder the morning of each scheduled job
     </label>
   </div>
 
-  <div class="card" style="margin-top:1rem">
-    <h3 style="margin-top:0; font-size:1rem">Event triggers (Jobber-style)</h3>
-    <p class="muted" style="margin-top:0">Send me an email when…</p>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_request_received() }} 📩 A request comes in from the website</label>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_sent() }} A quote is marked sent</label>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_accepted() }} A quote is accepted</label>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_quote_converted() }} A quote is converted to a job</label>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_job_complete() }} A job is marked complete</label>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_invoice_sent() }} An invoice is marked sent</label>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_payment_received() }} A payment is recorded</label>
-    <label style="display:flex; align-items:center; gap:0.6rem">{{ form.event_invoice_paid() }} An invoice is paid in full 🎉</label>
+  <div class="card mt-2">
+    <h3>Event triggers (Jobber-style)</h3>
+    <p class="muted">Send me an email when…</p>
+    <label class="checkbox-row">{{ form.event_quote_request_received() }} A request comes in from the website</label>
+    <label class="checkbox-row">{{ form.event_quote_sent() }} A quote is marked sent</label>
+    <label class="checkbox-row">{{ form.event_quote_accepted() }} A quote is accepted</label>
+    <label class="checkbox-row">{{ form.event_quote_converted() }} A quote is converted to a job</label>
+    <label class="checkbox-row">{{ form.event_job_complete() }} A job is marked complete</label>
+    <label class="checkbox-row">{{ form.event_invoice_sent() }} An invoice is marked sent</label>
+    <label class="checkbox-row">{{ form.event_payment_received() }} A payment is recorded</label>
+    <label class="checkbox-row">{{ form.event_invoice_paid() }} An invoice is paid in full</label>
   </div>
 
-  <div class="card" style="margin-top:1rem">
-    <h3 style="margin-top:0; font-size:1rem">Channels</h3>
-    <p class="muted" style="margin-top:0">In-app inbox is always on. Email is in addition.</p>
-    <label style="display:flex; align-items:center; gap:0.6rem">
+  <div class="card mt-2">
+    <h3>Channels</h3>
+    <p class="muted">In-app inbox is always on. Email is in addition.</p>
+    <label class="checkbox-row">
       {{ form.email_channel() }} Email channel
     </label>
-    <label for="{{ form.notify_email_to.id }}" style="margin-top:0.6rem">{{ form.notify_email_to.label.text }}</label>
+    <label for="{{ form.notify_email_to.id }}" class="mt-1">{{ form.notify_email_to.label.text }}</label>
     {{ form.notify_email_to() }}
     <small class="muted">e.g. <code>you@gmail.com, you@outlook.com</code> — both addresses get every notification.</small>
   </div>
 
-  <div class="btn-row" style="margin-top:1rem">
+  <div class="btn-row mt-2">
     {{ form.submit(class_="contrast") }}
   </div>
 </form>
@@ -85,11 +85,11 @@
 
 <h3>Test</h3>
 <div class="btn-row">
-  <form method="post" action="{{ url_for('settings.notifications_test_email') }}" style="margin:0">
+  <form method="post" action="{{ url_for('settings.notifications_test_email') }}" class="form-inline">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="secondary outline">Send test email</button>
   </form>
-  <form method="post" action="{{ url_for('settings.notifications_send_briefing') }}" style="margin:0">
+  <form method="post" action="{{ url_for('settings.notifications_send_briefing') }}" class="form-inline">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="secondary outline">Build today's briefing now</button>
   </form>

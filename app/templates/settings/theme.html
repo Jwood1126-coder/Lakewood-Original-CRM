@@ -5,7 +5,7 @@
 {% include "settings/_back.html" %}
 <div class="page-head"><h1>Theme</h1></div>
 
-<form method="post" novalidate style="max-width:42rem">
+<form method="post" novalidate class="form-wide">
   {{ form.hidden_tag() }}
 
   <h2 style="font-size:1.05rem; margin: 0.4rem 0 0.6rem">Surface</h2>
@@ -16,7 +16,7 @@
                {% if form.theme.data == value %}checked{% endif %}>
         <div>
           <strong>{{ label }}</strong>
-          <div class="muted" style="font-size:0.85rem">
+          <div class="muted-xs">
             {% if value == 'dark' %}Comfortable dark UI with layered glass surfaces.
             {% elif value == 'amoled' %}Pure black background — easier on OLED phone screens at night.
             {% elif value == 'light' %}Crisp light theme for daytime / bright outdoor use.{% endif %}

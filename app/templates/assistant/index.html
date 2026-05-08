@@ -5,7 +5,7 @@
 <div class="page-head">
   <h1>Assistant</h1>
   <div class="actions">
-    <form method="post" action="{{ url_for('assistant.new_conversation') }}" style="margin:0">
+    <form method="post" action="{{ url_for('assistant.new_conversation') }}" class="form-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="contrast">+ New chat</button>
     </form>
@@ -27,7 +27,7 @@
     <a href="{{ url_for('assistant.view', conversation_id=c.id) }}" class="card"
        style="text-decoration:none; color:inherit; display:block">
       <strong>{{ c.title or 'New chat' }}</strong>
-      <div class="muted" style="font-size:0.85rem">
+      <div class="muted-xs">
         {{ c.messages|length }} messages · {{ c.updated_at | local_dt("%b %d, %-I:%M %p") }}
       </div>
     </a>
@@ -37,7 +37,7 @@
 <div class="empty">
   <div class="empty-icon">💬</div>
   <p>No chats yet. Start one to ask about your schedule, clients, or jobs.</p>
-  <form method="post" action="{{ url_for('assistant.new_conversation') }}" style="margin:0">
+  <form method="post" action="{{ url_for('assistant.new_conversation') }}" class="form-inline">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="contrast">+ Start a chat</button>
   </form>

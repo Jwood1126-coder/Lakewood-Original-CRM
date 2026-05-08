@@ -17,7 +17,7 @@
     <div>
       <label for="{{ form.client_id.id }}">
         Client <span class="req">*</span>
-        <a href="{{ url_for('clients.new_client', next='invoice') }}" class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New client</a>
+        <a href="{{ url_for('clients.new_client', next='invoice') }}" class="muted-xs" style="margin-left:0.4rem">+ New client</a>
       </label>
       {{ form.client_id() }}
     </div>
@@ -26,7 +26,7 @@
         Property <span class="req">*</span>
         {% if form.client_id.data %}
           <a href="{{ url_for('properties.new_property', client_id=form.client_id.data, next='invoice') }}"
-             class="muted" style="font-size:0.85rem; margin-left:0.4rem">+ New property</a>
+             class="muted-xs" style="margin-left:0.4rem">+ New property</a>
         {% endif %}
       </label>
       {{ form.property_id() }}
@@ -37,10 +37,10 @@
   {{ form.job_id() }}
   <small class="muted">Connecting an invoice to a job tracks revenue per-job.</small>
 
-  <h3 style="margin-top:1.4rem; font-size:1rem">Line items</h3>
+  <h3 class="mt-3" style="font-size:1rem">Line items</h3>
   {% include "quotes/_line_items_editor.html" %}
 
-  <div class="grid" style="margin-top:1rem">
+  <div class="grid mt-2">
     <div>
       <label for="{{ form.due_date.id }}">Due date</label>
       {{ form.due_date() }}
@@ -55,7 +55,7 @@
   <label for="{{ form.notes.id }}">Notes</label>
   {{ form.notes() }}
 
-  <div class="btn-row" style="margin-top:1rem">
+  <div class="btn-row mt-2">
     {{ form.submit(class_="contrast") }}
     <a href="{{ url_for('invoices.view_invoice', invoice_id=invoice.id) if invoice else url_for('invoices.list_invoices') }}"
        role="button" class="secondary">Cancel</a>

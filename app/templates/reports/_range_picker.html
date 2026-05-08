@@ -1,5 +1,5 @@
 {# Shared date-range picker for reports. Expects: d_from, d_to, presets. #}
-<form method="get" class="card" style="margin-bottom:1rem">
+<form method="get" class="card mb-2">
   <div class="grid">
     <div>
       <label for="from">From</label>
@@ -10,7 +10,7 @@
       <input type="date" id="to" name="to" value="{{ d_to.isoformat() }}">
     </div>
   </div>
-  <div class="btn-row" style="margin-top:0.6rem">
+  <div class="btn-row mt-1">
     <button type="submit" class="contrast">Apply</button>
     <a href="?from={{ presets.this_month_start.isoformat() }}&to={{ presets.today.isoformat() }}"
        role="button" class="secondary outline">This month</a>

@@ -6,7 +6,7 @@
 <div class="page-head">
   <h1>Backups</h1>
   <div class="actions">
-    <form method="post" action="{{ url_for('settings.backup_run') }}" style="margin:0">
+    <form method="post" action="{{ url_for('settings.backup_run') }}" class="form-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="contrast">💾 Backup now</button>
     </form>

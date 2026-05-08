@@ -9,7 +9,7 @@
   </div>
 </div>
 
-<form method="get" style="margin-bottom:1rem; position:relative">
+<form method="get" class="search-row mb-2">
   <input type="search"
          name="q"
          value="{{ q }}"
@@ -23,7 +23,7 @@
          hx-indicator="closest form"
          autofocus>
   <span class="htmx-spinner" aria-hidden="true"
-        style="position:absolute; right:0.9rem; top:50%; transform:translateY(-50%); margin:0"></span>
+        class="htmx-spinner-anchor"></span>
 </form>
 
 {% if clients %}

@@ -6,7 +6,7 @@
   <h1>Messages</h1>
   <div class="actions">
     {% if gmail_connected %}
-      <form method="post" action="{{ url_for('gmail.sync') }}" style="margin:0">
+      <form method="post" action="{{ url_for('gmail.sync') }}" class="form-inline">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="days_back" value="14">
         <button type="submit" class="contrast"

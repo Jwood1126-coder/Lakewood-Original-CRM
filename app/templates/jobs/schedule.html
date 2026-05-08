@@ -17,7 +17,7 @@
     {% if estimates %}· <strong>{{ estimates|length }}</strong> estimate visit{{ '' if estimates|length == 1 else 's' }}{% endif %}
     {% if total_hours %}<span class="muted"> · {{ total_hours }} hr est.</span>{% endif %}
   </div>
-  <div class="muted" style="font-size:0.85rem">As of {{ today.strftime("%a, %b %d, %Y") }}</div>
+  <div class="muted-xs">As of {{ today.strftime("%a, %b %d, %Y") }}</div>
 </div>
 
 {% if estimates %}
@@ -134,14 +134,14 @@
                 {% endif %}
                 {% set has_active = j.visits | selectattr('is_active') | list | length > 0 %}
                 {% if j.status == 'scheduled' and not has_active %}
-                  <form method="post" action="{{ url_for('jobs.start_visit', job_id=j.id) }}" style="margin:0">
+                  <form method="post" action="{{ url_for('jobs.start_visit', job_id=j.id) }}" class="form-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="return_to" value="{{ url_for('jobs.schedule') }}">
                     <button type="submit" class="contrast" aria-label="Start visit" title="Start visit">▶</button>
                   </form>
                 {% elif j.status == 'in_progress' %}
                   {% if has_active %}
-                    <form method="post" action="{{ url_for('jobs.end_visit', job_id=j.id) }}" style="margin:0">
+                    <form method="post" action="{{ url_for('jobs.end_visit', job_id=j.id) }}" class="form-inline">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <input type="hidden" name="return_to" value="{{ url_for('jobs.schedule') }}">
                       <button type="submit" class="contrast" aria-label="End visit" title="End visit">⏹</button>

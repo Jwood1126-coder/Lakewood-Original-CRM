@@ -30,8 +30,8 @@
     Edit the list to skip more or fewer.
   </small>
 
-  <div class="card" style="margin-top:1rem">
-    <label style="display:flex; align-items:center; gap:0.6rem">
+  <div class="card mt-2">
+    <label class="checkbox-row">
       {{ form.commit() }} <strong>{{ form.commit.label.text }}</strong>
     </label>
     <small class="muted">
@@ -40,12 +40,12 @@
     </small>
   </div>
 
-  {{ form.submit(class_="contrast", style="margin-top:1rem") }}
+  {{ form.submit(class_="contrast mt-2") }}
 </form>
 
 {% if result %}
 <hr>
-<h2 style="font-size:1.1rem">Result</h2>
+<h2 class="section-head-h2">Result</h2>
 <div class="card">
   <p>Parsed <strong>{{ result.total_parsed }}</strong> unique clients
      ({{ result.total_properties_parsed }} properties total).</p>
@@ -66,12 +66,12 @@
 {% endif %}
 
 {% if parsed_preview %}
-<h2 style="font-size:1.1rem; margin-top:1rem">Preview (first 10)</h2>
+<h2 class="section-head-h2 mt-2">Preview (first 10)</h2>
 <div class="card-list">
   {% for c in parsed_preview %}
     <div class="card">
       <strong>{{ c.name }}</strong>
-      <div class="muted" style="font-size:0.85rem">
+      <div class="muted-xs">
         {{ c.phone or '(no phone)' }} ·
         {{ c.email or '(no email)' }} ·
         {{ c.properties|length }} propert{{ 'y' if c.properties|length == 1 else 'ies' }}

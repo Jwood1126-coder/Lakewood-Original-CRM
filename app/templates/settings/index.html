@@ -8,42 +8,42 @@
 
 <div class="card-list">
 
-  <a href="{{ url_for('settings.profile') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>👤 Profile</strong>
-    <div class="muted" style="font-size:0.9rem">{{ current_user.email }}{% if current_user.display_name %} · {{ current_user.display_name }}{% endif %}</div>
+  <a href="{{ url_for('settings.profile') }}" class="card-link">
+    <strong>Profile</strong>
+    <div class="muted-sm">{{ current_user.email }}{% if current_user.display_name %} · {{ current_user.display_name }}{% endif %}</div>
   </a>
 
-  <a href="{{ url_for('settings.theme') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>🎨 Theme</strong>
-    <div class="muted" style="font-size:0.9rem">Currently: {{ current_user.theme|capitalize }}</div>
+  <a href="{{ url_for('settings.theme') }}" class="card-link">
+    <strong>Theme</strong>
+    <div class="muted-sm">Currently: {{ current_user.theme|capitalize }}{% if current_user.accent %} · {{ current_user.accent|capitalize }} accent{% endif %}</div>
   </a>
 
-  <a href="{{ url_for('settings.business') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>🏢 Business info</strong>
-    <div class="muted" style="font-size:0.9rem">
+  <a href="{{ url_for('settings.business') }}" class="card-link">
+    <strong>Business info</strong>
+    <div class="muted-sm">
       {{ business.name or 'Not set' }}
       {% if business.address %} · {{ business.address }}{% endif %}
     </div>
   </a>
 
-  <a href="{{ url_for('settings.assistant') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>🤖 Assistant</strong>
-    <div class="muted" style="font-size:0.9rem">Configure Claude — model, system prompt, on/off</div>
+  <a href="{{ url_for('settings.assistant') }}" class="card-link">
+    <strong>Assistant</strong>
+    <div class="muted-sm">Configure Claude — model, system prompt, on/off</div>
   </a>
 
-  <a href="{{ url_for('settings.notifications') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>🔔 Notifications</strong>
-    <div class="muted" style="font-size:0.9rem">Daily briefings, reminders, email channel</div>
+  <a href="{{ url_for('settings.notifications') }}" class="card-link">
+    <strong>Notifications</strong>
+    <div class="muted-sm">Daily briefings, reminders, email channel</div>
   </a>
 
-  <a href="{{ url_for('settings.password') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>🔑 Password</strong>
-    <div class="muted" style="font-size:0.9rem">Change your sign-in password</div>
+  <a href="{{ url_for('settings.password') }}" class="card-link">
+    <strong>Password</strong>
+    <div class="muted-sm">Change your sign-in password</div>
   </a>
 
-  <a href="{{ url_for('settings.backup') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>💾 Backups</strong>
-    <div class="muted" style="font-size:0.9rem">
+  <a href="{{ url_for('settings.backup') }}" class="card-link">
+    <strong>Backups</strong>
+    <div class="muted-sm">
       {% if last_backup %}
         Last: {{ last_backup.when | local_dt("%b %d, %-I:%M %p") }} · {{ last_backup.size_kb }} KB · {{ last_backup.count_total }} on file
       {% else %}
@@ -52,31 +52,31 @@
     </div>
   </a>
 
-  <a href="{{ url_for('settings.audit_log') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>📋 Audit log</strong>
-    <div class="muted" style="font-size:0.9rem">Every change to your data — inserts, updates, deletes</div>
+  <a href="{{ url_for('settings.audit_log') }}" class="card-link">
+    <strong>Audit log</strong>
+    <div class="muted-sm">Every change to your data — inserts, updates, deletes</div>
   </a>
 
-  <a href="{{ url_for('settings.import_jobber_clients') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>📥 Import Jobber clients (CSV)</strong>
-    <div class="muted" style="font-size:0.9rem">Upload your Jobber Clients CSV (one-time)</div>
+  <a href="{{ url_for('settings.import_jobber_clients') }}" class="card-link">
+    <strong>Import Jobber clients (CSV)</strong>
+    <div class="muted-sm">Upload your Jobber Clients CSV (one-time)</div>
   </a>
 
-  <a href="{{ url_for('jobber.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>🔌 Jobber sync (API)</strong>
-    <div class="muted" style="font-size:0.9rem">Pull data directly from Jobber via OAuth — when CSV exports aren't working</div>
+  <a href="{{ url_for('jobber.index') }}" class="card-link">
+    <strong>Jobber sync (API)</strong>
+    <div class="muted-sm">Pull data directly from Jobber via OAuth — when CSV exports aren't working</div>
   </a>
 
-  <a href="{{ url_for('gmail.index') }}" class="card" style="text-decoration:none; color:inherit; display:block">
-    <strong>📬 Gmail integration</strong>
-    <div class="muted" style="font-size:0.9rem">Pull Voice SMS / voicemail and forwarded business mail into Messages</div>
+  <a href="{{ url_for('gmail.index') }}" class="card-link">
+    <strong>Gmail integration</strong>
+    <div class="muted-sm">Pull Voice SMS / voicemail and forwarded business mail into Messages</div>
   </a>
 
 </div>
 
 <hr>
 
-<h2 style="font-size:1.1rem">At a glance</h2>
+<h2 class="section-head-h2">At a glance</h2>
 <section class="stat-grid">
   <div class="stat-card">
     <div class="label">Clients</div>

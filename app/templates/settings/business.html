@@ -6,7 +6,7 @@
 <div class="page-head"><h1>Business info</h1></div>
 <p class="muted">Used in invoice/quote headers (Phase 3) and the app's nav brand.</p>
 
-<form method="post" novalidate style="max-width:32rem">
+<form method="post" novalidate class="form-narrow">
   {{ form.hidden_tag() }}
 
   <label for="{{ form.name.id }}">Business name <span class="req">*</span></label>
@@ -26,6 +26,6 @@
     </div>
   </div>
 
-  {{ form.submit(class_="contrast", style="margin-top:1rem") }}
+  {{ form.submit(class_="contrast mt-2") }}
 </form>
 {% endblock %}

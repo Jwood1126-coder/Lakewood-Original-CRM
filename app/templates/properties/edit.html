@@ -2,7 +2,7 @@
 {% block title %}{{ "Edit" if prop else "New" }} property — {{ business_name }}{% endblock %}
 
 {% block content %}
-<p class="muted" style="margin-bottom:0.2rem">
+<p class="muted mb-1">
   <a href="{{ url_for('clients.view_client', client_id=client.id) }}">← {{ client.name }}</a>
 </p>
 <div class="page-head">
@@ -56,7 +56,7 @@
   {{ form.notes() }}
   <small class="muted">Access codes, gate codes, dog warnings, etc.</small>
 
-  <div class="btn-row" style="margin-top:1rem">
+  <div class="btn-row mt-2">
     {{ form.submit(class_="contrast") }}
     <a href="{{ url_for('properties.view_property', property_id=prop.id) if prop else url_for('clients.view_client', client_id=client.id) }}"
        role="button" class="secondary">Cancel</a>
