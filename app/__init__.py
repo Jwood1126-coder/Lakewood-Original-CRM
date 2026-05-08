@@ -147,9 +147,11 @@ def _register_context(app: Flask) -> None:
         from app.models.setting import get_setting
 
         theme = "dark"
+        accent = "amber"
         try:
             if current_user.is_authenticated:
                 theme = current_user.theme or "dark"
+                accent = getattr(current_user, "accent", None) or "amber"
         except Exception:
             pass
 
@@ -176,6 +178,7 @@ def _register_context(app: Flask) -> None:
         return {
             "business_name": business_name,
             "app_theme": theme,
+            "app_accent": accent,
             "unread_count": unread,
             "unread_messages": unread_messages,
         }

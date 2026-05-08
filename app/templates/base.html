@@ -2,11 +2,15 @@
 {# Map our app theme to one Pico recognizes (light|dark). AMOLED layers on
    top of the dark Pico baseline via [data-app-theme="amoled"] selectors. #}
 {% set _pico_theme = 'light' if app_theme == 'light' else 'dark' %}
-<html lang="en" data-theme="{{ _pico_theme }}" data-app-theme="{{ app_theme or 'dark' }}">
+<html lang="en"
+      data-theme="{{ _pico_theme }}"
+      data-app-theme="{{ app_theme or 'dark' }}"
+      data-accent="{{ app_accent or 'amber' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0d1418">
+  <meta name="theme-color" id="theme-color-meta"
+        content="{{ '#f6f7fb' if app_theme == 'light' else ('#000000' if app_theme == 'amoled' else '#07090c') }}">
   <title>{% block title %}{{ business_name }}{% endblock %}</title>
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
@@ -18,8 +22,10 @@
   <script src="{{ url_for('static', filename='js/autosave.js') }}" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
   {% if current_user.is_authenticated %}
-    <header class="topbar">
+    <header class="topbar glass">
       <a href="{{ url_for('main.index') }}" class="brand">
         <span class="brand-mark">LO</span>
         <span class="brand-name">{{ business_name }}</span>
@@ -49,7 +55,7 @@
     </header>
   {% endif %}
 
-  <main class="container app-main">
+  <main id="main" class="container app-main">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="flash flash-{{ category }}" role="status">{{ message }}</div>
@@ -59,7 +65,7 @@
   </main>
 
   {% if current_user.is_authenticated %}
-    <nav class="bottombar" aria-label="Primary">
+    <nav class="bottombar glass" aria-label="Primary">
       <a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>
         <span class="ic">🏠</span><span class="lbl">Today</span>
       </a>
@@ -73,21 +79,24 @@
          {% if request.blueprint in ('clients','properties') %}class="active"{% endif %}>
         <span class="ic">👥</span><span class="lbl">Clients</span>
       </a>
-      <a href="#" class="more-trigger" aria-label="More"
-         onclick="event.preventDefault();document.getElementById('more-sheet').classList.toggle('open');"
-         style="position:relative">
+      <button type="button" class="more-trigger" aria-label="More"
+              aria-expanded="false" aria-controls="more-sheet"
+              data-toggle="more-sheet"
+              style="position:relative; background:transparent; border:none; color:inherit; flex:1;
+                     display:flex; flex-direction:column; align-items:center; justify-content:center;
+                     gap:2px; padding:0.45rem 0.2rem; min-height:var(--tap); font:inherit;
+                     font-size:0.7rem; cursor:pointer">
         <span class="ic">☰</span><span class="lbl">More</span>
         {% if unread_count %}<span class="badge bottombar-badge">{{ unread_count }}</span>{% endif %}
-      </a>
+      </button>
     </nav>
 
-    <div id="more-sheet" class="more-sheet"
-         onclick="if(event.target===this)this.classList.remove('open');">
+    <div id="more-sheet" class="more-sheet" role="dialog" aria-modal="true" aria-label="More navigation">
       <div class="more-sheet-content">
         <div class="page-head" style="margin-bottom:0.6rem">
           <h2 style="margin:0; font-size:1.1rem">Menu</h2>
           <div class="actions">
-            <button onclick="document.getElementById('more-sheet').classList.remove('open');"
+            <button type="button" data-close="more-sheet"
                     class="secondary outline" style="padding:0.3rem 0.7rem; min-height:auto">Close</button>
           </div>
         </div>
@@ -131,6 +140,44 @@
     </div>
   {% endif %}
 
+  <script>
+    /* More-sheet: open/close + Escape + focus + body scroll lock.
+       Driven by [data-toggle="more-sheet"] / [data-close="more-sheet"]. */
+    (function () {
+      var sheet = document.getElementById('more-sheet');
+      if (!sheet) return;
+      var lastFocus = null;
+
+      function open() {
+        sheet.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        var trigger = document.querySelector('[data-toggle="more-sheet"]');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+        lastFocus = document.activeElement;
+        var firstFocusable = sheet.querySelector('a, button');
+        if (firstFocusable) firstFocusable.focus();
+      }
+      function close() {
+        sheet.classList.remove('open');
+        document.body.style.overflow = '';
+        var trigger = document.querySelector('[data-toggle="more-sheet"]');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+      }
+
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-toggle="more-sheet"]');
+        if (t) { e.preventDefault(); open(); return; }
+        var c = e.target.closest('[data-close="more-sheet"]');
+        if (c) { e.preventDefault(); close(); return; }
+        // Backdrop click closes (clicked on overlay itself, not its child)
+        if (e.target === sheet) close();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sheet.classList.contains('open')) close();
+      });
+    })();
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

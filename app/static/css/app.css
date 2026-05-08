@@ -1,77 +1,149 @@
-/* ===== Lakewood Original CRM — app shell ===== */
+/* ===== Lakewood Original CRM — design system =====
+   Layered token system, glass primitives, accent presets, ambient halo.
+   The body color is set via radial gradients so the page never feels flat;
+   chrome (top-bar, bottom-bar, modals) uses .glass for translucency + blur;
+   in-page surfaces use .surface for solid translucency without blur.
+
+   Stay accent-restrained: glow lives on status only — active nav, focused
+   inputs, primary CTA, FAB, and a handful of chosen-status pills. Never
+   glow chrome you'd see twice on the same screen.
+*/
 
 :root {
-  --lo-accent: #f59e0b;       /* amber: handyman vibe */
-  --lo-accent-hover: #d97706;
-  --lo-accent-soft: rgba(245, 158, 11, 0.15);
+  /* ===== Accent — themeable. Raw RGB triplet so rgba()/color-mix() compose */
+  --accent-rgb: 245 158 11;            /* amber default */
+  --accent: rgb(var(--accent-rgb));
+  --accent-soft: rgb(var(--accent-rgb) / 0.14);
+  --accent-edge: rgb(var(--accent-rgb) / 0.55);
+  --accent-ink: #1a1407;               /* text ON accent (always near-black) */
 
-  --lo-success: #22c55e;
-  --lo-warning: #eab308;
-  --lo-danger:  #ef4444;
-  --lo-info:    #3b82f6;
-  --lo-muted:   var(--pico-muted-color);
+  /* Outer + inner glow stack. Used as box-shadow on focused elements. */
+  --accent-glow-sm:
+    0 0 0 1px rgb(var(--accent-rgb) / 0.40),
+    0 0 14px -2px rgb(var(--accent-rgb) / 0.55);
+  --accent-glow-md:
+    0 0 0 1px rgb(var(--accent-rgb) / 0.50),
+    0 0 28px -4px rgb(var(--accent-rgb) / 0.70);
 
-  --lo-card-radius: 12px;
-  --lo-tap: 44px; /* WCAG-recommended minimum tap target */
+  /* ===== Surfaces (z-axis layered) */
+  --surface-page: #07090c;
+  --surface-1: rgba(22, 28, 35, 0.72);    /* card */
+  --surface-2: rgba(30, 38, 47, 0.82);    /* elevated card */
+  --surface-3: rgba(38, 48, 58, 0.92);    /* modal */
+  --surface-glass: rgba(20, 26, 32, 0.55);   /* topbar/bottombar/sticky */
 
-  --pico-primary:        var(--lo-accent);
-  --pico-primary-hover:  var(--lo-accent-hover);
-  --pico-primary-focus:  var(--lo-accent-soft);
-  --pico-form-element-spacing-vertical: 0.7rem;
+  /* ===== Glass effects */
+  --blur-strong: saturate(180%) blur(24px);
+  --blur-soft:   saturate(140%) blur(12px);
+  --edge-highlight:        inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --edge-highlight-strong: inset 0 1px 0 rgb(255 255 255 / 0.10);
+  --hairline:        1px solid rgb(255 255 255 / 0.06);
+  --hairline-strong: 1px solid rgb(255 255 255 / 0.12);
+
+  /* ===== Text */
+  --text-primary:   #f4f6f9;
+  --text-secondary: rgb(244 246 249 / 0.66);
+  --text-tertiary:  rgb(244 246 249 / 0.42);
+
+  /* ===== Status (semantic, themeable but with sane defaults) */
+  --status-success-rgb: 34 197 94;
+  --status-warning-rgb: 234 179 8;
+  --status-danger-rgb:  244 63 94;
+  --status-info-rgb:    56 189 248;
+  --lo-success: rgb(var(--status-success-rgb));
+  --lo-warning: rgb(var(--status-warning-rgb));
+  --lo-danger:  rgb(var(--status-danger-rgb));
+  --lo-info:    rgb(var(--status-info-rgb));
+  --lo-muted:   var(--text-tertiary);
+
+  /* ===== Geometry */
+  --tap: 44px;
+  --radius-sm: 8px;
+  --radius:    14px;
+  --radius-lg: 20px;
+  --motion: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Legacy names some templates still reference */
+  --lo-accent: var(--accent);
+  --lo-accent-hover: rgb(var(--accent-rgb) / 0.92);
+  --lo-accent-soft:  var(--accent-soft);
+  --lo-card-radius:  var(--radius);
+  --lo-tap: var(--tap);
+
+  /* ===== Pico variable bindings (so Pico-styled elements pick up our tokens) */
+  --pico-primary:        var(--accent);
+  --pico-primary-hover:  rgb(var(--accent-rgb) / 0.92);
+  --pico-primary-focus:  var(--accent-soft);
+  --pico-primary-inverse: var(--accent-ink);
+  --pico-form-element-spacing-vertical:   0.7rem;
   --pico-form-element-spacing-horizontal: 0.9rem;
 }
 
+/* ===== Accent presets (selectable in Settings → Theme) */
+[data-accent="amber"]   { --accent-rgb: 245 158 11; }
+[data-accent="ember"]   { --accent-rgb: 244 91 36;  }
+[data-accent="crimson"] { --accent-rgb: 244 63 94;  --accent-ink: #220307; }
+[data-accent="magenta"] { --accent-rgb: 217 70 239; --accent-ink: #260434; }
+[data-accent="violet"]  { --accent-rgb: 139 92 246; --accent-ink: #170737; --text-primary: #f3eefe; }
+[data-accent="cyan"]    { --accent-rgb: 34 211 238; --accent-ink: #051a20; }
+[data-accent="lime"]    { --accent-rgb: 132 204 22; --accent-ink: #0f1c03; }
+[data-accent="gold"]    { --accent-rgb: 250 204 21; --accent-ink: #1c1502; }
+
+/* ===== Surface presets */
 [data-theme="dark"] {
-  --pico-background-color: #0d1418;
-  --pico-card-background-color: #161f24;
-  --pico-card-border-color: #232f37;
-  --pico-card-sectioning-background-color: #1b2429;
-  --pico-muted-border-color: #232f37;
-  --pico-muted-color: #97a5ad;
-  --pico-color: #e4ecf0;
-  --pico-form-element-background-color: #1b2429;
-  --pico-form-element-border-color: #2c3a42;
-  --pico-form-element-focus-color: var(--lo-accent);
+  --pico-background-color: var(--surface-page);
+  --pico-card-background-color: var(--surface-1);
+  --pico-card-border-color: rgb(255 255 255 / 0.06);
+  --pico-card-sectioning-background-color: var(--surface-2);
+  --pico-muted-border-color: rgb(255 255 255 / 0.06);
+  --pico-muted-color: var(--text-secondary);
+  --pico-color: var(--text-primary);
+  --pico-form-element-background-color: rgba(255, 255, 255, 0.03);
+  --pico-form-element-border-color: rgb(255 255 255 / 0.10);
+  --pico-form-element-focus-color: var(--accent);
 }
 
 [data-app-theme="amoled"] {
-  --pico-background-color: #000000;
-  --pico-card-background-color: #0a0a0a;
-  --pico-card-border-color: #1f1f1f;
-  --pico-card-sectioning-background-color: #111111;
-  --pico-muted-border-color: #1f1f1f;
-  --pico-muted-color: #8a8a8a;
-  --pico-color: #f5f5f5;
-  --pico-form-element-background-color: #0a0a0a;
-  --pico-form-element-border-color: #2a2a2a;
-  --pico-form-element-focus-color: var(--lo-accent);
-}
-/* Make sure form elements pick up our overrides even when Pico defaults try to win */
-[data-app-theme="amoled"] input,
-[data-app-theme="amoled"] select,
-[data-app-theme="amoled"] textarea {
-  background: #0a0a0a !important;
-  color: #f5f5f5 !important;
-  border-color: #2a2a2a !important;
-}
-[data-app-theme="dark"] input,
-[data-app-theme="dark"] select,
-[data-app-theme="dark"] textarea {
-  background: var(--pico-form-element-background-color);
-  color: var(--pico-color);
+  --surface-page: #000000;
+  --surface-1: rgba(14, 14, 14, 0.78);
+  --surface-2: rgba(22, 22, 22, 0.88);
+  --surface-3: rgba(28, 28, 28, 0.95);
+  --surface-glass: rgba(8, 8, 8, 0.66);
+  --pico-background-color: var(--surface-page);
+  --pico-card-background-color: var(--surface-1);
+  --pico-card-border-color: rgb(255 255 255 / 0.05);
+  --pico-card-sectioning-background-color: var(--surface-2);
+  --pico-muted-border-color: rgb(255 255 255 / 0.05);
+  --pico-muted-color: var(--text-secondary);
+  --pico-color: var(--text-primary);
+  --pico-form-element-background-color: rgba(255, 255, 255, 0.02);
+  --pico-form-element-border-color: rgb(255 255 255 / 0.08);
+  --pico-form-element-focus-color: var(--accent);
 }
 
 [data-theme="light"] {
-  --pico-background-color: #f8fafc;
-  --pico-card-background-color: #ffffff;
-  --pico-card-border-color: #e2e8f0;
-  --pico-card-sectioning-background-color: #f1f5f9;
-  --pico-muted-border-color: #e2e8f0;
-  --pico-muted-color: #64748b;
-  --pico-color: #0f172a;
+  --surface-page: #f6f7fb;
+  --surface-1:  #ffffff;
+  --surface-2:  #f1f3f9;
+  --surface-3:  #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.78);
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary:  #94a3b8;
+  --edge-highlight:        inset 0 1px 0 rgb(255 255 255 / 0.6);
+  --edge-highlight-strong: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --hairline:        1px solid rgb(15 23 42 / 0.08);
+  --hairline-strong: 1px solid rgb(15 23 42 / 0.14);
+  --pico-background-color: var(--surface-page);
+  --pico-card-background-color: var(--surface-1);
+  --pico-card-border-color: rgb(15 23 42 / 0.08);
+  --pico-card-sectioning-background-color: var(--surface-2);
+  --pico-muted-border-color: rgb(15 23 42 / 0.08);
+  --pico-muted-color: var(--text-secondary);
+  --pico-color: var(--text-primary);
   --pico-form-element-background-color: #ffffff;
   --pico-form-element-border-color: #cbd5e1;
-  --pico-form-element-focus-color: var(--lo-accent);
+  --pico-form-element-focus-color: var(--accent);
 }
 [data-theme="light"] .brand-mark { color: #1a1407; }
 [data-theme="light"] .pill-scheduled    { color: #1d4ed8; background: #dbeafe; border-color: #93c5fd; }
@@ -84,27 +156,124 @@
 [data-theme="light"] .flash-success  { background: #dcfce7; color: #166534; border-color: #86efac; }
 [data-theme="light"] .flash-warning  { background: #fef3c7; color: #854d0e; border-color: #fcd34d; }
 
+/* ===== Page background — ambient accent halo (dark) */
 html, body {
-  background: var(--pico-background-color);
+  background: var(--surface-page);
 }
-
 body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter",
+               system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-primary);
   padding-bottom: env(safe-area-inset-bottom);
   min-height: 100vh;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 0%,
+                    rgb(var(--accent-rgb) / 0.10), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 100% 100%,
+                    rgb(var(--accent-rgb) / 0.05), transparent 60%),
+    var(--surface-page);
+  background-attachment: fixed;
+}
+[data-theme="light"] body {
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%,
+                    rgb(15 23 42 / 0.04), transparent 70%),
+    var(--surface-page);
+  background-attachment: fixed;
 }
 
-/* ===== Top bar (visible on tablets / desktop) ===== */
+/* Tighten typography slightly across the board */
+h1, h2, h3, h4 { letter-spacing: -0.02em; }
+
+/* ===== Skip-to-content (visible only when focused) */
+.skip-link {
+  position: absolute;
+  left: 0.6rem;
+  top: 0.6rem;
+  transform: translateY(-200%);
+  z-index: 1000;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform var(--motion);
+}
+.skip-link:focus { transform: translateY(0); }
+
+/* ===== Glass primitives ============================================== */
+
+/* Translucent + blurred. Reserved for chrome: top-bar, bottom-bar,
+   sticky CTAs, modals, the More sheet. */
+.glass {
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  border: var(--hairline);
+  box-shadow: var(--edge-highlight);
+}
+
+/* Workhorse — solid translucent card without blur. Use this for most cards,
+   list rows, stat tiles, etc. */
+.surface {
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  box-shadow: var(--edge-highlight);
+}
+.surface-elevated {
+  background: var(--surface-2);
+  border: var(--hairline-strong);
+  border-radius: var(--radius);
+  box-shadow:
+    var(--edge-highlight-strong),
+    0 8px 28px -12px rgb(var(--accent-rgb) / 0.18),
+    0 2px 6px -2px rgb(0 0 0 / 0.4);
+}
+[data-theme="light"] .surface-elevated {
+  box-shadow:
+    var(--edge-highlight-strong),
+    0 8px 28px -12px rgb(15 23 42 / 0.10),
+    0 2px 6px -2px rgb(15 23 42 / 0.06);
+}
+
+/* Glow modifiers — apply to focused/active elements for the neon accent.
+   Pair with .surface or .glass; they don't carry their own background. */
+.glow {
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-glow-sm), var(--edge-highlight);
+}
+.glow-strong {
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-glow-md), var(--edge-highlight-strong);
+}
+
+/* Subtle press feedback on tappable cards */
+.subtle-press {
+  transition: transform var(--motion), box-shadow var(--motion),
+              border-color var(--motion);
+}
+.subtle-press:active {
+  transform: scale(0.985);
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-glow-sm);
+}
+
+/* ===== Top bar (chrome — uses .glass via class on element) ============ */
 .topbar {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   padding: 0.7rem 1rem;
-  background: var(--pico-card-background-color);
-  border-bottom: 1px solid var(--pico-card-border-color);
   position: sticky;
   top: 0;
   z-index: 50;
   padding-top: max(0.7rem, env(safe-area-inset-top));
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
 }
 .brand {
   display: inline-flex;
@@ -112,21 +281,22 @@ body {
   gap: 0.55rem;
   font-weight: 700;
   text-decoration: none;
-  color: var(--pico-color);
+  color: var(--text-primary);
   margin-right: auto;
   font-size: 1.05rem;
 }
 .brand-mark {
   display: inline-grid;
   place-items: center;
-  background: var(--lo-accent);
-  color: #1a1407;
+  background: var(--accent);
+  color: var(--accent-ink);
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: -0.02em;
+  box-shadow: 0 0 14px -3px rgb(var(--accent-rgb) / 0.5);
 }
 .topbar-nav {
   display: flex;
@@ -135,28 +305,39 @@ body {
 }
 .topbar-nav a {
   text-decoration: none;
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   padding: 0.45rem 0.85rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 0.95rem;
   white-space: nowrap;
+  transition: color var(--motion), background var(--motion);
 }
-.topbar-nav a:hover { color: var(--pico-color); background: var(--pico-card-sectioning-background-color); }
-.topbar-nav a.active { color: var(--lo-accent); background: var(--lo-accent-soft); }
+.topbar-nav a:hover {
+  color: var(--text-primary);
+  background: rgb(255 255 255 / 0.04);
+}
+.topbar-nav a.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-edge),
+              0 0 12px -4px rgb(var(--accent-rgb) / 0.5);
+}
+[data-theme="light"] .topbar-nav a:hover { background: rgb(15 23 42 / 0.05); }
 
 .logout-form { margin: 0; display: inline; }
 .logout-btn {
   background: transparent;
-  border: 1px solid var(--pico-card-border-color);
-  color: var(--pico-muted-color);
+  border: var(--hairline-strong);
+  color: var(--text-secondary);
   padding: 0.4rem 0.8rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font: inherit;
   font-size: 0.9rem;
   margin-left: 0.4rem;
+  transition: color var(--motion), border-color var(--motion);
 }
-.logout-btn:hover { color: var(--pico-color); border-color: var(--pico-color); }
+.logout-btn:hover { color: var(--text-primary); border-color: var(--text-primary); }
 
 /* Hide top nav links on phones (bottom bar takes over). Keep brand visible. */
 @media (max-width: 720px) {
@@ -169,10 +350,13 @@ body {
   display: none;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  background: var(--pico-card-background-color);
-  border-top: 1px solid var(--pico-card-border-color);
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-right: 0;
+  /* glass class supplies the rest */
 }
 .bottombar a {
   flex: 1;
@@ -183,29 +367,42 @@ body {
   gap: 2px;
   padding: 0.45rem 0.2rem;
   text-decoration: none;
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   font-size: 0.7rem;
-  min-height: var(--lo-tap);
+  min-height: var(--tap);
+  transition: color var(--motion);
 }
-.bottombar a.active { color: var(--lo-accent); }
-.bottombar .ic { font-size: 1.25rem; line-height: 1; }
+.bottombar a.active { color: var(--accent); }
+.bottombar a.active .ic { filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.7)); }
+.bottombar .ic {
+  font-size: 1.25rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bottombar .ic svg { width: 22px; height: 22px; }
 .bottombar .lbl { font-size: 0.65rem; }
 .bottombar-fab {
-  background: var(--lo-accent) !important;
-  color: #1a1407 !important;
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
   border-radius: 50%;
-  width: 52px;
-  height: 52px;
-  margin-top: -22px;
+  width: 56px;
+  height: 56px;
+  margin-top: -24px;
   font-size: 1.7rem !important;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  box-shadow:
+    0 0 0 1px rgb(var(--accent-rgb) / 0.6),
+    0 0 24px -2px rgb(var(--accent-rgb) / 0.7),
+    0 8px 22px -6px rgb(0 0 0 / 0.55);
   flex: 0 0 auto !important;
   font-weight: 700;
 }
 .bottombar-fab .ic { font-size: 1.6rem; font-weight: 700; }
+.bottombar-fab .ic svg { width: 26px; height: 26px; }
 @media (max-width: 720px) {
   .bottombar { display: flex; }
-  body { padding-bottom: calc(var(--lo-tap) + 18px + env(safe-area-inset-bottom)); }
+  body { padding-bottom: calc(var(--tap) + 18px + env(safe-area-inset-bottom)); }
 }
 
 /* ===== Main container spacing ===== */
@@ -214,14 +411,13 @@ body {
   .app-main { padding-left: 0.9rem; padding-right: 0.9rem; }
 }
 
-/* ===== Confirm modal =====
-   Replaces native window.confirm() for destructive form submits. Hidden
-   until JS adds .open. Sits above the bottom tab bar (z 300 > more-sheet
-   200 > bottombar). */
+/* ===== Confirm modal ===== */
 #lo-confirm-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 300;
   display: none;
   align-items: center;
@@ -230,19 +426,23 @@ body {
 }
 #lo-confirm-overlay.open { display: flex; }
 #lo-confirm-overlay .lo-confirm-card {
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: var(--lo-card-radius);
+  background: var(--surface-3);
+  backdrop-filter: var(--blur-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  border: var(--hairline-strong);
+  border-radius: var(--radius);
   padding: 1.2rem 1.2rem 0.9rem;
   max-width: 24rem;
   width: 100%;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  box-shadow:
+    var(--edge-highlight-strong),
+    0 24px 60px -12px rgb(0 0 0 / 0.6);
 }
 #lo-confirm-overlay #lo-confirm-msg {
   margin: 0 0 1rem;
   font-size: 1rem;
   line-height: 1.4;
-  color: var(--pico-color);
+  color: var(--text-primary);
 }
 #lo-confirm-overlay .lo-confirm-actions {
   display: flex;
@@ -250,23 +450,23 @@ body {
   justify-content: flex-end;
   flex-wrap: wrap;
 }
-#lo-confirm-overlay .lo-confirm-actions button { min-height: var(--lo-tap); margin: 0; }
+#lo-confirm-overlay .lo-confirm-actions button {
+  min-height: var(--tap);
+  margin: 0;
+}
 #lo-confirm-overlay .lo-confirm-go.lo-danger {
   background: var(--lo-danger);
   border-color: var(--lo-danger);
   color: #fff;
 }
 
-/* ===== htmx loading indicator =====
-   Any element with .htmx-spinner is hidden by default and shown when its
-   target request is in flight. htmx toggles `.htmx-request` on the
-   element specified by hx-indicator (or the requesting element). */
+/* ===== htmx loading indicator ===== */
 .htmx-spinner {
   display: none;
   width: 1em;
   height: 1em;
-  border: 2px solid var(--pico-muted-border-color);
-  border-top-color: var(--lo-accent);
+  border: 2px solid rgb(255 255 255 / 0.10);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: lo-spin 0.7s linear infinite;
   vertical-align: -0.15em;
@@ -276,10 +476,6 @@ body {
 .htmx-request.htmx-spinner { display: inline-block; }
 .htmx-request[aria-busy], .htmx-request[aria-busy] * { cursor: progress; }
 @keyframes lo-spin { to { transform: rotate(360deg); } }
-
-/* When the form/input itself is the indicator, dim it slightly so the user
-   gets visual confirmation the request is in flight even if the spinner is
-   off-screen. */
 .htmx-request input[type="search"],
 .htmx-request select { opacity: 0.7; }
 
@@ -289,24 +485,30 @@ label .req {
   font-weight: 700;
   margin-left: 0.15rem;
 }
-/* Inputs with the native `required` attribute get a subtle accent so the
-   user knows what's needed before they hit submit. */
 input:required, select:required, textarea:required {
-  border-left: 3px solid var(--lo-accent);
+  border-left: 3px solid var(--accent);
+}
+
+/* Focus rings — accent glow */
+input:focus, select:focus, textarea:focus,
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible {
+  outline: none;
+  box-shadow: var(--accent-glow-sm) !important;
+  border-color: var(--accent-edge) !important;
 }
 
 /* ===== Flash messages ===== */
 .flash {
   padding: 0.75rem 1rem;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   margin: 0.4rem 0 0.8rem;
   border: 1px solid transparent;
   font-size: 0.95rem;
 }
-.flash-error    { background: rgba(239, 68, 68, 0.12);  color: #fecaca; border-color: rgba(239, 68, 68, 0.4); }
-.flash-info     { background: rgba(59, 130, 246, 0.12); color: #bfdbfe; border-color: rgba(59, 130, 246, 0.4); }
-.flash-success  { background: rgba(34, 197, 94, 0.12);  color: #bbf7d0; border-color: rgba(34, 197, 94, 0.4); }
-.flash-warning  { background: rgba(234, 179, 8, 0.12);  color: #fef08a; border-color: rgba(234, 179, 8, 0.4); }
+.flash-error    { background: rgb(var(--status-danger-rgb) / 0.10);  color: #fecaca; border-color: rgb(var(--status-danger-rgb) / 0.40); }
+.flash-info     { background: rgb(var(--status-info-rgb) / 0.10);    color: #bfdbfe; border-color: rgb(var(--status-info-rgb) / 0.40); }
+.flash-success  { background: rgb(var(--status-success-rgb) / 0.10); color: #bbf7d0; border-color: rgb(var(--status-success-rgb) / 0.40); }
+.flash-warning  { background: rgb(var(--status-warning-rgb) / 0.10); color: #fef08a; border-color: rgb(var(--status-warning-rgb) / 0.40); }
 
 /* ===== Page header ===== */
 .page-head {
@@ -316,10 +518,25 @@ input:required, select:required, textarea:required {
   flex-wrap: wrap;
   margin-bottom: 1rem;
 }
-.page-head h1 { margin: 0; font-size: 1.6rem; line-height: 1.1; }
+.page-head h1 { margin: 0; font-size: 1.7rem; line-height: 1.1; }
 .page-head .actions { margin-left: auto; display: flex; gap: 0.4rem; flex-wrap: wrap; }
-/* Long entity titles ("E-1 · Fence repair estimate at Bob's house...") need
-   to ellipsize on mobile so the page-head doesn't grow to 4 lines tall. */
+
+/* Section head — used for h2 sub-headings ("On for today", "Pipeline", etc.) */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.6rem;
+}
+.section-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.section-head .actions { margin-left: auto; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
 .entity-title {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -331,11 +548,7 @@ input:required, select:required, textarea:required {
   min-width: 0;
 }
 
-/* ===== Estimate / Invoice summary card (For + Total layout) =====
-   On wide screens: For block on the left, Total block right-aligned to
-   the card edge. On phones (≤540px) they stack with both left-aligned
-   and the total amount becomes a normal heading size. The previous
-   inline-style version put Total in the wrong place when wrapped. */
+/* ===== Estimate / Invoice summary card ===== */
 .quote-summary-row {
   display: flex;
   gap: 1rem;
@@ -348,7 +561,13 @@ input:required, select:required, textarea:required {
   margin-left: auto;
   text-align: right;
 }
-.quote-total { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+.quote-total {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--accent);
+  text-shadow: 0 0 24px rgb(var(--accent-rgb) / 0.45);
+}
 @media (max-width: 540px) {
   .quote-summary-aside {
     flex: 1 1 100%;
@@ -357,10 +576,8 @@ input:required, select:required, textarea:required {
     padding-top: 0.6rem;
     border-top: 1px dashed var(--pico-card-border-color);
   }
-  .quote-total { font-size: 1.3rem; }
-  /* Compact h1 on phones so long titles don't push everything down */
-  .page-head h1, .entity-title { font-size: 1.2rem; }
-  /* Pills + buttons in page-head stay compact */
+  .quote-total { font-size: 1.4rem; }
+  .page-head h1, .entity-title { font-size: 1.25rem; }
   .page-head .actions .pill { font-size: 0.7rem; padding: 0.15rem 0.5rem; }
   .page-head .actions a[role="button"],
   .page-head .actions button {
@@ -370,7 +587,7 @@ input:required, select:required, textarea:required {
   }
 }
 .page-head + .page-sub {
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   margin-top: -0.6rem;
   margin-bottom: 1.2rem;
   font-size: 0.95rem;
@@ -378,13 +595,55 @@ input:required, select:required, textarea:required {
 
 /* ===== Cards ===== */
 .card {
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: var(--lo-card-radius);
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-radius: var(--radius);
   padding: 1rem;
+  box-shadow: var(--edge-highlight);
 }
 .card + .card { margin-top: 0.7rem; }
 .card-list { display: grid; gap: 0.7rem; }
+
+/* Card-as-link — the recurring "anchor wrapping a card" pattern */
+.card-link {
+  display: block;
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--edge-highlight);
+  transition: background var(--motion), border-color var(--motion),
+              box-shadow var(--motion), transform var(--motion);
+}
+.card-link:hover {
+  background: var(--surface-2);
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-glow-sm), var(--edge-highlight);
+}
+.card-link:active { transform: scale(0.99); }
+
+/* Action row — small buttons clustered together */
+.action-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Checkbox-row — label wrapping checkbox + text inline */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+.checkbox-row input[type="checkbox"],
+.checkbox-row input[type="radio"] {
+  margin: 0;
+  flex: 0 0 auto;
+}
 
 /* ===== Stat cards ===== */
 .stat-grid {
@@ -393,24 +652,40 @@ input:required, select:required, textarea:required {
   gap: 0.75rem;
 }
 .stat-card {
-  background: var(--pico-card-background-color);
+  background: var(--surface-1);
   padding: 0.9rem 1rem;
-  border-radius: var(--lo-card-radius);
-  border: 1px solid var(--pico-card-border-color);
-  display: flex;
-  flex-direction: column;
+  border-radius: var(--radius);
+  border: var(--hairline);
+  display: grid;
+  grid-template-rows: auto auto 1fr;
   gap: 0.15rem;
   text-decoration: none;
   color: inherit;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  box-shadow: var(--edge-highlight);
+  transition: background var(--motion), border-color var(--motion),
+              box-shadow var(--motion);
 }
 a.stat-card:hover {
-  background: var(--pico-card-sectioning-background-color);
-  border-color: var(--lo-accent);
+  background: var(--surface-2);
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-glow-sm), var(--edge-highlight);
 }
-.stat-card .number { font-size: 1.8rem; font-weight: 700; color: var(--pico-color); line-height: 1.1; }
-.stat-card .label  { color: var(--pico-muted-color); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-card .number {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.stat-card .label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 .stat-card a       { font-size: 0.82rem; }
+/* When a stat is the "primary" focus of the screen, glow it */
+.stat-card.glow .number { color: var(--accent); text-shadow: 0 0 18px rgb(var(--accent-rgb) / 0.5); }
 
 /* ===== Status pills ===== */
 .pill {
@@ -424,38 +699,49 @@ a.stat-card:hover {
   border: 1px solid transparent;
   white-space: nowrap;
 }
-.pill-scheduled    { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: rgba(59, 130, 246, 0.4); }
-.pill-in_progress  { background: rgba(245, 158, 11, 0.18); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4); }
-.pill-complete     { background: rgba(34, 197, 94, 0.15);  color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
-.pill-canceled     { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.4); }
-.pill-overdue      { background: rgba(239, 68, 68, 0.15);  color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+.pill-scheduled    { background: rgb(var(--status-info-rgb) / 0.14);    color: #93c5fd; border-color: rgb(var(--status-info-rgb) / 0.40); }
+.pill-in_progress  {
+  background: rgb(var(--accent-rgb) / 0.18);
+  color: var(--accent);
+  border-color: rgb(var(--accent-rgb) / 0.45);
+  box-shadow: 0 0 10px -2px rgb(var(--accent-rgb) / 0.5);
+}
+.pill-complete     { background: rgb(var(--status-success-rgb) / 0.14); color: #86efac; border-color: rgb(var(--status-success-rgb) / 0.40); }
+.pill-canceled     { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.40); }
+.pill-overdue      { background: rgb(var(--status-danger-rgb) / 0.14);  color: #fca5a5; border-color: rgb(var(--status-danger-rgb) / 0.40); }
 
-/* Quote / Invoice statuses (some overlap with job, some don't) */
-.pill-draft     { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.4); }
-.pill-sent      { background: rgba(59, 130, 246, 0.15);  color: #93c5fd; border-color: rgba(59, 130, 246, 0.4); }
-.pill-accepted  { background: rgba(34, 197, 94, 0.15);   color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
-.pill-declined  { background: rgba(239, 68, 68, 0.15);   color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
-.pill-expired   { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.4); }
-.pill-converted { background: rgba(168, 85, 247, 0.15);  color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4); }
-.pill-partial   { background: rgba(234, 179, 8, 0.15);   color: #fde68a; border-color: rgba(234, 179, 8, 0.4); }
-.pill-paid      { background: rgba(34, 197, 94, 0.15);   color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
-.pill-void      { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.4); opacity: 0.6; }
+/* Quote / Invoice statuses */
+.pill-draft     { background: rgba(148, 163, 184, 0.10); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.30); border-style: dashed; }
+.pill-sent      { background: rgb(var(--status-info-rgb) / 0.14);    color: #93c5fd; border-color: rgb(var(--status-info-rgb) / 0.40); }
+.pill-accepted  { background: rgb(var(--status-success-rgb) / 0.14); color: #86efac; border-color: rgb(var(--status-success-rgb) / 0.40); }
+.pill-declined  { background: rgb(var(--status-danger-rgb) / 0.14);  color: #fca5a5; border-color: rgb(var(--status-danger-rgb) / 0.40); }
+.pill-expired   { background: rgba(148, 163, 184, 0.10); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.30); opacity: 0.75; }
+.pill-converted { background: rgba(168, 85, 247, 0.14);  color: #d8b4fe; border-color: rgba(168, 85, 247, 0.40); }
+.pill-partial   { background: rgb(var(--status-warning-rgb) / 0.14);   color: #fde68a; border-color: rgb(var(--status-warning-rgb) / 0.40); }
+.pill-paid      { background: rgb(var(--status-success-rgb) / 0.14);   color: #86efac; border-color: rgb(var(--status-success-rgb) / 0.40); }
+.pill-void      { background: rgba(148, 163, 184, 0.08); color: #94a3b8; border-color: rgba(148, 163, 184, 0.20); opacity: 0.55; text-decoration: line-through; }
 
 /* ===== Job/Visit list cards ===== */
 .job-card {
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-card-border-color);
-  border-left: 3px solid var(--lo-accent);
-  border-radius: var(--lo-card-radius);
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
   padding: 0.9rem 1rem;
   display: grid;
   gap: 0.4rem;
   text-decoration: none;
   color: inherit;
+  box-shadow: var(--edge-highlight);
+  transition: background var(--motion), border-color var(--motion),
+              box-shadow var(--motion);
 }
-.job-card:hover { background: var(--pico-card-sectioning-background-color); }
-.job-card.status-complete    { border-left-color: var(--lo-success); opacity: 0.85; }
-.job-card.status-in_progress { border-left-color: var(--lo-warning); }
+.job-card:hover {
+  background: var(--surface-2);
+  box-shadow: var(--accent-glow-sm), var(--edge-highlight);
+}
+.job-card.status-complete    { border-left-color: var(--lo-success); opacity: 0.88; }
+.job-card.status-in_progress { border-left-color: var(--accent); box-shadow: var(--accent-glow-sm), var(--edge-highlight); }
 .job-card.status-canceled    { border-left-color: var(--lo-muted); opacity: 0.6; }
 .job-card.status-estimate    { border-left-color: var(--lo-info); }
 .job-card .job-row {
@@ -467,7 +753,7 @@ a.stat-card:hover {
 .job-card .time {
   font-weight: 700;
   font-size: 1.05rem;
-  color: var(--lo-accent);
+  color: var(--accent);
   min-width: 4.5rem;
 }
 .job-card .title {
@@ -480,7 +766,7 @@ a.stat-card:hover {
   white-space: nowrap;
 }
 .job-card .client-name {
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   font-size: 0.92rem;
   min-width: 0;
   overflow: hidden;
@@ -488,7 +774,7 @@ a.stat-card:hover {
   white-space: nowrap;
 }
 .job-card .address {
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   font-size: 0.88rem;
   min-width: 0;
   overflow: hidden;
@@ -505,9 +791,9 @@ a.stat-card:hover {
   gap: 0.5rem;
   padding: 0.6rem 0.9rem;
   margin-bottom: 1rem;
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: var(--lo-card-radius);
-  background: var(--pico-card-sectioning-background-color);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface-2);
 }
 .sched-section { margin-bottom: 1.4rem; }
 .sched-section-head {
@@ -517,7 +803,7 @@ a.stat-card:hover {
   gap: 0.5rem;
   margin: 0 0 0.5rem 0;
   padding-bottom: 0.3rem;
-  border-bottom: 1px solid var(--pico-card-border-color);
+  border-bottom: var(--hairline);
 }
 .sched-section-head h2 {
   margin: 0;
@@ -530,18 +816,17 @@ a.stat-card:hover {
   margin-left: 0.4rem;
   padding: 0.05rem 0.5rem;
   border-radius: 999px;
-  background: var(--pico-card-sectioning-background-color);
-  border: 1px solid var(--pico-card-border-color);
+  background: var(--surface-2);
+  border: var(--hairline);
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
 }
 .sched-overdue .sched-section-head { border-bottom-color: var(--lo-danger); }
 .sched-overdue .sched-section-head h2 { color: var(--lo-danger); }
 .sched-overdue .job-card { border-left-color: var(--lo-danger); }
-.sched-today .sched-section-head h2 { color: var(--lo-accent); }
+.sched-today .sched-section-head h2 { color: var(--accent); }
 
-/* The schedule view splits the card into a body link + an actions strip */
 .sched-section .job-card {
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -571,14 +856,22 @@ a.stat-card:hover {
   .sched-section .job-card-actions { margin-left: 0; justify-content: flex-end; }
 }
 
-/* ===== Tap-friendly anchor "buttons" ===== */
+/* ===== Buttons ===== */
 a[role="button"], button, .btn {
-  min-height: var(--lo-tap);
+  min-height: var(--tap);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  transition: background var(--motion), border-color var(--motion),
+              box-shadow var(--motion), color var(--motion),
+              transform var(--motion);
 }
+a[role="button"].contrast:hover, button.contrast:hover {
+  box-shadow: 0 0 22px -4px rgb(var(--accent-rgb) / 0.6);
+}
+a[role="button"]:active, button:active { transform: scale(0.98); }
+
 .btn-row {
   display: flex;
   gap: 0.5rem;
@@ -589,11 +882,30 @@ a[role="button"], button, .btn {
   .btn-row > * { flex: 0 0 auto; }
 }
 
-/* ===== Forms (mobile-friendly) ===== */
+/* Small button — for inline actions that can't be tap-sized */
+.btn-sm {
+  font-size: 0.85rem !important;
+  padding: 0.3rem 0.7rem !important;
+  min-height: 2.2rem !important;
+}
+
+/* Danger button — destructive verbs */
+.btn-danger {
+  color: var(--lo-danger) !important;
+  border-color: rgb(var(--status-danger-rgb) / 0.45) !important;
+  background: transparent;
+}
+.btn-danger:hover {
+  background: rgb(var(--status-danger-rgb) / 0.10) !important;
+  border-color: var(--lo-danger) !important;
+  box-shadow: 0 0 18px -4px rgb(var(--status-danger-rgb) / 0.55) !important;
+}
+
+/* ===== Forms ===== */
 input, select, textarea {
   font-size: 16px !important; /* prevents iOS zoom on focus */
 }
-label small { display: block; color: var(--pico-muted-color); margin-top: 0.2rem; }
+label small { display: block; color: var(--text-secondary); margin-top: 0.2rem; }
 small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 
 /* ===== Auth shell ===== */
@@ -601,9 +913,24 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   max-width: 26rem;
   margin: min(8vh, 4rem) auto;
   padding: 2rem 1.5rem 1.4rem;
-  border-radius: var(--lo-card-radius);
-  border: 1px solid var(--pico-card-border-color);
-  background: var(--pico-card-background-color);
+  border-radius: var(--radius-lg);
+  border: var(--hairline-strong);
+  background: var(--surface-2);
+  box-shadow:
+    var(--edge-highlight-strong),
+    0 24px 60px -16px rgb(var(--accent-rgb) / 0.18),
+    0 4px 18px -4px rgb(0 0 0 / 0.45);
+  position: relative;
+}
+.auth-shell::before {
+  content: "";
+  position: absolute;
+  inset: -120px -60px auto -60px;
+  height: 200px;
+  background: radial-gradient(ellipse at 50% 0%,
+              rgb(var(--accent-rgb) / 0.18), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
 }
 .auth-shell h1 {
   margin-top: 0;
@@ -614,26 +941,26 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 }
 .auth-shell .brand-mark { width: 36px; height: 36px; }
 
-/* ===== Tables (compact, mobile-aware) ===== */
+/* ===== Tables ===== */
 .table-rows {
   width: 100%;
   border-collapse: collapse;
 }
 .table-rows th, .table-rows td { padding: 0.6rem 0.4rem; }
-.table-rows tr { border-bottom: 1px solid var(--pico-card-border-color); }
-.table-rows tr:hover { background: var(--pico-card-sectioning-background-color); }
+.table-rows tr { border-bottom: var(--hairline); }
+.table-rows tr:hover { background: var(--surface-2); }
 .table-rows a { text-decoration: none; }
 
-/* On mobile, transform tables into cards via labels */
 @media (max-width: 720px) {
   .table-cards thead { display: none; }
   .table-cards tr {
     display: block;
-    background: var(--pico-card-background-color);
-    border: 1px solid var(--pico-card-border-color);
-    border-radius: var(--lo-card-radius);
+    background: var(--surface-1);
+    border: var(--hairline);
+    border-radius: var(--radius);
     padding: 0.7rem 0.85rem;
     margin-bottom: 0.55rem;
+    box-shadow: var(--edge-highlight);
   }
   .table-cards td {
     display: flex;
@@ -644,15 +971,12 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   }
   .table-cards td::before {
     content: attr(data-label);
-    color: var(--pico-muted-color);
+    color: var(--text-secondary);
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     flex: 0 0 7rem;
   }
-  /* tfoot rows use colspan and right-align their values; the totals are
-     also shown in the summary card above the line items, so just hide the
-     tfoot on mobile rather than try to card-ify it. */
   .hide-on-mobile { display: none !important; }
 }
 
@@ -660,9 +984,9 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 .empty {
   text-align: center;
   padding: 2.5rem 1rem;
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
 }
-.empty .empty-icon { font-size: 2.4rem; opacity: 0.6; margin-bottom: 0.4rem; }
+.empty .empty-icon { font-size: 2.4rem; opacity: 0.7; margin-bottom: 0.4rem; }
 
 /* ===== Photos grid ===== */
 .photos-grid {
@@ -675,8 +999,8 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--radius-sm);
+  border: var(--hairline);
 }
 .photos-grid .photo-del {
   position: absolute;
@@ -693,6 +1017,8 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   font-size: 0.95rem;
   padding: 0;
   cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* ===== Calendar (shared toolbar + view switcher) ===== */
@@ -704,38 +1030,46 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   margin: -0.4rem 0 0.9rem;
 }
 .cal-label {
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   font-size: 0.95rem;
 }
 .cal-views {
   margin-left: auto;
   display: inline-flex;
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: 8px;
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
   padding: 2px;
+  box-shadow: var(--edge-highlight);
 }
 .cal-views a {
   text-decoration: none;
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   padding: 0.35rem 0.75rem;
   border-radius: 6px;
   font-size: 0.88rem;
+  transition: background var(--motion), color var(--motion);
 }
-.cal-views a.active { background: var(--lo-accent); color: #1a1407; font-weight: 600; }
+.cal-views a.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  box-shadow: 0 0 14px -2px rgb(var(--accent-rgb) / 0.5);
+}
 
 /* ===== Calendar — month view ===== */
 .cal-month {
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: var(--lo-card-radius);
+  border: var(--hairline);
+  border-radius: var(--radius);
   overflow: hidden;
-  background: var(--pico-card-background-color);
+  background: var(--surface-1);
+  box-shadow: var(--edge-highlight);
 }
 .cal-month-dow {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: var(--pico-card-sectioning-background-color);
-  border-bottom: 1px solid var(--pico-card-border-color);
+  background: var(--surface-2);
+  border-bottom: var(--hairline);
 }
 .cal-month-dow > div {
   padding: 0.45rem 0.4rem;
@@ -743,7 +1077,7 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 .cal-month-grid {
@@ -752,34 +1086,44 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   grid-auto-rows: minmax(110px, auto);
 }
 .cal-month-cell {
-  border-right: 1px solid var(--pico-card-border-color);
-  border-bottom: 1px solid var(--pico-card-border-color);
+  border-right: var(--hairline);
+  border-bottom: var(--hairline);
   padding: 0.4rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   text-decoration: none;
   color: inherit;
-  background: var(--pico-card-background-color);
+  background: transparent;
+  transition: background var(--motion);
 }
-.cal-month-cell:hover { background: var(--pico-card-sectioning-background-color); }
+.cal-month-cell:hover { background: var(--surface-2); }
 .cal-month-cell:nth-child(7n) { border-right: none; }
-.cal-month-cell.other-month { background: var(--pico-card-sectioning-background-color); opacity: 0.55; }
-.cal-month-cell.today { background: var(--lo-accent-soft); }
+.cal-month-cell.other-month { background: rgb(255 255 255 / 0.02); opacity: 0.55; }
+.cal-month-cell.today {
+  background:
+    radial-gradient(ellipse at 50% 50%,
+                    rgb(var(--accent-rgb) / 0.18), transparent 70%),
+    var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--accent-edge);
+}
 .cal-month-cell.today .cal-month-num {
-  background: var(--lo-accent); color: #1a1407;
+  background: var(--accent);
+  color: var(--accent-ink);
   width: 1.7rem; height: 1.7rem;
   display: inline-grid; place-items: center;
-  border-radius: 50%; font-weight: 800;
+  border-radius: 50%;
+  font-weight: 800;
+  box-shadow: 0 0 14px -2px rgb(var(--accent-rgb) / 0.7);
 }
 .cal-month-num {
   font-weight: 600;
   font-size: 0.92rem;
-  color: var(--pico-color);
+  color: var(--text-primary);
 }
 .cal-chip {
-  background: var(--pico-card-sectioning-background-color);
-  border-left: 3px solid var(--lo-accent);
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
   border-radius: 4px;
   padding: 0.15rem 0.35rem;
   font-size: 0.72rem;
@@ -788,29 +1132,35 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cal-chip .t { color: var(--lo-accent); font-weight: 600; }
+.cal-chip .t { color: var(--accent); font-weight: 600; }
 .cal-chip.status-complete    { border-left-color: var(--lo-success); opacity: 0.85; }
-.cal-chip.status-in_progress { border-left-color: var(--lo-warning); }
+.cal-chip.status-in_progress { border-left-color: var(--accent); }
 .cal-chip.status-canceled    { border-left-color: var(--lo-muted); opacity: 0.55; }
-.cal-chip.status-estimate    { border-left-color: var(--lo-info); background: rgba(59, 130, 246, 0.06); }
-.cal-more { font-size: 0.7rem; color: var(--pico-muted-color); }
+.cal-chip.status-estimate    { border-left-color: var(--lo-info); background: rgb(var(--status-info-rgb) / 0.06); }
+.cal-more { font-size: 0.7rem; color: var(--text-secondary); }
 
-/* Mobile: shrink the month grid, hide chips except a dot indicator */
+/* Mobile month — dot density */
 @media (max-width: 720px) {
   .cal-month-grid { grid-auto-rows: minmax(56px, auto); }
   .cal-month-cell { padding: 0.3rem 0.2rem; gap: 0.1rem; min-height: 56px; }
   .cal-month-num { font-size: 0.85rem; }
   .cal-chip, .cal-more { display: none; }
-  .cal-month-cell.has-jobs::after {
-    content: '';
-    display: block;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--lo-accent);
+  .cal-month-cell .cal-dots {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
     margin-top: auto;
     margin-bottom: 4px;
-    align-self: center;
   }
+  .cal-month-cell .cal-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px rgb(var(--accent-rgb) / 0.55);
+  }
+}
+@media (min-width: 721px) {
+  .cal-month-cell .cal-dots { display: none; }
 }
 
 /* ===== Calendar (week view) ===== */
@@ -823,73 +1173,82 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   .cal-week { grid-template-columns: 1fr; }
 }
 .cal-day {
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: var(--lo-card-radius);
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-radius: var(--radius);
   padding: 0.6rem;
   min-height: 130px;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  box-shadow: var(--edge-highlight);
 }
-.cal-day.today { border-color: var(--lo-accent); box-shadow: 0 0 0 1px var(--lo-accent-soft); }
+.cal-day.today {
+  border-color: var(--accent-edge);
+  box-shadow:
+    var(--edge-highlight),
+    0 0 0 1px var(--accent-edge),
+    0 0 22px -6px rgb(var(--accent-rgb) / 0.45);
+}
 .cal-day .cal-day-head {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--pico-muted-color);
+  color: var(--text-secondary);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
 }
-.cal-day .cal-day-num { color: var(--pico-color); font-weight: 700; font-size: 1.1rem; }
+.cal-day .cal-day-num { color: var(--text-primary); font-weight: 700; font-size: 1.1rem; }
+.cal-day.today .cal-day-num { color: var(--accent); text-shadow: 0 0 12px rgb(var(--accent-rgb) / 0.5); }
 .cal-day .cal-job {
-  background: var(--pico-card-sectioning-background-color);
-  border-left: 3px solid var(--lo-accent);
-  border-radius: 6px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
   padding: 0.35rem 0.5rem;
   text-decoration: none;
-  color: var(--pico-color);
+  color: var(--text-primary);
   font-size: 0.82rem;
   line-height: 1.25;
 }
-.cal-day .cal-job .t { color: var(--lo-accent); font-weight: 600; }
+.cal-day .cal-job .t { color: var(--accent); font-weight: 600; }
 .cal-day .cal-job.status-complete    { border-left-color: var(--lo-success); }
-.cal-day .cal-job.status-in_progress { border-left-color: var(--lo-warning); }
+.cal-day .cal-job.status-in_progress { border-left-color: var(--accent); }
 .cal-day .cal-job.status-canceled    { border-left-color: var(--lo-muted); opacity: 0.6; }
 .cal-day .cal-job.status-estimate    { border-left-color: var(--lo-info); }
 
 /* ===== Visits list ===== */
 .visit-row {
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: 10px;
+  background: var(--surface-1);
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
   padding: 0.7rem 0.85rem;
   margin-bottom: 0.45rem;
   display: grid;
   gap: 0.25rem;
+  box-shadow: var(--edge-highlight);
 }
 .visit-row .when { font-weight: 600; }
-.visit-row .meta { color: var(--pico-muted-color); font-size: 0.85rem; }
+.visit-row .meta { color: var(--text-secondary); font-size: 0.85rem; }
 
-/* ===== Quick actions on a job (sticky on mobile) ===== */
+/* ===== Sticky CTA on a job (uses .glass via class) ===== */
 .sticky-cta {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-card-border-color);
-  border-radius: var(--lo-card-radius);
+  border-radius: var(--radius);
   padding: 0.7rem;
   margin-top: 0.8rem;
 }
 .sticky-cta > * { flex: 1 1 0; min-width: 110px; }
 
-/* "More" sheet (mobile bottom-sheet from the More tab) */
+/* ===== "More" sheet (mobile bottom-sheet) ===== */
 .more-sheet {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 200;
   display: none;
   align-items: flex-end;
@@ -897,65 +1256,71 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 }
 .more-sheet.open { display: flex; }
 .more-sheet-content {
-  background: var(--pico-card-background-color);
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  border-top: 1px solid var(--pico-card-border-color);
+  background: var(--surface-3);
+  backdrop-filter: var(--blur-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  border-top: var(--hairline-strong);
   width: 100%;
   max-width: 520px;
   padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
   max-height: 75vh;
   overflow: auto;
+  box-shadow: var(--edge-highlight-strong);
 }
 .more-sheet-list { display: grid; gap: 0.55rem; }
 .more-item {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.15rem;
-  background: var(--pico-card-sectioning-background-color);
-  border: 1px solid var(--pico-card-border-color);
+  background: var(--surface-2);
+  border: var(--hairline);
   border-left: 3px solid transparent;
-  border-radius: var(--lo-card-radius);
+  border-radius: var(--radius);
   padding: 0.7rem 0.9rem;
   text-decoration: none;
   color: inherit;
+  transition: border-color var(--motion), background var(--motion);
 }
 .more-item strong { font-size: 1rem; font-weight: 600; }
-.more-item small { font-size: 0.82rem; }
-.more-item:hover { border-color: var(--pico-muted-border-color); }
+.more-item small { font-size: 0.82rem; color: var(--text-secondary); }
+.more-item:hover { border-color: var(--hairline-strong); }
 .more-item.active {
-  border-left-color: var(--lo-accent);
-  background: var(--lo-accent-soft);
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 14px -4px rgb(var(--accent-rgb) / 0.45);
 }
 
-/* ===== Print styles =====
-   Optimised for invoice/quote handouts. Strips chrome, forces a clean
-   white-paper look, hides interactive controls, and re-shows the line-item
-   tfoot we hide on small screens (operator-printed invoices need the
-   per-line totals visible). Apply <body class="print-document"> on a page
-   to opt in to the document-style layout; otherwise just basic chrome
-   stripping happens for any print. */
+/* ===== Print styles ===== */
 @media print {
   .topbar, .bottombar, .more-sheet, #lo-confirm-overlay,
   .sticky-cta, .htmx-spinner, .flash, form[method="post"],
   .actions a[role="button"], .actions button,
-  .btn-row, details, hr + form { display: none !important; }
-  body { padding: 0 !important; background: #fff !important; color: #000 !important; }
+  .btn-row, details, hr + form, .skip-link { display: none !important; }
+  body {
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
   .app-main { padding: 0 !important; max-width: 100% !important; }
   a { color: inherit !important; text-decoration: none !important; }
-  .card {
+  .card, .surface, .surface-elevated, .glass {
     background: #fff !important;
     border: 1px solid #ccc !important;
     box-shadow: none !important;
-    page-break-inside: avoid;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
   .pill {
     background: transparent !important;
     color: #000 !important;
     border: 1px solid #888 !important;
+    box-shadow: none !important;
   }
+  .quote-total { color: #000 !important; text-shadow: none !important; }
   .muted, .pico-muted-color { color: #555 !important; }
-  /* Override the mobile-only hide so totals print on every paper format. */
   .hide-on-mobile { display: table-row-group !important; }
   table.table-rows { border-collapse: collapse; width: 100%; }
   table.table-rows th, table.table-rows td {
@@ -966,20 +1331,18 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
     border-top: 1px solid #888 !important;
     border-bottom: none !important;
   }
-  /* Don't card-ify tables in print — readers expect the grid layout. */
   .table-cards thead { display: table-header-group !important; }
   .table-cards tr { display: table-row !important; padding: 0 !important; margin: 0 !important; }
   .table-cards td { display: table-cell !important; }
   .table-cards td::before { content: none !important; }
-  /* Header de-emphasis */
   .page-head h1 { font-size: 1.4rem !important; }
 }
 
-/* Badges (unread counts etc.) */
+/* ===== Badges ===== */
 .badge {
   display: inline-block;
-  background: var(--lo-accent);
-  color: #1a1407;
+  background: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
   font-size: 0.7rem;
   padding: 0.05rem 0.4rem;
@@ -987,6 +1350,7 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   min-width: 1.2rem;
   text-align: center;
   line-height: 1.3;
+  box-shadow: 0 0 10px -2px rgb(var(--accent-rgb) / 0.55);
 }
 .bottombar-badge {
   position: absolute;
@@ -996,7 +1360,67 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
   padding: 0.05rem 0.35rem;
 }
 
-/* Misc */
-.muted { color: var(--pico-muted-color); }
-hr { border: none; border-top: 1px solid var(--pico-card-border-color); margin: 1.2rem 0; }
+/* ===== Theme & accent picker (settings) ===== */
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.6rem;
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.7rem;
+  border-radius: var(--radius);
+  border: var(--hairline);
+  background: var(--surface-1);
+  cursor: pointer;
+  transition: border-color var(--motion), box-shadow var(--motion),
+              transform var(--motion);
+  position: relative;
+}
+.swatch:hover { transform: translateY(-1px); }
+.swatch input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.swatch .chip {
+  width: 100%;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--swatch-color, var(--accent));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 0 24px -4px var(--swatch-color, var(--accent));
+}
+.swatch .name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+.swatch .desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+}
+.swatch:has(input:checked) {
+  border-color: var(--accent-edge);
+  box-shadow: var(--accent-glow-sm);
+}
+
+/* Per-swatch colors so the chip previews each accent regardless of the
+   currently-applied accent on <html>. */
+.swatch[data-accent="amber"]   { --swatch-color: #f59e0b; }
+.swatch[data-accent="ember"]   { --swatch-color: #f45b24; }
+.swatch[data-accent="crimson"] { --swatch-color: #f43f5e; }
+.swatch[data-accent="magenta"] { --swatch-color: #d946ef; }
+.swatch[data-accent="violet"]  { --swatch-color: #8b5cf6; }
+.swatch[data-accent="cyan"]    { --swatch-color: #22d3ee; }
+.swatch[data-accent="lime"]    { --swatch-color: #84cc16; }
+.swatch[data-accent="gold"]    { --swatch-color: #facc15; }
+
+/* ===== Misc ===== */
+.muted { color: var(--text-secondary); }
+hr { border: none; border-top: var(--hairline); margin: 1.2rem 0; }
 .spacer { height: 1rem; }

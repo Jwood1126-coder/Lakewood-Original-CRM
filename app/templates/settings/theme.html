@@ -5,18 +5,19 @@
 {% include "settings/_back.html" %}
 <div class="page-head"><h1>Theme</h1></div>
 
-<form method="post" novalidate style="max-width:32rem">
+<form method="post" novalidate style="max-width:42rem">
   {{ form.hidden_tag() }}
+
+  <h2 style="font-size:1.05rem; margin: 0.4rem 0 0.6rem">Surface</h2>
   <div class="card-list">
     {% for value, label in themes %}
-      <label class="card" style="cursor:pointer; display:flex; align-items:center; gap:0.7rem">
+      <label class="card checkbox-row" style="cursor:pointer">
         <input type="radio" name="theme" value="{{ value }}"
-               {% if form.theme.data == value %}checked{% endif %}
-               style="margin:0; flex:0 0 auto">
+               {% if form.theme.data == value %}checked{% endif %}>
         <div>
           <strong>{{ label }}</strong>
           <div class="muted" style="font-size:0.85rem">
-            {% if value == 'dark' %}Comfortable dark UI with amber accents.
+            {% if value == 'dark' %}Comfortable dark UI with layered glass surfaces.
             {% elif value == 'amoled' %}Pure black background — easier on OLED phone screens at night.
             {% elif value == 'light' %}Crisp light theme for daytime / bright outdoor use.{% endif %}
           </div>
@@ -24,6 +25,48 @@
       </label>
     {% endfor %}
   </div>
-  {{ form.submit(class_="contrast", style="margin-top:1rem") }}
+
+  <h2 style="font-size:1.05rem; margin: 1.4rem 0 0.6rem">Accent</h2>
+  <p class="muted" style="margin: -0.4rem 0 0.7rem; font-size:0.88rem">
+    Drives the neon glow on active nav, focused inputs, the FAB, totals, and key counts.
+  </p>
+  <div class="swatch-grid">
+    {% for value, label, desc in accents %}
+      <label class="swatch" data-accent="{{ value }}">
+        <input type="radio" name="accent" value="{{ value }}"
+               {% if form.accent.data == value %}checked{% endif %}>
+        <div class="chip" aria-hidden="true"></div>
+        <div class="name">{{ label }}</div>
+        <div class="desc">{{ desc }}</div>
+      </label>
+    {% endfor %}
+  </div>
+
+  {{ form.submit(class_="contrast", style="margin-top:1.2rem") }}
 </form>
+
+<script>
+  /* Live-preview the accent on <html> as the user clicks swatches.
+     Server still owns persistence; this is just a UI affordance. */
+  (function () {
+    document.querySelectorAll('input[name="accent"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        document.documentElement.setAttribute('data-accent', input.value);
+      });
+    });
+    document.querySelectorAll('input[name="theme"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var pico = (v === 'light') ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', pico);
+        document.documentElement.setAttribute('data-app-theme', v);
+        var meta = document.getElementById('theme-color-meta');
+        if (meta) {
+          meta.setAttribute('content',
+            v === 'light' ? '#f6f7fb' : (v === 'amoled' ? '#000000' : '#07090c'));
+        }
+      });
+    });
+  })();
+</script>
 {% endblock %}

@@ -20,6 +20,17 @@ THEMES = [
     ("light",  "Light"),
 ]
 
+ACCENTS = [
+    ("amber",   "Amber",   "Warm workshop amber — the default"),
+    ("ember",   "Ember",   "Hotter orange, more dawn than dusk"),
+    ("crimson", "Crimson", "Pink-leaning red, urgent without alarm"),
+    ("magenta", "Magenta", "Synthwave pink, loud and confident"),
+    ("violet",  "Violet",  "Deep purple, calm at night"),
+    ("cyan",    "Cyan",    "Cool tech blue, easiest on the eyes"),
+    ("lime",    "Lime",    "Fluorescent green for bright daylight"),
+    ("gold",    "Gold",    "Warmer than amber, almost yellow"),
+]
+
 
 class ProfileForm(FlaskForm):
     display_name = StringField(
@@ -36,6 +47,11 @@ class ProfileForm(FlaskForm):
 
 class ThemeForm(FlaskForm):
     theme = RadioField("Theme", choices=THEMES, default="dark")
+    accent = RadioField(
+        "Accent",
+        choices=[(value, label) for value, label, _desc in ACCENTS],
+        default="amber",
+    )
     submit = SubmitField("Apply")
 
 

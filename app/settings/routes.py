@@ -27,6 +27,7 @@ from app.models.property import Property
 from app.models.setting import all_business_settings, get_setting, set_setting
 from app.services.backup import run_backup
 from app.settings.forms import (
+    ACCENTS,
     THEMES,
     AssistantForm,
     BusinessForm,
@@ -95,13 +96,19 @@ def profile():
 @bp.route("/theme", methods=["GET", "POST"])
 @login_required
 def theme():
-    form = ThemeForm(theme=current_user.theme or "dark")
+    form = ThemeForm(
+        theme=current_user.theme or "dark",
+        accent=current_user.accent or "amber",
+    )
     if form.validate_on_submit():
         current_user.theme = form.theme.data
+        current_user.accent = form.accent.data
         db.session.commit()
         flash("Theme updated.", "success")
         return redirect(url_for("settings.theme"))
-    return render_template("settings/theme.html", form=form, themes=THEMES)
+    return render_template(
+        "settings/theme.html", form=form, themes=THEMES, accents=ACCENTS
+    )
 
 
 # ---------- business info ----------
