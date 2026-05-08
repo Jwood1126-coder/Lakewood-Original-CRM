@@ -88,7 +88,7 @@ def upgrade():
         sa.Column("description", sa.String(length=500), nullable=False),
         sa.Column("quantity", sa.Numeric(precision=10, scale=2), nullable=False, server_default="1"),
         sa.Column("unit_price_cents", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("taxable", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("taxable", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.ForeignKeyConstraint(["quote_id"], ["quotes.id"], ondelete="CASCADE",
                                 name="fk_line_items_quote_id"),
         sa.ForeignKeyConstraint(["invoice_id"], ["invoices.id"], ondelete="CASCADE",
