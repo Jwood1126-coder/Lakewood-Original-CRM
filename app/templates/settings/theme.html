@@ -8,7 +8,7 @@
 <form method="post" novalidate class="form-wide">
   {{ form.hidden_tag() }}
 
-  <h2 style="font-size:1.05rem; margin: 0.4rem 0 0.6rem">Surface</h2>
+  <h2 class="section-head-h2">Surface</h2>
   <div class="card-list">
     {% for value, label in themes %}
       <label class="card checkbox-row" style="cursor:pointer">
@@ -26,7 +26,7 @@
     {% endfor %}
   </div>
 
-  <h2 style="font-size:1.05rem; margin: 1.4rem 0 0.6rem">Accent</h2>
+  <h2 class="section-head-h2 mt-3">Accent</h2>
   <p class="muted" style="margin: -0.4rem 0 0.7rem; font-size:0.88rem">
     Drives the neon glow on active nav, focused inputs, the FAB, totals, and key counts.
   </p>
@@ -42,7 +42,7 @@
     {% endfor %}
   </div>
 
-  {{ form.submit(class_="contrast", style="margin-top:1.2rem") }}
+  {{ form.submit(class_="contrast mt-3") }}
 </form>
 
 <script>

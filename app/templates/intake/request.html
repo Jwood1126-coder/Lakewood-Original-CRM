@@ -35,7 +35,7 @@
     </div>
     <small class="muted">Phone or email — at least one.</small>
 
-    <label for="service" style="margin-top:1rem">What do you need?</label>
+    <label for="service" class="mt-2">What do you need?</label>
     <select id="service" name="service">
       {% for s in services %}
         <option value="{{ s.key }}" {% if values.service == s.key %}selected{% endif %}>
@@ -48,7 +48,7 @@
     <textarea id="description" name="description" rows="5" required
               placeholder="What needs doing? Photos help if you can text them after.">{{ values.description or '' }}</textarea>
 
-    <label for="address" style="margin-top:1rem">Address</label>
+    <label for="address" class="mt-2">Address</label>
     <input id="address" name="address" autocomplete="address-line1" value="{{ values.address or '' }}">
 
     <div class="grid">

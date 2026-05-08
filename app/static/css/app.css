@@ -1303,6 +1303,41 @@ small.error { color: var(--lo-danger); display: block; margin-top: 0.15rem; }
 
 /* Inline icon-aligned label — for buttons, links, headers etc. */
 .ic-svg { vertical-align: -0.18em; }
+
+/* Password input with visibility toggle */
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.password-field input {
+  flex: 1 1 auto;
+  padding-right: 3rem;
+  margin: 0;
+}
+.password-field .password-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--motion), background var(--motion);
+}
+.password-field .password-toggle:hover {
+  color: var(--text-primary);
+  background: rgb(255 255 255 / 0.04);
+}
+.password-field .password-toggle.is-revealed { color: var(--accent); }
 .more-item:hover { border-color: var(--hairline-strong); }
 .more-item.active {
   border-left-color: var(--accent);
@@ -1548,6 +1583,21 @@ h2.section-head-h2 {
   font-weight: 600;
   letter-spacing: -0.01em;
   margin: 0 0 0.6rem;
+}
+
+/* Smaller h3 — sub-section inside a form/card */
+h3.section-head-h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.4rem;
+}
+
+/* Auth-shell subtitle (sits under the h1 with negative margin so it
+   tucks closer to the brand row). */
+.auth-shell .auth-subtitle {
+  margin-top: -0.6rem;
+  margin-bottom: 1rem;
 }
 
 hr { border: none; border-top: var(--hairline); margin: 1.2rem 0; }

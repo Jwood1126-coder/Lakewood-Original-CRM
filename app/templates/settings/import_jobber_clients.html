@@ -20,7 +20,7 @@
   {{ form.csv_file() }}
   {% for err in form.csv_file.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
-  <label for="{{ form.skip_jobber_ids.id }}" style="margin-top:1rem">{{ form.skip_jobber_ids.label.text }}</label>
+  <label for="{{ form.skip_jobber_ids.id }}" class="mt-2">{{ form.skip_jobber_ids.label.text }}</label>
   {{ form.skip_jobber_ids() }}
   <small class="muted">
     Pre-filled with: <code>84770573</code> (Jacob Wood — your own test entries),

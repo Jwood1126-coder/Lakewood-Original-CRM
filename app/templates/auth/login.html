@@ -4,7 +4,7 @@
 {% block content %}
 <div class="auth-shell">
   <h1><span class="brand-mark">LO</span> Sign in</h1>
-  <p class="muted" style="margin-top:-0.6rem">{{ business_name }}</p>
+  <p class="muted auth-subtitle">{{ business_name }}</p>
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
 
@@ -13,12 +13,32 @@
     {% for err in form.email.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
     <label for="{{ form.password.id }}">Password</label>
-    {{ form.password() }}
+    <div class="password-field">
+      {{ form.password() }}
+      <button type="button" class="password-toggle" aria-label="Show password"
+              data-target="{{ form.password.id }}">
+        {{ icon("eye") }}
+      </button>
+    </div>
     {% for err in form.password.errors %}<small class="error">{{ err }}</small>{% endfor %}
 
-    <label>{{ form.remember() }} {{ form.remember.label.text }}</label>
+    <label class="checkbox-row">{{ form.remember() }} {{ form.remember.label.text }}</label>
 
-    {{ form.submit(class_="contrast", style="width:100%; margin-top:0.5rem") }}
+    {{ form.submit(class_="contrast w-full mt-1") }}
   </form>
 </div>
+
+<script>
+  /* Password-visibility toggle. data-target points to the input id. */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.password-toggle');
+    if (!btn) return;
+    var input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    btn.classList.toggle('is-revealed', !showing);
+  });
+</script>
 {% endblock %}
