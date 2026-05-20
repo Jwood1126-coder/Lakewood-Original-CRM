@@ -215,27 +215,42 @@ def api_request():
       200 {ok: true, quote_number: 12} on success
       400 {ok: false, error: '...'}     on validation failure / honeypot
     """
+    headers = _cors_headers(request.headers.get("Origin"))
+
     if request.method == "OPTIONS":
-        # CORS preflight
-        return ("", 204, _cors_headers())
+        # CORS preflight. If the Origin isn't on our allow-list, return 403
+        # with no CORS headers so the browser refuses to make the real call.
+        if "Access-Control-Allow-Origin" not in headers:
+            return ("", 403, {})
+        return ("", 204, headers)
 
     payload = request.get_json(silent=True) or request.form
     result = _ingest_request(payload or {}, source="website")
     if result is None:
         return (jsonify(ok=False,
                          error="Missing required fields or spam check failed"),
-                400, _cors_headers())
+                400, headers)
     _, _, quote = result
     return (jsonify(ok=True, quote_number=quote.number,
                      message="Thanks — we'll be in touch shortly."),
-            200, _cors_headers())
+            200, headers)
 
 
-def _cors_headers() -> dict:
-    """CORS headers locked to the live website + localhost for testing."""
-    return {
-        "Access-Control-Allow-Origin": "https://lakewoodoriginal.com",
+def _cors_headers(origin: str | None) -> dict:
+    """Build CORS headers for the given request Origin (issue #4).
+
+    Echoes the Origin back only when it appears in the configured allow-list
+    (`INTAKE_CORS_ORIGINS`). For non-allowed or missing origins we omit the
+    `Access-Control-Allow-Origin` header entirely; browsers then refuse the
+    response. `Vary: Origin` is always set so caches can't pollute responses
+    between callers.
+    """
+    base = {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Vary": "Origin",
     }
+    allowed = current_app.config.get("INTAKE_CORS_ORIGINS") or []
+    if origin and origin in allowed:
+        base["Access-Control-Allow-Origin"] = origin
+    return base

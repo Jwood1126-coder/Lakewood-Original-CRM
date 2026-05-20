@@ -214,8 +214,34 @@ def change_status(quote_id: int, new_status: str):
     quote = db.session.get(Quote, quote_id) or abort(404)
     if new_status not in QUOTE_STATUSES:
         abort(400)
+
+    # `converted` is reached via /convert-to-job, which also creates the
+    # linked Job and writes converted_to_job_id. Setting it here would
+    # leave a dangling 'converted' quote with no job.
+    if new_status == "converted":
+        flash(
+            "Use 'Convert to job' to convert this estimate — it creates the linked job.",
+            "error",
+        )
+        return redirect(url_for("quotes.view_quote", quote_id=quote.id))
+
     prev_status = quote.status
-    quote.status = new_status
+
+    # Issue #3: enforce quote state-machine. `converted` is handled by the
+    # dedicated /convert-to-job route, which also creates the linked Job.
+    # Same-status posts are a no-op (refreshes, double-clicks).
+    if new_status == prev_status:
+        flash(f"Estimate is already {QUOTE_STATUS_LABELS[new_status]}.", "info")
+        return redirect(url_for("quotes.view_quote", quote_id=quote.id))
+    if not quote.can_transition_to(new_status):
+        flash(
+            f"Can't move estimate from {QUOTE_STATUS_LABELS.get(prev_status, prev_status)} "
+            f"to {QUOTE_STATUS_LABELS.get(new_status, new_status)}.",
+            "error",
+        )
+        return redirect(url_for("quotes.view_quote", quote_id=quote.id))
+
+    quote.transition_to(new_status)
     if new_status == "sent" and not quote.sent_at:
         quote.sent_at = datetime.utcnow()
     if new_status == "accepted" and not quote.accepted_at:
@@ -224,12 +250,10 @@ def change_status(quote_id: int, new_status: str):
         quote.declined_at = datetime.utcnow()
     db.session.commit()
 
-    # Fire event notifications only on actual transitions
-    if new_status != prev_status:
-        if new_status == "sent":
-            notify_quote_sent(quote)
-        elif new_status == "accepted":
-            notify_quote_accepted(quote)
+    if new_status == "sent":
+        notify_quote_sent(quote)
+    elif new_status == "accepted":
+        notify_quote_accepted(quote)
 
     flash(f"Estimate marked {QUOTE_STATUS_LABELS[new_status]}.", "success")
     return redirect(url_for("quotes.view_quote", quote_id=quote.id))
