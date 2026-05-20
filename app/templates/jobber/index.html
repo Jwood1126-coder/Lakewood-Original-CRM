@@ -85,6 +85,12 @@
         const stateEl = document.getElementById('sync-all-state');
         const resultsEl = document.getElementById('sync-all-results');
         const STATUS_URL = "{{ url_for('jobber.sync_all_status') }}";
+        const STAGE_LABELS = {
+          clients: 'Clients + properties',
+          jobs: 'Jobs',
+          quotes: 'Quotes',
+          invoices: 'Invoices + payments',
+        };
         let timer = null;
 
         function render(state) {
@@ -94,7 +100,8 @@
           }
           box.hidden = false;
           if (state.running) {
-            stateEl.textContent = 'Running · ' + (state.current_stage || '…');
+            const stageLabel = STAGE_LABELS[state.current_stage] || state.current_stage || '…';
+            stateEl.textContent = 'Running · ' + stageLabel;
             stateEl.className = 'pill pill-sent';
           } else {
             stateEl.textContent = state.error ? ('Failed: ' + state.error) : 'Finished';

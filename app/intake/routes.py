@@ -214,15 +214,30 @@ def api_request():
     Returns:
       200 {ok: true, quote_number: 12} on success
       400 {ok: false, error: '...'}     on validation failure / honeypot
+      403 {ok: false, error: '...'}     when an Origin header is present but
+                                         not on the INTAKE_CORS_ORIGINS allow-list
     """
-    headers = _cors_headers(request.headers.get("Origin"))
+    origin = request.headers.get("Origin")
+    allowed = _allowed_origins()
+    origin_ok = (not origin) or (origin in allowed)
+    headers = _cors_headers(origin, allowed)
 
     if request.method == "OPTIONS":
         # CORS preflight. If the Origin isn't on our allow-list, return 403
         # with no CORS headers so the browser refuses to make the real call.
-        if "Access-Control-Allow-Origin" not in headers:
+        if not origin_ok:
             return ("", 403, {})
         return ("", 204, headers)
+
+    # Block cross-origin POSTs from disallowed origins *before* ingestion so
+    # no Client/Property/Quote rows get created on their behalf. Same-origin
+    # / server-side callers (no Origin header) still go through the public
+    # intake path — the rate limiter + honeypot remain in front of them.
+    if origin and not origin_ok:
+        current_app.logger.warning(
+            "Intake API: rejecting cross-origin POST from %s", origin
+        )
+        return (jsonify(ok=False, error="Origin not allowed"), 403, {})
 
     payload = request.get_json(silent=True) or request.form
     result = _ingest_request(payload or {}, source="website")
@@ -236,7 +251,18 @@ def api_request():
             200, headers)
 
 
-def _cors_headers(origin: str | None) -> dict:
+def _allowed_origins() -> list[str]:
+    """Read the allow-list off `current_app.config` on every request.
+
+    Resolved per-request (not at import time) so that runtime config edits —
+    e.g. tests setting `app.config['INTAKE_CORS_ORIGINS']`, or future
+    admin tooling — take effect immediately. The list itself is still
+    seeded once from `INTAKE_CORS_ORIGINS` in `app/config.py`.
+    """
+    return list(current_app.config.get("INTAKE_CORS_ORIGINS") or [])
+
+
+def _cors_headers(origin: str | None, allowed: list[str] | None = None) -> dict:
     """Build CORS headers for the given request Origin (issue #4).
 
     Echoes the Origin back only when it appears in the configured allow-list
@@ -250,7 +276,8 @@ def _cors_headers(origin: str | None) -> dict:
         "Access-Control-Allow-Headers": "Content-Type",
         "Vary": "Origin",
     }
-    allowed = current_app.config.get("INTAKE_CORS_ORIGINS") or []
+    if allowed is None:
+        allowed = _allowed_origins()
     if origin and origin in allowed:
         base["Access-Control-Allow-Origin"] = origin
     return base

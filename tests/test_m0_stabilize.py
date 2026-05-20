@@ -224,22 +224,37 @@ class TestIssue4IntakeCORS:
         assert r.status_code == 403
         assert "Access-Control-Allow-Origin" not in r.headers
 
-    def test_post_from_denied_origin_omits_acao(self, client, app):
-        """Non-allowed POSTs still execute (the API stays public for
-        the HTML form), but the browser gets no ACAO header so a cross-
-        origin caller can't read the response."""
+    def test_post_from_denied_origin_is_403_and_writes_nothing(self, client, app):
+        """A cross-origin POST from a disallowed Origin must NOT create
+        any Client/Property/Quote rows — pre-fix the request still flowed
+        through `_ingest_request` and we only suppressed the ACAO header,
+        which left the DB open to drive-by writes from anywhere on the
+        web. See PR #16 review notes (`docs/pr-16-m0-stabilize-review-notes.md`).
+        """
         self._set_allowlist(app, ["https://lakewoodoriginal.com"])
+        before_clients = db.session.query(Client).count()
+        before_quotes = db.session.query(Quote).count()
+        before_props = db.session.query(Property).count()
+
         r = client.post(
             "/intake/api/request",
             json={
-                "name": "Test Person",
-                "phone": "2165550100",
-                "description": "hello world",
+                "name": "Evil Person",
+                "phone": "2165559999",
+                "description": "drive-by intake from a bad origin",
+                "address": "1 Evil Way",
+                "city": "Cleveland",
+                "zip": "44113",
             },
             headers={"Origin": "https://evil.example.com"},
         )
-        assert r.status_code in (200, 400)
+        assert r.status_code == 403
         assert "Access-Control-Allow-Origin" not in r.headers
+
+        # Nothing got written
+        assert db.session.query(Client).count() == before_clients
+        assert db.session.query(Quote).count() == before_quotes
+        assert db.session.query(Property).count() == before_props
 
     def test_post_from_allowed_origin_includes_acao(self, client, app):
         self._set_allowlist(app, ["https://lakewoodoriginal.com"])
@@ -254,6 +269,23 @@ class TestIssue4IntakeCORS:
         )
         assert r.status_code in (200, 400)
         assert r.headers.get("Access-Control-Allow-Origin") == "https://lakewoodoriginal.com"
+
+    def test_post_with_no_origin_header_still_ingests(self, client, app):
+        """Server-to-server or HTML-self-host posts don't send an Origin
+        header. Those should still go through (the rate limiter +
+        honeypot stay in front of them) so the public form keeps working."""
+        self._set_allowlist(app, ["https://lakewoodoriginal.com"])
+        before = db.session.query(Quote).count()
+        r = client.post(
+            "/intake/api/request",
+            json={
+                "name": "Server Caller",
+                "phone": "2165550101",
+                "description": "no-origin call should still ingest",
+            },
+        )
+        assert r.status_code == 200
+        assert db.session.query(Quote).count() == before + 1
 
 
 # =============================================================
@@ -344,3 +376,68 @@ class TestIssue5SyncAllBackgrounded:
             runner._state.started_at = None
         started = runner.start_sync_all(app)
         assert started is False
+
+    def test_concurrent_starts_only_one_thread_wins(self, app, monkeypatch):
+        """Genuine concurrency probe for the TOCTOU race in start_sync_all.
+
+        Pre-fix the function released `_state_lock` between the running
+        check and the reset/start, so two callers racing into the
+        function could both observe `running=False`, both reset state,
+        and both spawn a daemon thread. This regression test runs many
+        threads at once and asserts at most one wins.
+
+        We make the background body cheap and instrumented so we can
+        also count how many real worker threads got launched — not just
+        how many `start_sync_all` return values were truthy.
+        """
+        import threading
+        from app.services import jobber_sync_runner as runner
+
+        thread_starts = []
+        original_do_run = runner._do_run
+
+        def slow_do_run(app_, sleep_fn):
+            # Record the thread, then briefly hold the "running" state so
+            # the race window is observable from sibling threads.
+            thread_starts.append(threading.current_thread().name)
+            # Tiny sleep so the workers overlap rather than all finishing
+            # before the next caller arrives.
+            import time as _t
+            _t.sleep(0.05)
+            original_do_run(app_, sleep_fn)
+
+        monkeypatch.setattr(runner, "_do_run", slow_do_run)
+        self._patch_stages(monkeypatch)
+
+        # Many callers, all racing to start the same sync at once.
+        N = 16
+        barrier = threading.Barrier(N)
+        results: list[bool] = [False] * N
+
+        def caller(i: int):
+            barrier.wait()  # synchronize the storm
+            results[i] = runner.start_sync_all(app, sleep_fn=lambda _s: None)
+
+        threads = [threading.Thread(target=caller, args=(i,)) for i in range(N)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5)
+
+        # Wait for any background worker(s) to drain so we don't leak
+        # state into the next test.
+        for _ in range(50):
+            if not runner.get_state().running:
+                break
+            import time as _t
+            _t.sleep(0.05)
+
+        winners = sum(1 for r in results if r)
+        assert winners == 1, (
+            f"expected exactly one start_sync_all to win, got {winners}; "
+            f"results={results}"
+        )
+        assert len(thread_starts) == 1, (
+            f"expected exactly one background worker thread, got "
+            f"{len(thread_starts)}: {thread_starts}"
+        )

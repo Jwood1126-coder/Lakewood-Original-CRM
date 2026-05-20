@@ -71,15 +71,23 @@ def get_state() -> SyncAllState:
         )
 
 
-def _reset_for_new_run(started_by: str | None) -> None:
-    with _state_lock:
-        _state.running = True
-        _state.started_at = datetime.utcnow()
-        _state.finished_at = None
-        _state.current_stage = None
-        _state.results = []
-        _state.error = None
-        _state.started_by = started_by
+def _reset_for_new_run_locked(started_by: str | None) -> None:
+    """Mutate state in place. Caller MUST already hold `_state_lock`.
+
+    Inlining the reset under the existing lock (instead of acquiring it
+    a second time) lets `start_sync_all`/`run_sync_all_inline` do the
+    "is anyone running?" check and the "claim the slot" write as one
+    atomic step. Two concurrent POSTs to `/jobber/sync/all` previously
+    raced between releasing the lock for the check and re-acquiring it
+    here to set `running = True`, which let both callers start a thread.
+    """
+    _state.running = True
+    _state.started_at = datetime.utcnow()
+    _state.finished_at = None
+    _state.current_stage = None
+    _state.results = []
+    _state.error = None
+    _state.started_by = started_by
 
 
 def _set_stage(stage: str | None) -> None:
@@ -189,11 +197,16 @@ def start_sync_all(app: Flask, started_by: str | None = None,
 
     Returns True if a new run was started, False if one was already in
     progress (the caller can then surface progress via get_state()).
+
+    The "is a run already going?" check and the "claim the running slot"
+    write are performed under a single critical section so two concurrent
+    POSTs to `/jobber/sync/all` can never both see `running=False` and
+    spawn two daemon threads.
     """
     with _state_lock:
         if _state.running:
             return False
-    _reset_for_new_run(started_by)
+        _reset_for_new_run_locked(started_by)
 
     t = threading.Thread(
         target=_do_run,
@@ -215,7 +228,7 @@ def run_sync_all_inline(app: Flask,
     with _state_lock:
         if _state.running:
             return get_state()
-    _reset_for_new_run("inline")
+        _reset_for_new_run_locked("inline")
     _do_run(app, sleep_fn)
     return get_state()
 
