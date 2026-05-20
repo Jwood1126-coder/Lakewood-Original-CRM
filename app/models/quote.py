@@ -33,6 +33,18 @@ QUOTE_STATUS_LABELS = {
     "converted": "Converted",
 }
 
+# Allowed quote status transitions. Mirrors the protections on Job/Invoice
+# so the UI can't drive nonsensical transitions (e.g. draft → converted,
+# or moving anything off of `converted`, which would orphan the linked Job).
+_QUOTE_ALLOWED_TRANSITIONS = {
+    "draft":     {"sent", "declined"},
+    "sent":      {"draft", "accepted", "declined", "expired", "converted"},
+    "accepted":  {"sent", "declined", "converted"},
+    "declined":  {"draft", "sent"},                              # reopen
+    "expired":   {"draft", "sent"},                              # renew
+    "converted": set(),                                          # terminal
+}
+
 
 class Quote(db.Model):
     __tablename__ = "quotes"
@@ -148,6 +160,25 @@ class Quote(db.Model):
         suffix = "AM" if h < 12 else "PM"
         h12 = h if 1 <= h <= 12 else (12 if h == 0 else h - 12)
         return f"{h12}:{m:02d} {suffix}"
+
+    def can_transition_to(self, new_status: str) -> bool:
+        """Gate quote status changes from the UI (issue #3).
+
+        Returns True only if `new_status` is a valid quote status AND the
+        transition is allowed from `self.status`. Same-status no-ops return
+        False so callers can decide whether to surface a friendly message
+        instead of silently re-writing the row.
+        """
+        if new_status not in QUOTE_STATUSES:
+            return False
+        return new_status in _QUOTE_ALLOWED_TRANSITIONS.get(self.status, set())
+
+    def transition_to(self, new_status: str) -> None:
+        if not self.can_transition_to(new_status):
+            raise ValueError(
+                f"Cannot transition quote {self.id} from {self.status!r} to {new_status!r}"
+            )
+        self.status = new_status
 
     @staticmethod
     def next_number(session) -> int:

@@ -141,6 +141,23 @@ class Config:
     GMAIL_CLIENT_SECRET = os.environ.get("GMAIL_CLIENT_SECRET")
     GMAIL_REDIRECT_URI = os.environ.get("GMAIL_REDIRECT_URI")
 
+    # --- Intake CORS allow-list (issue #4) ---
+    # Comma-separated list of origins permitted to POST to /intake/api/request.
+    # Each entry must be a full origin (scheme://host[:port]) — no wildcards,
+    # no path. Origins that aren't on this list get no Access-Control-Allow-Origin
+    # header, so browsers reject the cross-origin response.
+    # Defaults cover the live site + www + localhost dev. Override in prod via
+    # INTAKE_CORS_ORIGINS env var to add a staging origin, etc.
+    INTAKE_CORS_ORIGINS = [
+        o.strip() for o in os.environ.get(
+            "INTAKE_CORS_ORIGINS",
+            "https://lakewoodoriginal.com,"
+            "https://www.lakewoodoriginal.com,"
+            "http://localhost:8000,"
+            "http://127.0.0.1:8000",
+        ).split(",") if o.strip()
+    ]
+
     # --- Jobber API (one-shot data migration; OAuth flow) ---
     JOBBER_CLIENT_ID = os.environ.get("JOBBER_CLIENT_ID")
     JOBBER_CLIENT_SECRET = os.environ.get("JOBBER_CLIENT_SECRET")

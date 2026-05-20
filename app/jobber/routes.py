@@ -226,71 +226,39 @@ def sync_invoices_route():
 @bp.route("/sync/all", methods=["POST"])
 @login_required
 def sync_all_route():
-    """Pull everything in dependency order: clients first, then jobs/
-    quotes/invoices. Each step is independent; if one fails the others
-    still try."""
-    results = []
+    """Kick off the full Jobber pull on a background thread (issue #5).
 
-    # Clients (reuses the existing endpoint's logic)
-    try:
-        from app.services.jobber import fetch_all_clients
-        from scripts.import_jobber_clients import (
-            ClientImport, PropertyImport, write_clients,
-        )
-        api_rows = fetch_all_clients(page_size=50)
-        parsed = []
-        for row in api_rows:
-            ci = ClientImport(
-                jobber_client_id=row["jobber_client_id"], name=row["name"],
-                phone=row["phone"], email=row["email"],
-                is_company=row["is_company"], company_name=row["company_name"],
-                contact_first=row["contact_first"], contact_last=row["contact_last"],
-                lead_source=row["lead_source"], referred_by=row["referred_by"],
-                created_at=row["created_at"],
-                custom_fields=row.get("custom_fields") or {},
-            )
-            for p in row["properties"]:
-                ci.properties.append(PropertyImport(
-                    label=p["label"], address_line1=p["address_line1"],
-                    address_line2=p["address_line2"], city=p["city"],
-                    state=p["state"], zip_code=p["zip_code"],
-                    county=p["county"], tax_rate=p["tax_rate"],
-                    jobber_property_id=p.get("jobber_property_id"),
-                    custom_fields=p.get("custom_fields") or {},
-                ))
-            parsed.append(ci)
-        r = write_clients(parsed, commit=True)
-        s = r["stats"]
-        results.append(
-            f"Clients +{s['clients_created']} (skipped {s['clients_skipped_existing']}, "
-            f"backfilled {s.get('clients_updated', 0)} client + {s.get('properties_updated', 0)} property custom fields); "
-            f"properties +{s['properties_created']}"
-        )
-    except Exception as e:
-        current_app.logger.exception("All-sync clients step failed")
-        results.append(f"Clients FAILED: {e}")
+    The end-to-end sequence sleeps 90s between stages plus does real
+    GraphQL work, which exceeded Railway/Gunicorn's 120s timeout when
+    run in-request. We now start a daemon thread and let the UI poll
+    `/jobber/sync/all/status` for progress.
+    """
+    from flask_login import current_user
+    from app.services.jobber_sync_runner import start_sync_all, get_state
 
-    import time
-    for label, fn_name in [("Jobs", "sync_jobs"),
-                            ("Quotes", "sync_quotes"),
-                            ("Invoices+Payments", "sync_invoices")]:
-        # Cool-down between stages — Jobber's bucket needs ~30s to refill
-        # enough to handle the next stage cleanly.
-        time.sleep(30)
-        try:
-            from app.services import jobber_sync as js
-            s = getattr(js, fn_name)()
-            extra = (f", payments +{s['payments_created']}"
-                     if 'payments_created' in s else "")
-            results.append(
-                f"{label} +{s['created']} (skipped {s['skipped_existing']}){extra}"
-            )
-        except Exception as e:
-            current_app.logger.exception("All-sync %s step failed", label)
-            results.append(f"{label} FAILED: {e}")
-
-    flash(" · ".join(results), "success")
+    started = start_sync_all(
+        current_app._get_current_object(),
+        started_by=getattr(current_user, "email", None),
+    )
+    if not started:
+        state = get_state()
+        stage = state.current_stage or "in progress"
+        flash(f"A full Jobber sync is already running ({stage}). "
+              f"Refresh in a minute to see results.", "info")
+    else:
+        flash("Started full Jobber sync. This runs in the background "
+              "(~2–3 min) — leave this page open or refresh to see progress.",
+              "info")
     return redirect(url_for("jobber.index"))
+
+
+@bp.route("/sync/all/status")
+@login_required
+def sync_all_status():
+    """Return the current background sync state as JSON for UI polling."""
+    from flask import jsonify
+    from app.services.jobber_sync_runner import get_state
+    return jsonify(get_state().to_dict())
 
 
 @bp.route("/disconnect", methods=["POST"])

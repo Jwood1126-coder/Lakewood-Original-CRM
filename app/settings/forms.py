@@ -112,6 +112,12 @@ class NotificationForm(FlaskForm):
     # Channels
     email_channel   = BooleanField("Email channel (in addition to in-app)",
                                     default=True)
+    notify_email_to = StringField(
+        "Send email to (comma-separate for multiple)",
+        validators=[Optional(), Length(max=500)],
+        render_kw={"placeholder": "you@gmail.com, you@outlook.com"},
+    )
+    submit = SubmitField("Save notification preferences")
 
 
 class JobberClientsImportForm(FlaskForm):
@@ -132,9 +138,3 @@ class JobberClientsImportForm(FlaskForm):
         "Yes, write to the database (uncheck for dry-run preview)", default=False
     )
     submit = SubmitField("Import")
-    notify_email_to = StringField(
-        "Send email to (comma-separate for multiple)",
-        validators=[Optional(), Length(max=500)],
-        render_kw={"placeholder": "you@gmail.com, you@outlook.com"},
-    )
-    submit = SubmitField("Save notification preferences")
